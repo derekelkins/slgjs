@@ -1,0 +1,20 @@
+{
+    "compilerOptions": {
+        "removeComments": true,
+        "sourceMap": true,
+        "alwaysStrict": true,
+        "strict": true,
+        "downlevelIteration": true,
+        "noUnusedLocals": true,
+        "target": "es5",
+        "lib": [
+            "es2015.generator",
+            "es2015.Iterable",
+            "es5",
+            "dom"
+        ]
+    },
+    "files": [
+        "rel.ts"
+    ]
+}
