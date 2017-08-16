@@ -1,5 +1,6 @@
 {
     "compilerOptions": {
+        "module": "umd",
         "removeComments": true,
         "sourceMap": true,
         "alwaysStrict": true,
@@ -7,6 +8,7 @@
         "downlevelIteration": true,
         "noUnusedLocals": true,
         "target": "es5",
+        "outDir": "out",
         "lib": [
             "es2015.generator",
             "es2015.Iterable",
@@ -15,6 +17,7 @@
         ]
     },
     "files": [
-        "rel.ts"
+        "rel.ts",
+        "puf.ts"
     ]
 }
