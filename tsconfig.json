@@ -14,7 +14,5 @@
             "dom"
         ]
     },
-    "files": [
-        "rel.ts"
-    ]
+    "rootDir": "./"
 }
