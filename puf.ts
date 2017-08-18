@@ -78,7 +78,52 @@ class ArrayCell<A> implements PersistentArray<A> {
     }
 }
 
-class ImmediateArray<A> implements InternalPersistentArray<A> {
+class PersistentImmediateArray<A> implements InternalPersistentArray<A> {
+    constructor(private baseArray: Array<A>, private init: (i: number) => A) {
+        const len = baseArray.length;
+        for(let i = 0; i < len; ++i ){
+            baseArray[i] = init(i);
+        }
+    }
+
+    private grow(): void {
+        const arr = this.baseArray;
+        const len = arr.length;
+        const newSize = 2*len;
+        arr.length = newSize;
+        for(let i = len; i < newSize; ++i) {
+            arr[i] = this.init(i);
+        }
+    }
+
+    get(cell: ArrayCell<A>, index: number): A {
+        const arr = this.baseArray;
+        if(index >= arr.length) { return this.init(index); }
+        return arr[index];
+    }
+    
+    set(cell: ArrayCell<A>, index: number, value: A): PersistentArray<A> {
+        const arr = this.baseArray;
+        if(index >= arr.length) { this.grow(); }
+        const old = arr[index];
+        arr[index] = value;
+        const res = new ArrayCell<A>(this);
+        cell.contents = new DiffArray<A>(index, old, res);
+        return res;
+    }
+
+    reroot(cell: ArrayCell<A>): void { /* do nothing */ }
+    
+    // Persistent
+    rerootAux(i: number, v: A, t: ArrayCell<A>, t2: ArrayCell<A>): void {
+        const v2 = this.baseArray[i];
+        this.baseArray[i] = v;
+        t.contents = this;
+        t2.contents = new DiffArray(i, v2, t);
+    }
+}
+
+class SemiPersistentImmediateArray<A> implements InternalPersistentArray<A> {
     constructor(private baseArray: Array<A>, private init: (i: number) => A) {
         const len = baseArray.length;
         for(let i = 0; i < len; ++i ){
@@ -120,16 +165,6 @@ class ImmediateArray<A> implements InternalPersistentArray<A> {
         t.contents = this;
         t2.contents = <InvalidArray<A>>InvalidArray.IT;
     }
-
-    /*
-    // Persistent
-    rerootAux(i: number, v: A, t: ArrayCell<A>, t2: ArrayCell<A>): void {
-        const v2 = this.baseArray[i];
-        this.baseArray[i] = v;
-        t.contents = this;
-        t2.contents = new DiffArray(i, v2, t);
-    }
-    */
 }
 
 class DiffArray<A> implements InternalPersistentArray<A> {
@@ -177,10 +212,18 @@ class InvalidArray<A> implements InternalPersistentArray<A> {
 }
 
 export default class PersistentUnionFind<A> implements UnionFind<A> {
-    static create<A>(initialCapacity: number): PersistentUnionFind<A> {
+    static createPersistent<A>(initialCapacity: number): PersistentUnionFind<A> {
         const ranks = new Array<number>(initialCapacity);
         const reps = new Array<Variable<A>>(initialCapacity);
-        return new PersistentUnionFind(new ArrayCell(new ImmediateArray(ranks, () => 0)), new ArrayCell(new ImmediateArray(reps, i => new Variable<A>(i))));
+        return new PersistentUnionFind(new ArrayCell(new PersistentImmediateArray(ranks, () => 0)), 
+                                       new ArrayCell(new PersistentImmediateArray(reps, i => new Variable<A>(i))));
+    }
+
+    static createSemiPersistent<A>(initialCapacity: number): PersistentUnionFind<A> {
+        const ranks = new Array<number>(initialCapacity);
+        const reps = new Array<Variable<A>>(initialCapacity);
+        return new PersistentUnionFind(new ArrayCell(new SemiPersistentImmediateArray(ranks, () => 0)), 
+                                       new ArrayCell(new SemiPersistentImmediateArray(reps, i => new Variable<A>(i))));
     }
 
     private constructor(private readonly ranks: PersistentArray<number>, private parents: PersistentArray<Variable<A>>) {}

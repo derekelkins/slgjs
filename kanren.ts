@@ -194,7 +194,7 @@ export function fresh<C,R>(count: number, body: (...vs: Array<Term<C>>) => LP<R>
 }
 
 export function* runLP<C>(body: (q: Term<C>) => LP<C>): Iterable<Term<C>> {
-    const [[q], s] = Substitution.empty<Term<C>>().fresh(1);
+    const [[q], s] = Substitution.emptySemiPersistent<Term<C>>().fresh(1);
     const vq = new Var<C>(q);
     for(let sr of body(vq)(s)) {
         const t = sr.lookup(q);
@@ -206,16 +206,21 @@ export function* runLP<C>(body: (q: Term<C>) => LP<C>): Iterable<Term<C>> {
     }
 }
 
+export function rule<C>(...alternatives: Array<[number, (...vs: Array<Term<C>>) => Array<LP<C>>]>): LP<C> {
+    return disj.apply(null, alternatives.map(([n, cs]) => fresh(n, (...vs) => conj.apply(null, cs.apply(null, vs)))));
+}
+
 const nil: Term<any> = new Const('nil');
 
 function cons<C>(x: Term<C>, xs: Term<C>): Term<C> {
     return new Tuple([x, xs]);
 }
 
-function append<C>(xs: Term<C>, ys: Term<C>, zs: Term<C>): LP<any> {
-    return disj(conj(unify(nil, xs), unify(ys, zs)),
-                fresh(3, (x1, xs1, zs1) =>  
-                    conj(unify(cons(x1, xs1), xs), unify(cons(x1, zs1), zs), append(xs1, ys, zs1))));
+function append<C>(Xs: Term<C>, Ys: Term<C>, Zs: Term<C>): LP<C> {
+    return rule<C>([0, () =>
+                        [unify(nil, Xs), unify(Ys, Zs)]],
+                   [3, (X1, Xs1, Zs1) =>  
+                        [unify(cons(X1, Xs1), Xs), unify(cons(X1, Zs1), Zs), append(Xs1, Ys, Zs1)]]);
 }
 
 function list<C>(...xs: Array<C>): Term<C> {
