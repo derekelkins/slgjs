@@ -1,0 +1,53 @@
+import PUF from "./puf"
+
+export class Variable {
+    constructor(readonly id: number) {}
+}    
+
+export class Substitution<A> {
+    private constructor(private readonly uf: PUF<A>, private readonly nextVariable = 0) {}
+
+    static empty<A>(): Substitution<A> { return new Substitution<A>(PUF.create(100)); }
+
+    fresh(count: number): [Array<Variable>, Substitution<A>] {
+        const nv = this.nextVariable;
+        const newSize = nv + count;
+        const vs = new Array<Variable>(count);
+        for(let i = 0; i < count; ++i) {
+            vs[i] = new Variable(nv + i);
+        }
+        return [vs, new Substitution(this.uf, newSize)];
+    }
+
+    withFresh<R>(count: number, body: (...vs: Array<Variable>) => R):  R {
+        return body.apply(null, this.fresh(count));
+    }
+
+    normalizedId(v: Variable): number {
+        return this.uf.find(v.id).id;
+    }
+
+    lookup(v: Variable): A | number {
+        const x = this.uf.find(v.id);
+        const val = x.value;
+        return val === undefined ? x.id : val;
+    }
+
+    bind(v: Variable, value: A): Substitution<A> {
+        return new Substitution(this.uf.bindValue(v.id, value), this.nextVariable);
+    }
+
+    unifyVar(x: Variable, y: Variable): Substitution<A> | null {
+        const {id: xId, value: xVal} = this.uf.find(x.id);
+        const {id: yId, value: yVal} = this.uf.find(y.id);
+        if(xVal === undefined) {
+            return new Substitution(this.uf.bindVariable(xId, yId), this.nextVariable);
+        } else {
+            if(yVal === undefined) {
+                return new Substitution(this.uf.bindVariable(yId, xId), this.nextVariable);
+            } else {
+                return xVal === yVal ? this : null;
+            }
+        }
+    }
+}

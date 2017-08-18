@@ -1,35 +1,61 @@
 // From "A Persistent Union-Find Data Structure" by Conchon and Filliatre
 
-interface UnionFind {
-    find(id: number): number;
-    union(x: number, y: number): UnionFind;
+class Variable<A> {
+    constructor(readonly id: number, readonly value?: A) {}
+    bind(v: A): Variable<A> { 
+        if(this.value !== undefined) throw new Error('Variable: binding already bound variable.'); // ASSERTION
+        return new Variable(this.id, v); 
+    }
+    get isBound(): boolean { return this.value !== undefined; }
 }
 
-class NaiveUnionFind implements UnionFind {
-    static create(): NaiveUnionFind {
+export interface UnionFind<A> {
+    find(id: number): Variable<A>;
+    bindValue(id: number, value: A): UnionFind<A>;
+    bindVariable(x: number, y: number): UnionFind<A>
+}
+
+export class NaiveUnionFind<A> implements UnionFind<A> {
+    static create<A>(): NaiveUnionFind<A> {
         return new NaiveUnionFind([]);
     }
 
-    private constructor(private readonly mapping: Array<number>) {}
+    private constructor(private readonly mapping: Array<Variable<A>>) {}
 
-    find(id: number): number {
+    private grow(): void {
+        this.mapping.length *= 2;
+    }
+
+    find(id: number): Variable<A> {
+        if(id >= this.mapping.length) { this.grow(); }
         let prev = id;
         do {
             const curr = this.mapping[prev];
-            if(curr === undefined) return prev;
-            prev = curr;
+            if(curr === undefined) return new Variable(prev);
+            prev = curr.id;
         } while(true);
     }
 
-    union(x: number, y: number): UnionFind {
+    bindValue(id: number, value: A): UnionFind<A> {
+        const v = this.find(id);
+        const m = this.mapping.slice();
+        if(v.isBound) throw new Error('NaiveUnionFind.bindValue: binding variable that has already been bound.'); // ASSERTION
+        m[id] = v.bind(value);
+        return new NaiveUnionFind(m);
+    }
+
+    bindVariable(x: number, y: number): UnionFind<A> {
         const rx = this.find(x);
+        if(rx.isBound) throw new Error('NaiveUnionFind.bindVariable: binding variable that has already been bound.'); // ASSERTION
         const ry = this.find(y);
         const m = this.mapping.slice();
-        m[rx] = ry;
+        m[rx.id] = ry;
         return new NaiveUnionFind(m);
     }
 }
 
+// This should perform reasonably well for ephemeral usage patterns or for backtracking patterns of use,
+// especially with the adaptation to semi-persistence, and rather poorly when accessing old copies as in linear in the depth of update.
 interface PersistentArray<A> {
     get(index: number): A;
     set(index: number, value: A): PersistentArray<A>;
@@ -42,42 +68,43 @@ interface InternalPersistentArray<A> {
     rerootAux(i: number, v: A, t: ArrayCell<A>, t2: ArrayCell<A>): void;
 }
 
-class NaivePersistentArray<A> implements PersistentArray<A> {
-    private readonly data: Array<A>;
-    constructor(size: number, init: (index: number) => A) {
-        this.data = new Array<A>(size);
-        for(let i = 0; i < size; i++) {
-            this.data[i] = init(i);
-        }
-    }
-
-    get(index: number): A {
-        return this.data[index];
-    }
-
-    set(index: number, value: A): PersistentArray<A> {
-        const d = this.data;
-        return new NaivePersistentArray(d.length, i => d[i]);
-    }
-}
-
 class ArrayCell<A> implements PersistentArray<A> {
     constructor(public contents: InternalPersistentArray<A>) {}
 
     get(index: number): A { return this.contents.get(this, index); }
 
-    set(index: number, value: A): PersistentArray<A> { this.contents.reroot(this); return this.contents.set(this, index, value); }
+    set(index: number, value: A): PersistentArray<A> { 
+        this.contents.reroot(this); return this.contents.set(this, index, value); 
+    }
 }
 
 class ImmediateArray<A> implements InternalPersistentArray<A> {
-    constructor(private baseArray: Array<A>) {}
+    constructor(private baseArray: Array<A>, private init: (i: number) => A) {
+        const len = baseArray.length;
+        for(let i = 0; i < len; ++i ){
+            baseArray[i] = init(i);
+        }
+    }
+
+    private grow(): void {
+        const arr = this.baseArray;
+        const len = arr.length;
+        const newSize = 2*len;
+        arr.length = newSize;
+        for(let i = len; i < newSize; ++i) {
+            arr[i] = this.init(i);
+        }
+    }
 
     get(cell: ArrayCell<A>, index: number): A {
-        return this.baseArray[index];
+        const arr = this.baseArray;
+        if(index >= arr.length) { return this.init(index); }
+        return arr[index];
     }
     
     set(cell: ArrayCell<A>, index: number, value: A): PersistentArray<A> {
         const arr = this.baseArray;
+        if(index >= arr.length) { this.grow(); }
         const old = arr[index];
         arr[index] = value;
         const res = new ArrayCell<A>(this);
@@ -86,12 +113,23 @@ class ImmediateArray<A> implements InternalPersistentArray<A> {
     }
 
     reroot(cell: ArrayCell<A>): void { /* do nothing */ }
+    
+    // Semi-persistent
+    rerootAux(i: number, v: A, t: ArrayCell<A>, t2: ArrayCell<A>): void {
+        this.baseArray[i] = v;
+        t.contents = this;
+        t2.contents = <InvalidArray<A>>InvalidArray.IT;
+    }
+
+    /*
+    // Persistent
     rerootAux(i: number, v: A, t: ArrayCell<A>, t2: ArrayCell<A>): void {
         const v2 = this.baseArray[i];
         this.baseArray[i] = v;
         t.contents = this;
         t2.contents = new DiffArray(i, v2, t);
     }
+    */
 }
 
 class DiffArray<A> implements InternalPersistentArray<A> {
@@ -103,7 +141,7 @@ class DiffArray<A> implements InternalPersistentArray<A> {
     }
 
     set(cell: ArrayCell<A>, index: number, value: A): PersistentArray<A> {
-        throw 'DiffArray.set: we should never get here.';
+        throw new Error('DiffArray.set: we should never get here.'); // ASSERTION
     }
 
     reroot(t: ArrayCell<A>): void {
@@ -113,37 +151,51 @@ class DiffArray<A> implements InternalPersistentArray<A> {
     }
 
     rerootAux(i: number, v: A, t: ArrayCell<A>, t2: ArrayCell<A>): void {
-        throw 'DiffArray.rerootAux: we should never get here.';
+        throw new Error('DiffArray.rerootAux: we should never get here.'); // ASSERTION
     }
 }
 
-export default class PersistentUnionFind implements UnionFind {
-    static createNaive(size: number): PersistentUnionFind {
-        return new PersistentUnionFind(new NaivePersistentArray(size, () => 0), new NaivePersistentArray(size, i => i));
+class InvalidArray<A> implements InternalPersistentArray<A> {
+    static IT: InvalidArray<any> = new InvalidArray();
+    private constructor() {}
+
+    get(t: ArrayCell<A>, index: number): A {
+        throw new Error('Attempt to access Invalid semi-persistent array.');
     }
 
-    static create(size: number): PersistentUnionFind {
-        const ranks = new Array<number>(size);
-        const reps = new Array<number>(size);
-        for(let i = 0; i < size; ++i) {
-            ranks[i] = 0;
-            reps[i] = i;
-        }
-        return new PersistentUnionFind(new ArrayCell(new ImmediateArray(ranks)), new ArrayCell(new ImmediateArray(reps)));
+    set(cell: ArrayCell<A>, index: number, value: A): PersistentArray<A> {
+        throw new Error('Attempt to mutate Invalid semi-persistent array.');
     }
 
-    private constructor(private readonly rank: PersistentArray<number>, private parent: PersistentArray<number>) {}
+    reroot(t: ArrayCell<A>): void {
+        throw new Error('Attempt to reroot Invalid semi-persistent array.');
+    }
 
-    find(id: number): number {
+    rerootAux(i: number, v: A, t: ArrayCell<A>, t2: ArrayCell<A>): void {
+        throw new Error('Attempt to rerootAux Invalid semi-persistent array.'); // ASSERTION
+    }
+}
+
+export default class PersistentUnionFind<A> implements UnionFind<A> {
+    static create<A>(initialCapacity: number): PersistentUnionFind<A> {
+        const ranks = new Array<number>(initialCapacity);
+        const reps = new Array<Variable<A>>(initialCapacity);
+        return new PersistentUnionFind(new ArrayCell(new ImmediateArray(ranks, () => 0)), new ArrayCell(new ImmediateArray(reps, i => new Variable<A>(i))));
+    }
+
+    private constructor(private readonly ranks: PersistentArray<number>, private parents: PersistentArray<Variable<A>>) {}
+
+    find(id: number): Variable<A> {
         const [f, cx] = this.findAux(id);
-        this.parent = f;
+        this.parents = f;
         return cx;
     }
 
-    private findAux(i: number): [PersistentArray<number>, number] {
-        const fi = this.parent.get(i);
+    private findAux(i: number): [PersistentArray<Variable<A>>, Variable<A>] {
+        const v2 = this.parents.get(i);
+        const fi = v2.id;
         if(fi === i) {
-            return [this.parent, i];
+            return [this.parents, v2];
         } else {
             const t = this.findAux(fi);
             t[0] = t[0].set(i, t[1]);
@@ -151,18 +203,28 @@ export default class PersistentUnionFind implements UnionFind {
         }
     }
 
-    union(x: number, y: number): PersistentUnionFind {
-        const cx = this.find(x);
-        const cy = this.find(y);
+    bindValue(id: number, value: A): PersistentUnionFind<A> {
+        const v = this.find(id);
+        if(v.isBound) throw new Error('PersistentUnionFind.bindValue: binding to variable that is already bound.'); // ASSERTION
+        return new PersistentUnionFind(this.ranks, this.parents.set(v.id, v.bind(value)));
+    }
+
+    bindVariable(x: number, y: number): PersistentUnionFind<A> {
+        const vx = this.find(x);
+        if(vx.isBound) throw new Error('PersistentUnionFind.bindVariable: binding to variable that is already bound.'); // ASSERTION
+        const vy = this.find(y);
+        const cx = vx.id;
+        const cy = vy.id;
         if (cx !== cy) {
-            const rx = this.rank.get(cx);
-            const ry = this.rank.get(cy);
+            const rx = this.ranks.get(cx);
+            const ry = this.ranks.get(cy);
             if (rx > ry) {
-                return new PersistentUnionFind(this.rank, this.parent.set(cy, cx));
+                const yVal = vy.value;
+                return new PersistentUnionFind(this.ranks, this.parents.set(cy, yVal === undefined ? vx : vx.bind(yVal)));
             } else if(rx < ry) {
-                return new PersistentUnionFind(this.rank, this.parent.set(cx, cy));
+                return new PersistentUnionFind(this.ranks, this.parents.set(cx, vy));
             } else {
-                return new PersistentUnionFind(this.rank.set(cx, rx+1), this.parent.set(cy, cx));
+                return new PersistentUnionFind(this.ranks.set(cy, ry+1), this.parents.set(cx, vy));
             }
         } else {
             return this;

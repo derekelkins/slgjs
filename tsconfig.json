@@ -18,6 +18,10 @@
     },
     "files": [
         "rel.ts",
-        "puf.ts"
+        "puf.ts",
+        "rel.test.ts",
+        "jsqc.ts",
+        "unify.ts",
+        "kanren.ts"
     ]
 }
