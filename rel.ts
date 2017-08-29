@@ -26,9 +26,9 @@ function makeIterableJoinable<T1, V1 extends Map<T1>>(it: Iterable<V1>): Joinabl
 }
 
 function *joinImpl<T1, V1 extends Map<T1>, T2, V2 extends Map<T2>, R>(left: Iterable<V1>, right: Table<T2, V2>, columns: Array<string>, joinFn: (left: V1, right: V2) => R | undefined): Iterable<R> {
-    for(let row of left) {
+    for(const row of left) {
         const keys = columns.map(v => [v, row[v]]);
-        for(let rightRow of right.fetchGen.apply(right, keys)) {
+        for(const rightRow of right.fetchGen.apply(right, keys)) {
             const result = joinFn(row, rightRow);
             if(result !== undefined) yield result;
         }
@@ -58,7 +58,7 @@ export default class Table<T, V extends Map<T>> implements Joinable<T, V>{
 
     insert(row: V): void {
         this.rows.push(row);
-        for(let k in this.pathSpec) {
+        for(const k in this.pathSpec) {
             const val = row[k];
             let index = this.indexes[k];
             if(index === undefined) this.indexes[k] = index = {};
@@ -100,7 +100,7 @@ export default class Table<T, V extends Map<T>> implements Joinable<T, V>{
         }
 
         if (i < keyLen) {
-            for(let row of data.rows) {
+            for(const row of data.rows) {
                 let j = i;
                 for(; j < keyLen; j++) {
                     const [key, val] = keys[j];
@@ -128,7 +128,7 @@ export default class Table<T, V extends Map<T>> implements Joinable<T, V>{
         }
 
         if (i < keyLen) {
-            for(let row of data.rows) {
+            for(const row of data.rows) {
                 let j = i;
                 for(; j < keyLen; j++) {
                     const [key, val] = keys[j];

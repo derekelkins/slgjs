@@ -196,7 +196,7 @@ export function fresh<C,R>(count: number, body: (...vs: Array<Term<C>>) => LP<R>
 export function* runLP<C>(body: (q: Term<C>) => LP<C>): Iterable<Term<C>> {
     const [[q], s] = Substitution.emptySemiPersistent<Term<C>>().fresh(1);
     const vq = new Var<C>(q);
-    for(let sr of body(vq)(s)) {
+    for(const sr of body(vq)(s)) {
         const t = sr.lookup(q);
         if(typeof t === 'number') {
             yield vq;
@@ -231,6 +231,6 @@ function list<C>(...xs: Array<C>): Term<C> {
     return ys;
 }
 
-for(let t of runLP(q => fresh(2, (l,r) => conj(unify(cons(l,r), q), append(l, r, list(1,2,3,4,5)))))) {
+for(const t of runLP(q => fresh(2, (l,r) => conj(unify(cons(l,r), q), append(l, r, list(1,2,3,4,5)))))) {
     console.log(t.toString());
 }
