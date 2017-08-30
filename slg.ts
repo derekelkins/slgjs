@@ -125,12 +125,11 @@ type LP<S, A> = (sk: (value: A, fk: () => void) => void, fk: () => void) => (sub
 
 function conj<S>(...cs: Array<LP<S, S>>): LP<S, S> {
     return (sk, fk) => {
-        let k = sk;
+        let k = (s: S) => sk(s, fk);
         for(let i = cs.length - 1; i >= 0; --i) {
-            const c = cs[i](k, fk);
-            k = (s, _) => c(s);
+            k = cs[i](k, fk);
         }
-        return s => k(s, fk);
+        return k;
     };
 }
 
