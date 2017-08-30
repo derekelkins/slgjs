@@ -81,23 +81,23 @@ const [pathIn, pathOut]: [ReceiveChan<[Substitution<A>, Tuple<A>, FailingChan<Su
 SendChan<[Substitution<A>, Tuple<A>, FailingChan<Substitution<A>>]>] = makeTabledChannel();
 const edgeIn: ReceiveChan<[Substitution<A>, Tuple<A>, Chan<Tuple<A>>]> = makeChannelFromTable(edgeTable);
 spawn(() => {
-spawn(() => {
-const [sub, t, responseChan] = pathIn.receive();
-edgeIn.send([sub, t, responseChan]);
-});
-const [sub1, {start: x, end: z}, responseChan] = pathIn.receive();
-const [eIn, eOut] = makeFailingChannel();
-const [y, sub2] = fresh(sub1);
-edgeIn.send([sub2, {start: x, end: y}, eOut]);
-const sub3 = eIn.receive():
-pathOut.send([sub3, {start: y, end: z}, responseChan]);
+    spawn(() => {
+        const [sub, t, responseChan] = pathIn.receive();
+        edgeIn.send([sub, t, responseChan]);
+    });
+    const [sub1, {start: x, end: z}, responseChan] = pathIn.receive();
+    const [eIn, eOut] = makeFailingChannel();
+    const [y, sub2] = fresh(sub1);
+    edgeIn.send([sub2, {start: x, end: y}, eOut]);
+    const sub3 = eIn.receive():
+    pathOut.send([sub3, {start: y, end: z}, responseChan]);
 });
 
 const [resultIn, resultOut] = makeFailingChannel();
 const [x, sub] = fresh(Susbtitution.empty());
 pathOut.send([sub, {start: 1, end: x}, resultOut]);
 findAll(resultIn);
- */
+*/
 
 interface ReceiveChan<A> {
     receive(): PromiseLike<A>;
@@ -121,24 +121,27 @@ interface Row<V> {
     [index: string]: V | Variable;
 }
 
-type LP<S, A> = (sk: (value: A) => void) => (sub: S) => void;
+type LP<S, A> = (sk: (value: A, fk: () => void) => void, fk: () => void) => (sub: S) => void;
 
 function conj<S>(...cs: Array<LP<S, S>>): LP<S, S> {
-    return sk => {
+    return (sk, fk) => {
         let k = sk;
         for(let i = cs.length - 1; i >= 0; --i) {
-            k = cs[i](k);
+            const c = cs[i](k, fk);
+            k = (s, _) => c(s);
         }
-        return k;
+        return s => k(s, fk);
     };
 }
 
 function disj<S, A>(...ds: Array<LP<S, A>>): LP<S, A> {
-    return sk => s => {
-        const len = ds.length;
-        for(let i = 0; i < len; ++i) {
-            ds[i](sk)(s);
+    return (sk, fk) => s => {
+        let k = fk;
+        for(let i = ds.length - 1; i >= 0; --i) {
+            const d = ds[i](sk, k);
+            k = () => d(s);
         }
+        return k();
     };
 }
 
@@ -169,11 +172,13 @@ function unifyRow<V>(x: Row<V>, y: Row<V>, sub: Substitution<V>): Substitution<V
 }
 
 function unify<V>(x: Row<V>, y: Row<V>): LP<Substitution<V>, Substitution<V>> {
-    return sk => s => {
+    return (sk, fk) => s => {
         const s2 = unifyRow(x, y, s);
         if(s2 !== null) {
-            sk(s2);
-        } // else unification failed, abandon this branch of the call graph
+            sk(s2, fk);
+        } else {
+            fk();
+        }
     };
 }
 
@@ -187,14 +192,18 @@ function groundRow<V>(row: Row<V>, sub: Substitution<V>): Row<V> {
 }
 
 function fresh<V, A>(count: number, body: (...vs: Array<Variable>) => LP<Substitution<V>, A>): LP<Substitution<V>, A> {
-    return sk => s => {
+    return (sk, fk) => s => {
         const [vs, s2] = s.fresh(count);
-        return body.apply(null, vs)(sk)(s2);
+        return body.apply(null, vs)(sk, fk)(s2);
     };
 }
 
 function rule<V>(...alternatives: Array<[number, (...vs: Array<Variable>) => Array<LP<Substitution<V>, Substitution<V>>>]>): LP<Substitution<V>, Substitution<V>> {
     return disj.apply(null, alternatives.map(([n, cs]) => fresh(n, (...vs) => conj.apply(null, cs.apply(null, vs)))));
+}
+
+function findAll<S, A>(s0: S, sk: (value: A) => void, m: LP<S, A>): void {
+    m((v, fk) => { sk(v); fk(); }, () => void(0))(s0);
 }
 
 /*
@@ -215,13 +224,14 @@ class GroundChan<V> implements SendChan<Substitution<V>> {
 */
 
 (function() {
-function example(row: {start: number | Variable, end: number | Variable}, sub: Substitution<number>) {
+function example(row: {start: number | Variable, end: number | Variable}, sub: Substitution<number>): void {
     const X = row.start;
     const Z = row.end;
-    rule<number>(
-        [0, ()  => [unify(row, {start: 1, end: 2})]],
-        [0, ()  => [unify(row, {start: 2, end: 3})]],
-        [1, (Y) => [unify(row, {start: X, end: Y}), unify(row, {start: Y, end: Z})]])(s => console.log(groundRow(row, s)))(sub);
+    findAll(sub, s => console.log(groundRow(row, s)),
+        rule<number>(
+            [0, ()  => [unify(row, {start: 1, end: 2})]],
+            [0, ()  => [unify(row, {start: 2, end: 3})]],
+            [1, (Y) => [unify(row, {start: X, end: Y}), unify(row, {start: Y, end: Z})]]));
 }
 
 const sub: Substitution<number> = Substitution.emptySemiPersistent();
