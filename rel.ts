@@ -6,7 +6,7 @@ data Table k v = Table {
     indexes :: Map k (Map v (Table k v))
   }
 */
-interface Map<V> {
+export interface Map<V> {
     [index: string]: V;
 }
 
@@ -30,7 +30,7 @@ function *joinImpl<T1, V1 extends Map<T1>, T2, V2 extends Map<T2>, R>(left: Iter
         const keys = columns.map(v => [v, row[v]]);
         for(const rightRow of right.fetchGen.apply(right, keys)) {
             const result = joinFn(row, rightRow);
-            if(result !== undefined) yield result;
+            if(result !== void(0)) yield result;
         }
     }
 }
@@ -45,7 +45,7 @@ export default class Table<T, V extends Map<T>> implements Joinable<T, V>{
             let current = pathSpec;
             spec.forEach(field => {
                 let part = current[field];
-                if(part === undefined) current[field] = part = {};
+                if(part === void(0)) current[field] = part = {};
                 current = part;
             });
         });
@@ -61,16 +61,16 @@ export default class Table<T, V extends Map<T>> implements Joinable<T, V>{
         for(const k in this.pathSpec) {
             const val = row[k];
             let index = this.indexes[k];
-            if(index === undefined) this.indexes[k] = index = {};
+            if(index === void(0)) this.indexes[k] = index = {};
             let subTable = index[val.toString()];
-            if(subTable === undefined) index[val.toString()] = subTable = new Table<T, V>(this.pathSpec[k]);
+            if(subTable === void(0)) index[val.toString()] = subTable = new Table<T, V>(this.pathSpec[k]);
             subTable.insert(row);
         }
     }
 
     // TODO: Should probably make an asynchronous version of this.
     static create<T, V extends Map<T>>(rows: Array<V>, indexSpec?: Array<Array<string>>): Table<T, V> {
-        if(indexSpec === undefined) indexSpec = [];
+        if(indexSpec === void(0)) indexSpec = [];
         // TODO: Assert no duplicates in each subarray.
         const pathSpec = Table.makePathSpec(indexSpec);
         const t = new Table<T, V>(pathSpec);
@@ -95,7 +95,7 @@ export default class Table<T, V extends Map<T>> implements Joinable<T, V>{
         for(; i < keyLen; ++i) {
             const [key, val] = keys[i];
             const index = data.indexes[key];
-            if(index === undefined) break;
+            if(index === void(0)) break;
             data = index[val.toString()];
         }
 
@@ -123,7 +123,7 @@ export default class Table<T, V extends Map<T>> implements Joinable<T, V>{
         for(; i < keyLen; ++i) {
             const [key, val] = keys[i];
             const index = data.indexes[key];
-            if(index === undefined) break;
+            if(index === void(0)) break;
             data = index[val.toString()];
         }
 
@@ -151,7 +151,7 @@ export default class Table<T, V extends Map<T>> implements Joinable<T, V>{
         for(; i < keyLen; ++i) {
             const [key, val] = keys[i];
             const index = data.indexes[key];
-            if(index === undefined) break;
+            if(index === void(0)) break;
             data = index[val.toString()];
         }
 
@@ -178,7 +178,7 @@ export default class Table<T, V extends Map<T>> implements Joinable<T, V>{
         for(; i < keyLen; ++i) {
             const [key, val] = keys[i];
             const index = data.indexes[key];
-            if(index === undefined) break;
+            if(index === void(0)) break;
             data = index[val.toString()];
         }
 
@@ -209,7 +209,7 @@ export default class Table<T, V extends Map<T>> implements Joinable<T, V>{
 
 /*
 function deq(left: {d: number, rest?: Array<number>}, right: {d: number,}): {d: number, rest: Array<number>} {
-    const rest = left.rest === undefined ? [] : Array.from(left.rest);
+    const rest = left.rest === void(0) ? [] : Array.from(left.rest);
     rest.push(right.d);
     return {d: 0, rest: rest };
 }

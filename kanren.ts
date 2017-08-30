@@ -1,15 +1,16 @@
 // This is primarily to test the other parts.
+// runLP, unify, fresh, conj, disj and the Term type constitute the microKanren core.
 
 import { Variable, Substitution } from "./unify"
 
-interface Term<C> {
+export interface Term<C> {
     match<A>(varCase: (v: Variable) => A, constCase: (c: C) => A, tupleCase: (xs: Array<Term<C>>) => A): A;
     unify(y: Term<C>, s: Substitution<Term<C>>): Substitution<Term<C>> | null;
     contains(normalizedId: number, s: Substitution<Term<C>>): boolean;
     ground(s: Substitution<Term<C>>): Term<C>;
 }
 
-class Var<C> implements Term<C> {
+export class Var<C> implements Term<C> {
     constructor(readonly variable: Variable) { }
     match<A>(varCase: (v: Variable) => A, constCase: (c: C) => A, tupleCase: (xs: Array<Term<C>>) => A): A {
         return varCase(this.variable);
@@ -186,8 +187,8 @@ export function conj<C>(...rs: Array<LP<C>>): LP<C> {
     return loop(0);
 }
 
-export function fresh<C,R>(count: number, body: (...vs: Array<Term<C>>) => LP<R>): LP<R> {
-    return function (s) {
+export function fresh<C, R>(count: number, body: (...vs: Array<Term<C>>) => LP<R>): LP<R> {
+    return s => {
         const [vs, s2] = s.fresh(count);
         return body.apply(null, vs.map(v => new Var(v)))(s2);
     };

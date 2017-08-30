@@ -3,10 +3,10 @@
 class Variable<A> {
     constructor(readonly id: number, readonly value?: A) {}
     bind(v: A): Variable<A> { 
-        if(this.value !== undefined) throw new Error('Variable: binding already bound variable.'); // ASSERTION
+        if(this.value !== void(0)) throw new Error('Variable: binding already bound variable.'); // ASSERTION
         return new Variable(this.id, v); 
     }
-    get isBound(): boolean { return this.value !== undefined; }
+    get isBound(): boolean { return this.value !== void(0); }
 }
 
 export interface UnionFind<A> {
@@ -31,7 +31,7 @@ export class NaiveUnionFind<A> implements UnionFind<A> {
         let prev = id;
         do {
             const curr = this.mapping[prev];
-            if(curr === undefined) return new Variable(prev);
+            if(curr === void(0)) return new Variable(prev);
             prev = curr.id;
         } while(true);
     }
@@ -263,7 +263,7 @@ export default class PersistentUnionFind<A> implements UnionFind<A> {
             const ry = this.ranks.get(cy);
             if (rx > ry) {
                 const yVal = vy.value;
-                return new PersistentUnionFind(this.ranks, this.parents.set(cy, yVal === undefined ? vx : vx.bind(yVal)));
+                return new PersistentUnionFind(this.ranks, this.parents.set(cy, yVal === void(0) ? vx : vx.bind(yVal)));
             } else if(rx < ry) {
                 return new PersistentUnionFind(this.ranks, this.parents.set(cx, vy));
             } else {

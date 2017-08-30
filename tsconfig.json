@@ -6,12 +6,13 @@
         "alwaysStrict": true,
         "strict": true,
         "downlevelIteration": true,
-        "noUnusedLocals": true,
+        "noUnusedLocals": false,
         "target": "es5",
         "outDir": "out",
         "lib": [
             "es2015.generator",
-            "es2015.Iterable",
+            "es2015.iterable",
+            "es2015.promise",
             "es5",
             "dom"
         ]
@@ -22,6 +23,7 @@
         "rel.test.ts",
         "jsqc.ts",
         "unify.ts",
-        "kanren.ts"
+        "kanren.ts",
+        "slg.ts"
     ]
 }

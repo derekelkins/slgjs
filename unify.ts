@@ -7,8 +7,8 @@ export class Variable {
 export class Substitution<A> {
     private constructor(private readonly uf: PUF<A>, private readonly nextVariable = 0) {}
 
-    static emptyPersistent<A>(): Substitution<A> { return new Substitution<A>(PUF.createPersistent(1)); }
-    static emptySemiPersistent<A>(): Substitution<A> { return new Substitution<A>(PUF.createSemiPersistent(1)); }
+    static emptyPersistent<A>(): Substitution<A> { return new Substitution<A>(PUF.createPersistent(10)); }
+    static emptySemiPersistent<A>(): Substitution<A> { return new Substitution<A>(PUF.createSemiPersistent(10)); }
 
     fresh(count: number): [Array<Variable>, Substitution<A>] {
         const nv = this.nextVariable;
@@ -31,7 +31,13 @@ export class Substitution<A> {
     lookup(v: Variable): A | number {
         const x = this.uf.find(v.id);
         const val = x.value;
-        return val === undefined ? x.id : val;
+        return val === void(0) ? x.id : val;
+    }
+
+    lookupAsVar(v: Variable): A | Variable {
+        const x = this.uf.find(v.id);
+        const val = x.value;
+        return val === void(0) ? new Variable(x.id) : val;
     }
 
     bind(v: Variable, value: A): Substitution<A> {
@@ -41,10 +47,10 @@ export class Substitution<A> {
     unifyVar(x: Variable, y: Variable): Substitution<A> | null {
         const {id: xId, value: xVal} = this.uf.find(x.id);
         const {id: yId, value: yVal} = this.uf.find(y.id);
-        if(xVal === undefined) {
+        if(xVal === void(0)) {
             return new Substitution(this.uf.bindVariable(xId, yId), this.nextVariable);
         } else {
-            if(yVal === undefined) {
+            if(yVal === void(0)) {
                 return new Substitution(this.uf.bindVariable(yId, xId), this.nextVariable);
             } else {
                 return xVal === yVal ? this : null;
