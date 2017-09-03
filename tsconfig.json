@@ -24,6 +24,7 @@
         "jsqc.ts",
         "unify.ts",
         "kanren.ts",
-        "slg.ts"
+        "slg.ts",
+        "json-trie.ts"
     ]
 }
