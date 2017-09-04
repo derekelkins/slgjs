@@ -173,6 +173,13 @@ class GeneratorIterator<A> implements RowIterator<A> {
 class Generator implements Scheduler {
     private processes: Queue<() => void>;
     private completed = false; // TODO: Use this.
+    // NOTE: We could have the answerSet store nodes of a linked list which could be traversed
+    // by the answer iterators, and that would mean we wouldn't need the table, but I don't think
+    // that will really make much difference in time or space, nor is it clear that it is a good
+    // trade-off. If there was an easy way to avoid needing to store the answer as an array in
+    // the nodes, then it would be worth it. In the "Efficient Access Mechanisms for Tabled Logic
+    // Programs" paper, they have parent pointers in the answer trie (but not the subgoal trie)
+    // that allow this.
     private readonly answerSet: JsonTrieTerm<boolean> = JsonTrieTerm.create();
     constructor(process: () => void, private readonly table: Array<Array<Json>> = []) {
         this.processes = [process];
@@ -194,6 +201,7 @@ class Generator implements Scheduler {
         for(let i = 0; i < len; ++i) {
             waiters[i]();
         }
+        // NOTE: Once we actually complete, we can discard this.answerSet.
         return this.completed = this.processes.length === 0 && this.table.length === tableLength; // TODO: More is probably needed...
     }
 
@@ -207,7 +215,7 @@ class Generator implements Scheduler {
     private insertAnswer(count: number, sub: Substitution<Json>): void {
         const answer = new Array<Json>(count);
         for(let i = 0; i < count; ++i) {
-            answer[i] = sub.lookupById(i);
+            answer[i] = sub.lookupById(i); // TODO: Should I ground these?
         }
         this.answerSet.modify(answer, exists => { if(!exists) { this.table.push(answer); }; return true; });
     }
@@ -219,7 +227,14 @@ export interface Predicate {
 export class EdbPredicate implements Predicate {
     constructor(private readonly table: Array<Json>) {}
 
-    consume(row: Json): LP<Json, Substitution<Json>> {
+    // NOTE: This spews a ton of answers which can easily lead to a ton of blocked processes.
+    // As an alternative, we can produce results one at a time and enqueue the remainder. This
+    // doesn't completely solve the problem since we'll still return answers before the earlier
+    // alternatives have failed, but it gives them more of an opportunity to complete. We can
+    // imagine having a trade-off between these two options; returning a fixed number of answers
+    // (or some other approach to throttle) at a time.
+    /*
+    consume(row: Json): LP<Json, Substitution<Json>> { // Eager approach.
         return gen => s => k => {
             const arr = this.table;
             const len = arr.length;
@@ -227,6 +242,25 @@ export class EdbPredicate implements Predicate {
                 const s2 = unifyJson(arr[i], row, s);
                 if(s2 !== null) k(s2);
             }
+        };
+    }
+    */
+    consume(row: Json): LP<Json, Substitution<Json>> { // Less eager approach.
+        return gen => s => k => {
+            const arr = this.table;
+            const len = arr.length;
+            let i = 0;
+            const loop = () => {
+                while(i < len) {
+                    const s2 = unifyJson(arr[i++], row, s);
+                    if(s2 !== null) { 
+                        k(s2);
+                        gen.enqueue(loop);
+                        return;
+                    } 
+                }
+            };
+            loop();
         };
     }
 }
@@ -386,8 +420,8 @@ const path2: Predicate = new TabledPredicate(row => {
 
 const sched = new TopLevelScheduler();
 //runLP(sched, fresh(2, (l, r) => seq(append.consume([l, r, list(1,2,3,4,5)]), ground([l, r]))), a => console.dir(a, {depth: null}));
-//runLP(sched, fresh(2, (s, e) => { const row = [s,e]; return seq(path.consume(row), ground(row)); }), a => console.dir(a, {depth: null}));
-runLP(sched, fresh(2, (s, e) => { const row = [s,e]; return seq(path2.consume(row), ground(row)); }), a => console.dir(a, {depth: null}));
+runLP(sched, fresh(2, (s, e) => { const row = [s,e]; return seq(path.consume(row), ground(row)); }), a => console.dir(a, {depth: null}));
+//runLP(sched, fresh(2, (s, e) => { const row = [s,e]; return seq(path2.consume(row), ground(row)); }), a => console.dir(a, {depth: null}));
 //sched.executeRound();
 while(sched.executeRound()) {};
 })();
