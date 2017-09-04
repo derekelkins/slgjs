@@ -1,3 +1,4 @@
 out/
+doc/
 **/*.js.map
 node_modules/

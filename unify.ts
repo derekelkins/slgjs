@@ -10,6 +10,11 @@ export class Substitution<A> {
     static emptyPersistent<A>(): Substitution<A> { return new Substitution<A>(PUF.createPersistent(10)); }
     static emptySemiPersistent<A>(): Substitution<A> { return new Substitution<A>(PUF.createSemiPersistent(10)); }
 
+    freshVar(): [Variable, Substitution<A>] {
+        const nv = this.nextVariable;
+        return [new Variable(nv), new Substitution(this.uf, nv+1)];
+    }
+
     fresh(count: number): [Array<Variable>, Substitution<A>] {
         const nv = this.nextVariable;
         const newSize = nv + count;
@@ -36,6 +41,12 @@ export class Substitution<A> {
 
     lookupAsVar(v: Variable): A | Variable {
         const x = this.uf.find(v.id);
+        const val = x.value;
+        return val === void(0) ? new Variable(x.id) : val;
+    }
+
+    lookupById(id: number): A | Variable {
+        const x = this.uf.find(id);
         const val = x.value;
         return val === void(0) ? new Variable(x.id) : val;
     }
