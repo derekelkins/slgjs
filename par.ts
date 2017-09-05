@@ -263,6 +263,29 @@ export class EdbPredicate implements Predicate {
             loop();
         };
     }
+    /*
+    consume(row: Json): LP<Json, Substitution<Json>> { // Throttled approach.
+        return gen => s => k => {
+            const arr = this.table;
+            const len = arr.length;
+            let i = 0;
+            const loop = () => {
+                let count = this.throttle;
+                while(i < len) {
+                    const s2 = unifyJson(arr[i++], row, s);
+                    if(s2 !== null) { 
+                        k(s2);
+                        if(--count === 0) {
+                            gen.enqueue(loop);
+                            return;
+                        }
+                    } 
+                }
+            };
+            loop();
+        };
+    }
+    */
 }
 
 export class UntabledPredicate implements Predicate {
@@ -302,7 +325,10 @@ export class TabledPredicate implements Predicate {
             const [generator, vs] = this.getGenerator(groundJson(row, s));
             let rowIterator = generator.getAnswerIterator();
             const loop = () => {
-                let cs = rowIterator.next();
+                let cs = rowIterator.next(); // TODO: Right now this is kind of like polling and we have no way to differentiate blocked processes from
+                                             // queued but unblocked processes. I'm pretty sure the current examples work because it corresponds to
+                                             // a linear tabling strategy except it doesn't handle non-top-level looping goals, but none of my examples
+                                             // correspond to that.
                 const len = vs.length;
                 while(cs !== void(0)) {
                     let s2 = s;
@@ -381,19 +407,15 @@ export function rule<V>(...alternatives: Array<[number, (...vs: Array<Variable>)
 }
 
 export function runLP<V, A>(sched: Scheduler, m: LP<V, A>, k: (a: A) => void): void {
-    return sched.enqueue(() => {
-        m(sched)(Substitution.emptyPersistent())(k);
-
-    });
+    return sched.enqueue(() => m(sched)(Substitution.emptyPersistent())(k));
 }
 
 (() => {
-const append: Predicate = new UntabledPredicate(([Xs, Ys, Zs]: Json) => {
-    return rule(
-        [0, () =>
-            [unify([], Xs), unify(Ys, Zs)]],
-        [3, (X1, Xs1, Zs1) =>  
-            [unify([X1, Xs1], Xs), unify([X1, Zs1], Zs), append.consume([Xs1, Ys, Zs1])]]); });
+const append: Predicate = new UntabledPredicate(([Xs, Ys, Zs]: Json) => rule(
+    [0, () =>
+        [unify([], Xs), unify(Ys, Zs)]],
+    [3, (X1, Xs1, Zs1) =>  
+        [unify([X1, Xs1], Xs), unify([X1, Zs1], Zs), append.consume([Xs1, Ys, Zs1])]]));
 
 function list(...xs: Array<Json>): Json {
     let ys: Json = [];
@@ -407,21 +429,27 @@ const edge: Predicate = new EdbPredicate([
     [1, 2],
     [2, 3],
     [3, 1]]);
-const path: Predicate = new TabledPredicate(row => {
-    return rule(
-        [0, () => [edge.consume(row)]],
-        [1, Y  => [path.consume([row[0], Y]), path.consume([Y, row[1]])]]);
-});
-const path2: Predicate = new TabledPredicate(row => {
-    return rule(
-        [1, Y  => [path2.consume([row[0], Y]), path2.consume([Y, row[1]])]],
-        [0, () => [edge.consume(row)]]);
-});
+const path: Predicate = new TabledPredicate(row => rule(
+    [0, () => [edge.consume(row)]],
+    [1, Y  => [path.consume([row[0], Y]), path.consume([Y, row[1]])]]));
+const path2: Predicate = new TabledPredicate(row => rule(
+    [1, Y  => [path2.consume([row[0], Y]), path2.consume([Y, row[1]])]],
+    [0, () => [edge.consume(row)]]));
+
+const r: Predicate = new TabledPredicate(row => rule(
+    [0, () => [r.consume(row)]]));
+
+const p: Predicate = new TabledPredicate(row => rule(
+    [0, () => [q.consume(row)]]));
+const q: Predicate = new TabledPredicate(row => rule(
+    [0, () => [p.consume(row)]]));
 
 const sched = new TopLevelScheduler();
-//runLP(sched, fresh(2, (l, r) => seq(append.consume([l, r, list(1,2,3,4,5)]), ground([l, r]))), a => console.dir(a, {depth: null}));
-runLP(sched, fresh(2, (s, e) => { const row = [s,e]; return seq(path.consume(row), ground(row)); }), a => console.dir(a, {depth: null}));
-//runLP(sched, fresh(2, (s, e) => { const row = [s,e]; return seq(path2.consume(row), ground(row)); }), a => console.dir(a, {depth: null}));
-//sched.executeRound();
+// runLP(sched, fresh(2, (l, r) => seq(append.consume([l, r, list(1,2,3,4,5)]), ground([l, r]))), a => console.dir(a, {depth: null}));
+// runLP(sched, fresh(2, (s, e) => { const row = [s,e]; return seq(path.consume(row), ground(row)); }), a => console.dir(a, {depth: null}));
+// runLP(sched, fresh(2, (s, e) => { const row = [s,e]; return seq(path2.consume(row), ground(row)); }), a => console.dir(a, {depth: null}));
+// runLP(sched, r.consume(null), a => console.log('completed'));
+runLP(sched, p.consume(null), a => console.log('completed'));
+// sched.executeRound();
 while(sched.executeRound()) {};
 })();
