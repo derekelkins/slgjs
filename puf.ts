@@ -3,7 +3,7 @@
 class Variable<A> {
     constructor(readonly id: number, readonly value?: A) {}
     bind(v: A): Variable<A> { 
-        if(this.value !== void(0)) throw new Error('Variable: binding already bound variable.'); // ASSERTION
+        if(this.value !== void(0)) throw new Error('Variable.bind: binding already bound variable.'); // ASSERTION
         return new Variable(this.id, v); 
     }
     get isBound(): boolean { return this.value !== void(0); }
@@ -15,6 +15,81 @@ export interface UnionFind<A> {
     bindVariable(x: number, y: number): UnionFind<A>
 }
 
+export class EphemeralUnionFind<A> implements UnionFind<A> {
+    private readonly ranks: Array<number>; 
+    private readonly parents: Array<Variable<A>>;
+    constructor(initialCapacity: number = 10) { 
+        const rs = this.ranks = new Array<number>(initialCapacity);
+        const ps = this.parents = new Array<Variable<A>>(initialCapacity);
+        for(let i = 0; i < initialCapacity; ++i) {
+            rs[i] = 0;
+            ps[i] = new Variable(i);
+        }
+    }
+
+    private grow(newSize: number): void {
+        const rs = this.ranks;
+        const ps = this.parents;
+        const len = rs.length;
+        rs.length = newSize;
+        ps.length = newSize;
+        newSize = Math.max(2*len, newSize);
+        for(let i = len; i < newSize; ++i) {
+            rs[i] = 0;
+            ps[i] = new Variable(i);
+        }
+    }
+
+    find(id: number): Variable<A> {
+        if(id > this.parents.length) {
+            this.grow(id+1);
+            return this.parents[id];
+        } else {
+            return this.findAux(id);
+        }
+    }
+
+    private findAux(i: number): Variable<A> {
+        const v = this.parents[i];
+        const fi = v.id;
+        if(fi === i) {
+            return v;
+        } else {
+            return this.parents[i] = this.find(fi);
+        }
+    }
+
+    bindValue(id: number, value: A): EphemeralUnionFind<A> {
+        const v = this.find(id);
+        if(v.isBound) throw new Error('EphemeralUnionFind.bindValue: binding to variable that is already bound.'); // ASSERTION
+        this.parents[v.id] = v.bind(value);
+        return this;
+    }
+
+    bindVariable(x: number, y: number): EphemeralUnionFind<A> {
+        const vx = this.find(x);
+        if(vx.isBound) throw new Error('EphemeralUnionFind.bindVariable: binding to variable that is already bound.'); // ASSERTION
+        const vy = this.find(y);
+        const cx = vx.id;
+        const cy = vy.id;
+        if (cx !== cy) {
+            const rx = this.ranks[cx];
+            const ry = this.ranks[cy];
+            if (rx > ry) {
+                const yVal = vy.value;
+                this.parents[cy] = yVal === void(0) ? vx : vx.bind(yVal);
+            } else if(rx < ry) {
+                this.parents[cx] = vy;
+            } else {
+                this.ranks[cy]++;
+                this.parents[cx] = vy;
+            }
+        }
+        return this;
+    }
+}
+
+/*
 export class NaiveUnionFind<A> implements UnionFind<A> {
     static create<A>(): NaiveUnionFind<A> {
         return new NaiveUnionFind([]);
@@ -53,6 +128,7 @@ export class NaiveUnionFind<A> implements UnionFind<A> {
         return new NaiveUnionFind(m);
     }
 }
+*/
 
 // This should perform reasonably well for ephemeral usage patterns or for backtracking patterns of use,
 // especially with the adaptation to semi-persistence, and rather poorly when accessing old copies as in linear in the depth of update.
@@ -86,10 +162,10 @@ class PersistentImmediateArray<A> implements InternalPersistentArray<A> {
         }
     }
 
-    private grow(): void {
+    private grow(newSize: number): void {
         const arr = this.baseArray;
         const len = arr.length;
-        const newSize = 2*len;
+        newSize = Math.min(2*len, newSize);
         arr.length = newSize;
         for(let i = len; i < newSize; ++i) {
             arr[i] = this.init(i);
@@ -104,7 +180,7 @@ class PersistentImmediateArray<A> implements InternalPersistentArray<A> {
     
     set(cell: ArrayCell<A>, index: number, value: A): PersistentArray<A> {
         const arr = this.baseArray;
-        if(index >= arr.length) { this.grow(); }
+        if(index >= arr.length) { this.grow(index+1); }
         const old = arr[index];
         arr[index] = value;
         const res = new ArrayCell<A>(this);
@@ -131,10 +207,10 @@ class SemiPersistentImmediateArray<A> implements InternalPersistentArray<A> {
         }
     }
 
-    private grow(): void {
+    private grow(newSize: number): void {
         const arr = this.baseArray;
         const len = arr.length;
-        const newSize = 2*len;
+        newSize = Math.min(2*len, newSize);
         arr.length = newSize;
         for(let i = len; i < newSize; ++i) {
             arr[i] = this.init(i);
@@ -149,7 +225,7 @@ class SemiPersistentImmediateArray<A> implements InternalPersistentArray<A> {
     
     set(cell: ArrayCell<A>, index: number, value: A): PersistentArray<A> {
         const arr = this.baseArray;
-        if(index >= arr.length) { this.grow(); }
+        if(index >= arr.length) { this.grow(index+1); }
         const old = arr[index];
         arr[index] = value;
         const res = new ArrayCell<A>(this);
