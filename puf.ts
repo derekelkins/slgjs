@@ -2,10 +2,12 @@
 
 class Variable<A> {
     constructor(readonly id: number, readonly value?: A) {}
+
     bind(v: A): Variable<A> { 
         if(this.value !== void(0)) throw new Error('Variable.bind: binding already bound variable.'); // ASSERTION
         return new Variable(this.id, v); 
     }
+
     get isBound(): boolean { return this.value !== void(0); }
 }
 
@@ -55,7 +57,7 @@ export class EphemeralUnionFind<A> implements UnionFind<A> {
         if(fi === i) {
             return v;
         } else {
-            return this.parents[i] = this.find(fi);
+            return this.parents[i] = this.findAux(fi);
         }
     }
 
