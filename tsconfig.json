@@ -24,6 +24,7 @@
         "unify.ts",
         "par.ts",
         "kanren.ts",
-        "json-trie.ts"
+        "json-trie.ts",
+        "scc.ts"
     ]
 }

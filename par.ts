@@ -122,36 +122,31 @@ type Stack<A> = Array<A>;
 
 interface GlobalEnvironment {
     generatorCount: number;
-    readonly completionStack: Stack<Generator>;
+    topOfCompletionStack?: Generator;
 }
 
 interface Scheduler {
-    enqueue(process: () => void): void;
-    executeRound(): boolean;
+    push(process: () => void): void;
     dependOn(gen: Generator): void;
     readonly globalEnv: GlobalEnvironment;
 }
 
 class TopLevelScheduler implements Scheduler {
     private processes: Queue<() => void> = [];
-    readonly globalEnv: GlobalEnvironment = {generatorCount: 1, completionStack: []};
+    readonly globalEnv: GlobalEnvironment = {generatorCount: 0, topOfCompletionStack: void(0)};
     constructor() { }
     
-    enqueue(process: () => void): void {
+    push(process: () => void): void {
         this.processes.push(process);
     }
 
-    executeRound(): boolean {
-        const waiters = this.processes;
-        this.processes = [];
-        const len = waiters.length;
-        for(let i = 0; i < len; ++i) {
-            waiters[i]();
-        }
-        return this.processes.length === 0;
+    execute(): void {
+        const waiters = <Array<() => void>>this.processes;
+        let waiter = waiters.pop();
+        while(waiter !== void(0)) { waiter(); waiter = waiters.pop(); }
     }
 
-    dependOn(gen: Generator): void { } // Don't need to do anything. We're always the leader.
+    dependOn(gen: Generator): void { } // Don't need to do anything.
 }
 
 type CPS<A> = (k: (value: A) => void) => void;
@@ -159,33 +154,11 @@ export type LP<V, A> = (scheduler: Scheduler) => (sub: Substitution<V>) => CPS<A
 
 type Queue<A> = Array<A>;
 
-interface RowIterator<A> {
-    next(): A | undefined;
-    readonly isComplete: boolean;
-}
-
-class GeneratorIterator<A> implements RowIterator<A> {
-    private index: number = 0;
-    constructor(private readonly array: Array<A>, private readonly gen: Generator) {}
-
-    next(): A | undefined {
-        const arr = this.array;
-        if(this.index < arr.length) {
-            return arr[this.index++];
-        } else {
-            return void(0);
-        }
-    }
-
-    get isComplete(): boolean {
-        return this.gen.isComplete;
-    }
-}
-
 class Generator implements Scheduler {
     private readonly selfId: number;
-    private directLink: number;
     readonly globalEnv: GlobalEnvironment;
+    private prevGenerator?: Generator;
+    private directLink: number;
     // When we attempt to complete, we need to determine if we're the leader. The leader is the generator
     // such that prev.selfId < min(this.directLink, minLink(this.selfId)) where prev is the immediately
     // preceding generator in the completionStack, and minLink(id) is the minimum value of the directLink
@@ -202,12 +175,11 @@ class Generator implements Scheduler {
     // completed goals need to be woken, however, an exact SCC calculation needs to be performed to
     // correctly support even LRD-stratified negation.
 
-    private processes: Queue<() => void>;
+    private /*readonly*/ processes?: Queue<() => void> = [];
     // We check for completion whenever this queue is empty.
     
-    private readonly consumers: Array<RowIterator<Array<Json>>> = [];
+    private /*readonly*/ consumers?: Array<[number, (cs: Array<Json>) => void]> = [];
 
-    private completed = false; // TODO: Use this.
     private readonly table: Array<Array<Json>> = [];
     // NOTE: We could have the answerSet store nodes of a linked list which could be traversed
     // by the answer iterators, and that would mean we wouldn't need the table, but I don't think
@@ -216,70 +188,150 @@ class Generator implements Scheduler {
     // the nodes, then it would be worth it. In the "Efficient Access Mechanisms for Tabled Logic
     // Programs" paper, they have parent pointers in the answer trie (but not the subgoal trie)
     // that allow this.
-    private readonly answerSet: JsonTrieTerm<boolean> = JsonTrieTerm.create();
-    constructor(process: () => void, scheduler: Scheduler) {
-        this.processes = [process];
+    private /*readonly*/ answerSet?: JsonTrieTerm<boolean> = JsonTrieTerm.create();
+
+    constructor(scheduler: Scheduler) {
         const gEnv = this.globalEnv = scheduler.globalEnv;
-        this.directLink = this.selfId = gEnv.generatorCount++;
-        gEnv.completionStack.push(this);
+        this.selfId = gEnv.generatorCount++;
+        this.directLink = this.selfId;
+        this.prevGenerator = gEnv.topOfCompletionStack;
+        gEnv.topOfCompletionStack = this;
     }
 
-    dependOn(gen: Generator): void {
-        this.directLink = Math.min(this.directLink, gen.directLink);
+    dependOn(v: Generator): void {
+        this.directLink = Math.min(this.directLink, v.directLink);
     }
 
-    getAnswerIterator(): RowIterator<Array<Json>> {
-        const it = new GeneratorIterator(this.table, this);
-        this.consumers.push(it);
-        return it;
-    }
-
-    enqueue(process: () => void): void {
-        this.processes.push(process);
-    }
-
-    block(process: () => void): void {
-        this.blockees.push(process);
-    }
-
-    private checkCompletion(): boolean {
-        return this.processes.length === 0 && true; // TODO
-    }
-
-    executeRound(): boolean {
-        const waiters = this.processes;
-        const len = waiters.length;
-        if(len !== 0) {
-            this.processes = [];
+    consume(k: (cs: Array<Json>) => void): void {
+        if(this.isComplete) {
+            const answers = this.table;
+            const len = answers.length;
             for(let i = 0; i < len; ++i) {
-                waiters[i]();
+                k(answers[i]);
+            }
+        } else {
+            const cs = <Array<[number, (cs: Array<Json>) => void]>>this.consumers;
+            cs.push([0, k]);
+            if(cs.length === 1) this.execute();
+        }
+    }
+
+    private scheduleAnswers(consumer: [number, (cs: Array<Json>) => void]): boolean {
+        const answers = this.table;
+        const len = answers.length;
+        const start = consumer[0];
+        const k = consumer[1];
+        for(let i = start; i < len; ++i) {
+            k(answers[i]);
+        }
+        consumer[0] = len;
+        return start !== len;
+    }
+
+    push(process: () => void): void {
+        (<Array<() => void>>this.processes).push(process);
+    }
+
+    private isLeader(): Array<Generator> | undefined {
+        const prev = this.prevGenerator;
+        const result: Array<Generator> = [];
+        let tos = <Generator>this.globalEnv.topOfCompletionStack;
+        let minLink = this.directLink;
+        let lastLink = this.directLink;
+        let last: Generator | undefined = void(0);
+        while(tos !== this) {
+            const p = <Generator>tos.prevGenerator;
+            if(tos.isComplete) { // unlink completed generators from the completion stack
+                if(last !== void(0)) {
+                    last.prevGenerator = p;
+                }
+                tos.prevGenerator = void(0);
+            } else {
+                result.push(tos);
+                last = tos;
+                lastLink = tos.directLink;
+                minLink = Math.min(lastLink, minLink);
+            }
+            tos = p;
+        }
+        result.push(this);
+        return prev === void(0) || prev.selfId < Math.min(this.directLink, minLink) ? result : void(0);
+    }
+
+    private scheduleResumes(): boolean {
+        const cs = <Array<[number, (cs: Array<Json>) => void]>>this.consumers;
+        const len = cs.length;
+        let wereUnconsumed = false;
+        for(let i = 0; i < len; ++i) {
+            if(this.scheduleAnswers(cs[i])) {
+                wereUnconsumed = true;
             }
         }
-
-        // NOTE: Once we actually complete, we can discard this.answerSet.
-        return this.checkCompletion();
+        return wereUnconsumed;
     }
 
-    get isComplete(): boolean { return this.completed; }
+    private checkCompletion(): void {
+        if(this.isComplete) return;
+        completionLoop:
+        while(true) {
+            const cStack = this.isLeader();
+            if(cStack === void(0)) return;
+            const len = cStack.length;
+            for(let i = len - 1; i >= 0; --i) {
+                if(cStack[i].scheduleResumes()) { continue completionLoop; }
+            }
+            const prev = this.prevGenerator;
+            for(let i = len - 1; i >= 0; --i) {
+                const gen = cStack[i];
+                gen.complete();
+                gen.prevGenerator = void(0);
+            }
+            this.globalEnv.topOfCompletionStack = prev;
+            return;
+        }
+    }
+
+    private execute(): void {
+        const waiters = <Array<() => void>>this.processes;
+        let waiter = waiters.pop();
+        while(waiter !== void(0)) { waiter(); waiter = waiters.pop(); }
+        this.checkCompletion();
+    }
+
+    private complete(): void {
+        this.processes = void(0);
+        this.consumers = void(0); // TODO: I need to notify negative consumers here.
+        this.answerSet = void(0);
+    }
+
+    get isComplete(): boolean { return this.answerSet === void(0); }
 
     static create<V>(body: LP<Json, Substitution<Json>>, sched: Scheduler, count: number, s0: Substitution<Json>): Generator {
-        const gen: Generator = new Generator(() => body(gen)(s0)(s => gen.insertAnswer(count, s)), sched);
+        const gen = new Generator(sched);
+        gen.push(() => body(gen)(s0)(s => gen.insertAnswer(count, s)));
         return gen;
     }
 
     private insertAnswer(count: number, sub: Substitution<Json>): void {
-        const answer = new Array<Json>(count);
-        for(let i = 0; i < count; ++i) {
-            answer[i] = sub.lookupById(i); // TODO: Should I ground these? I think the answer is it's unnecessary.
+        if(count === 0) { 
+            if(this.table.length === 0) { 
+                this.table.push([]);
+                this.complete();
+            } // else, do nothing, we've already completed
+        } else {
+            // TODO: Early completion. Early completion occurs when an answer is a variant of the goal. Checking this just means
+            // that the answer tuple consists of nothing but distinct variables. In such a case, we can clear this.processes.
+            // An LRD-stratified program that requires early completion:
+            // a :- b, not c. b :- a;d. b. c :- not d. d :- b, e. ?- a.
+            // That said, early completion is only *necessary* when there's negation, which for SLG is restricted to applying to
+            // (dynamically) ground literals, i.e. count === 0. So the early completion check can be restricted to ground goals at 
+            // which point *any* answer entails an early completion.
+            const answer = new Array<Json>(count);
+            for(let i = 0; i < count; ++i) {
+                answer[i] = sub.lookupById(i); // TODO: Should I ground these? I think the answer is it's unnecessary.
+            }
+            (<JsonTrieTerm<boolean>>this.answerSet).modify(answer, exists => { if(!exists) { this.table.push(answer); }; return true; });
         }
-        // TODO: Early completion. Early completion occurs when an answer is a variant of the goal. Checking this just means
-        // that the answer tuple consists of nothing but distinct variables. In such a case, we can clear this.processes.
-        // An LRD-stratified program that requires early completion:
-        // a :- b, not c. b :- a;d. b. c :- not d. d :- b, e. ?- a.
-        // That said, early completion is only *necessary* when there's negation, which for SLG is restricted to applying to
-        // (dynamically) ground literals, i.e. count === 0. So the early completion check can be restricted to ground goals at 
-        // which point *any* answer entails an early completion.
-        this.answerSet.modify(answer, exists => { if(!exists) { this.table.push(answer); }; return true; });
     }
 }
 export interface Predicate {    
@@ -318,7 +370,7 @@ export class EdbPredicate implements Predicate {
                     const s2 = unifyJson(arr[i++], row, s);
                     if(s2 !== null) { 
                         k(s2);
-                        gen.enqueue(loop);
+                        gen.push(loop);
                         return;
                     } 
                 }
@@ -340,7 +392,7 @@ export class EdbPredicate implements Predicate {
                     if(s2 !== null) { 
                         k(s2);
                         if(--count === 0) {
-                            gen.enqueue(loop);
+                            gen.push(loop);
                             return;
                         }
                     } 
@@ -366,7 +418,7 @@ export class TabledPredicate implements Predicate {
 
     private getGenerator(row: Json, sched: Scheduler): [Generator, Array<Variable>] {
         let vm: any = null;
-        const g = this.generators.modifyWithVars(row, (gen, varMap: {count: number, [index: number]:number}) => {
+        const g = this.generators.modifyWithVars(row, (gen, varMap: {count: number, [index: number]: number}) => {
             vm = varMap;
             if(gen === void(0)) {
                 const [r, s] = refreshJson(row, Substitution.emptyPersistent(), {});
@@ -387,28 +439,15 @@ export class TabledPredicate implements Predicate {
     consume(row: Json): LP<Json, Substitution<Json>> {
         return gen => s => k => {
             const [generator, vs] = this.getGenerator(groundJson(row, s), gen);
-            gen.dependOn(generator); // TODO: We should only need to do this if we would "block", so move this to later.
-            const rowIterator = generator.getAnswerIterator();
-            const loop = () => {
-                let cs = rowIterator.next(); // TODO: Right now this is kind of like polling and we have no way to differentiate blocked processes from
-                                             // queued but unblocked processes. I'm pretty sure the current examples work because it corresponds to
-                                             // a linear tabling strategy except it doesn't handle non-top-level looping goals, but none of my examples
-                                             // correspond to that.
-                const len = vs.length;
-                while(cs !== void(0)) {
-                    let s2 = s;
-                    for(let i = 0; i < len; ++i) {
-                        s2 = s2.bind(vs[i], cs[i]);
-                    }
-                    k(s2);
-                    cs = rowIterator.next();
+            gen.dependOn(generator);
+            const len = vs.length;
+            generator.consume(cs => {
+                let s2 = s;
+                for(let i = 0; i < len; ++i) {
+                    s2 = s2.bind(vs[i], cs[i]);
                 }
-                generator.executeRound();
-                if(rowIterator.isComplete) return;
-                generator.block(loop);
-            };
-            loop(); // NOTE: Alternatively, just immediate enqueue this and return.
-            //gen.enqueue(loop); // Seems to work correctly with this, but I think the other line should work too but it doesn't.
+                k(s2);
+            });
         };
     }
 }
@@ -443,9 +482,9 @@ export function disj<V>(...ds: Array<LP<V, Substitution<V>>>): LP<V, Substitutio
         const ds2 = ds.map(d => d(gen));
         return s => k => {
             const len = ds2.length;
-            for(let i = 0; i < len; ++i) {
+            for(let i = len - 1; i >= 0; --i) {
                 const d = ds2[i];
-                gen.enqueue(() => d(s)(k));
+                gen.push(() => d(s)(k));
             }
         };
     };
@@ -472,7 +511,7 @@ export function rule<V>(...alternatives: Array<[number, (...vs: Array<Variable>)
 }
 
 export function runLP<V, A>(sched: Scheduler, m: LP<V, A>, k: (a: A) => void): void {
-    return sched.enqueue(() => m(sched)(Substitution.emptyPersistent())(k));
+    return sched.push(() => m(sched)(Substitution.emptyPersistent())(k));
 }
 
 (() => {
@@ -500,6 +539,12 @@ const path: Predicate = new TabledPredicate(row => rule(
 const path2: Predicate = new TabledPredicate(row => rule(
     [1, Y  => [path2.consume([row[0], Y]), path2.consume([Y, row[1]])]],
     [0, () => [edge.consume(row)]]));
+const path3: Predicate = new TabledPredicate(row => rule(
+    [1, Y  => [path3.consume([row[0], Y]), edge.consume([Y, row[1]])]],
+    [0, () => [edge.consume(row)]]));
+const path4: Predicate = new TabledPredicate(row => rule(
+    [1, Y  => [edge.consume([row[0], Y]), path4.consume([Y, row[1]])]],
+    [0, () => [edge.consume(row)]]));
 
 const r: Predicate = new TabledPredicate(row => rule(
     [0, () => [r.consume(row)]]));
@@ -512,9 +557,10 @@ const q: Predicate = new TabledPredicate(row => rule(
 const sched = new TopLevelScheduler();
 // runLP(sched, fresh(2, (l, r) => seq(append.consume([l, r, list(1,2,3,4,5)]), ground([l, r]))), a => console.dir(a, {depth: null}));
 // runLP(sched, fresh(2, (s, e) => { const row = [s,e]; return seq(path.consume(row), ground(row)); }), a => console.dir(a, {depth: null}));
-runLP(sched, fresh(2, (s, e) => { const row = [s,e]; return seq(path2.consume(row), ground(row)); }), a => console.dir(a, {depth: null}));
+// runLP(sched, fresh(2, (s, e) => { const row = [s,e]; return seq(path2.consume(row), ground(row)); }), a => console.dir(a, {depth: null}));
+// runLP(sched, fresh(2, (s, e) => { const row = [s,e]; return seq(path3.consume(row), ground(row)); }), a => console.dir(a, {depth: null}));
+// runLP(sched, fresh(2, (s, e) => { const row = [s,e]; return seq(path4.consume(row), ground(row)); }), a => console.dir(a, {depth: null}));
 // runLP(sched, r.consume(null), a => console.log('completed'));
 // runLP(sched, p.consume(null), a => console.log('completed'));
-// sched.executeRound();
-while(!sched.executeRound()) {};
+sched.execute();
 })();
