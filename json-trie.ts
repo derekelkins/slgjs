@@ -10,8 +10,6 @@ function convert(type: "boolean" | "number" | "string", val: string): Json {
     return val; // It's a string.
 }
 
-export type VarMap = {vars: Array<Variable>, [index: number]: number};
-
 /**
  * A key-value mapping keyed by JSON objects. This can also be used as a representation
  * for a collection of JSON objects that shares prefixes (where object keys are stored
@@ -54,16 +52,16 @@ export class JsonTrie<A> {
     }
 
     contains(key: Json): boolean {
-        return this.lookup(key) !== void(0);
+        return this.containsRec(key, this.trie);
     }
 
-    lookup(key: Json): A {
+    lookup(key: Json): A | undefined {
         return this.lookupRec(key, this.trie);
     }
 
     *keys(): Iterable<Json> {
-        for(const [v, _] of this.rowRec(this.trie)) {
-            yield v;
+        for(const [k, _] of this.rowRec(this.trie)) {
+            yield k;
         }
     }
 
@@ -240,6 +238,45 @@ export class JsonTrie<A> {
         }
     }
 
+    private containsRec(key: Json, curr: any): boolean {
+        const type = typeof key;
+        if(type === 'object') {
+            if(key === null) {
+                return 'null' in curr;
+            } else if(key instanceof Array) {
+                let node = curr.array;
+                if(node === void(0)) return false;
+                const len = key.length;
+                for(let i = 0; i < len; ++i) {
+                    node = this.lookupRec(key[i], node);
+                    if(node === void(0)) return false;
+                }
+                return 'empty' in node;
+            } else { // it's an object
+                let node = curr.object;
+                if(node === void(0)) return false;
+                const keys = Object.keys(key).sort();
+                const len = keys.length;
+                for(let i = 0; i < len; ++i) {
+                    const k = keys[i];
+                    node = node.more;
+                    if(node === void(0)) return false;
+                    node = node[k];
+                    if(node === void(0)) return false;
+                    node = this.lookupRec(key[k], node);
+                    if(node === void(0)) return false;
+                }
+                return 'empty' in node;
+            }
+        } else if(type === 'undefined') {
+            return 'undefined' in curr;
+        } else {
+            const node = curr[type];
+            if(node === void(0)) false;
+            return key in node;
+        }
+    }
+
     private insertRec(key: Json, val: any, curr: any): any {
         const type = typeof key;
         if(type === 'object') {
@@ -252,7 +289,7 @@ export class JsonTrie<A> {
                 if(node === void(0)) curr.array = node = {};
                 const len = key.length;
                 for(let i = 0; i < len; ++i) {
-                    node = this.insertRec(key[i], {}, node); // TODO: Is this what we want?
+                    node = this.insertRec(key[i], {}, node);
                 }
                 let node2 = node.empty;
                 if(node2 === void(0)) node.empty = node2 = val;
@@ -268,7 +305,7 @@ export class JsonTrie<A> {
                     if(node2 === void(0)) node.more = node2 = {};
                     let node3 = node2[k];
                     if(node3 === void(0)) node2[k] = node3 = {};
-                    node = this.insertRec(key[k], {}, node3); // TODO: see above
+                    node = this.insertRec(key[k], {}, node3);
                 }
                 let node2 = node.empty;
                 if(node2 === void(0)) node.empty = node2 = val;
@@ -325,6 +362,8 @@ export class JsonTrie<A> {
     }
 }
 
+export type VarMap = {vars: Array<Variable>, [index: number]: number};
+
 // Also has variables
 export class JsonTrieTerm<A> {
     private constructor(private readonly trie: any = {}) {}
@@ -362,10 +401,10 @@ export class JsonTrieTerm<A> {
     }
 
     contains(key: Json): boolean {
-        return this.lookup(key) !== void(0);
+        return this.containsRec(key, this.trie, {count: 0});
     }
 
-    lookup(key: Json): A {
+    lookup(key: Json): A | undefined {
         return this.lookupRec(key, this.trie, {count: 0});
     }
 
@@ -565,6 +604,54 @@ export class JsonTrieTerm<A> {
         }
     }
 
+    private containsRec(key: Json, curr: any, varMap: {count: number, [index: number]: number}): boolean {
+        const type = typeof key;
+        if(type === 'object') {
+            if(key === null) {
+                return 'null' in curr;
+            } else if(key instanceof Variable) {
+                let node = curr.variable;
+                if(node === void(0)) return false;
+                let vId = varMap[key.id];
+                if(vId === void(0)) {
+                    varMap[key.id] = vId = varMap.count++;
+                    return true;
+                }
+                return vId in node;
+            } else if(key instanceof Array) {
+                let node = curr.array;
+                if(node === void(0)) return false;
+                const len = key.length;
+                for(let i = 0; i < len; ++i) {
+                    node = this.lookupRec(key[i], node, varMap);
+                    if(node === void(0)) return false;
+                }
+                return 'empty' in node;
+            } else { // it's an object
+                let node = curr.object;
+                if(node === void(0)) return false;
+                const keys = Object.keys(key).sort();
+                const len = keys.length;
+                for(let i = 0; i < len; ++i) {
+                    const k = keys[i];
+                    node = node.more;
+                    if(node === void(0)) return false;
+                    node = node[k];
+                    if(node === void(0)) return false;
+                    node = this.lookupRec(key[k], node, varMap);
+                    if(node === void(0)) return false;
+                }
+                return 'empty' in node;
+            }
+        } else if(type === 'undefined') {
+            return 'undefined' in curr;
+        } else {
+            const node = curr[type];
+            if(node === void(0)) return false
+            return key in node;
+        }
+    }
+
     private insertRec(key: Json, val: any, curr: any, varMap: {count: number, [index: number]: number}): any {
         const type = typeof key;
         if(type === 'object') {
@@ -724,8 +811,10 @@ export class JsonTrieTerm<A> {
     trie.insert({ foo: new Variable(0), bar: new Variable(0) }, 8);
     console.log(JSON.stringify(trie.json));
     console.log(trie.contains(['foo', {start: 1, end: 3}]));
-    console.log(trie.contains({foo: new Variable(0), bar: new Variable(0)}));
-    console.log(trie.contains({foo: new Variable(1), bar: new Variable(0)}));
+    console.log(trie.contains({foo: new Variable(0), bar: new Variable(0)})); // true
+    console.log(trie.contains({foo: new Variable(1), bar: new Variable(0)})); // false
+    console.log(trie.contains({foo: new Variable(0), bar: new Variable(1)})); // false
+    console.log(trie.contains({foo: new Variable(1), bar: new Variable(1)})); // true
     const rows = [];
     for(const row of trie.entries()) { rows.push(row); }
     console.dir(rows, {depth: null});
