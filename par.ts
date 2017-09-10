@@ -1,6 +1,8 @@
 import { Variable, Substitution } from "./unify"
-import { Json, JsonTrieTerm } from "./json-trie"
+import { VarMap, Json, JsonTrieTerm } from "./json-trie"
 
+// TODO: Make this preserve sharing, at least. Possibly a separate version.
+/* * // Lacks sharing
 function groundJson(x: Json, sub: Substitution<Json>): Json {
     if(x instanceof Variable) x = sub.lookupAsVar(x);
     switch(typeof x) {
@@ -22,8 +24,42 @@ function groundJson(x: Json, sub: Substitution<Json>): Json {
             return x;
     }
 }
+// */
+/* */ // Has sharing
+function groundJson(x: Json, sub: Substitution<Json>, mapping: {[id: number]: Json} = {}): Json {
+    let id: number | null = null;
+    if(x instanceof Variable) { 
+        const v = sub.lookupVar(x);
+        id = v.id;
+        const shared = mapping[id];
+        if(shared !== void(0)) return shared;
+        x = v.value === void(0) ? new Variable(id) : v.value;
+    }
+    switch(typeof x) {
+        case 'object':
+            if(x === null) {
+                return x;
+            } else if(x instanceof Variable) {
+                return x;
+            } else if(x instanceof Array) {
+                const result = x.map(y => groundJson(y, sub, mapping));
+                if(id !== null) mapping[id] = result;
+                return result;
+            } else { // it's an object
+                const result: Json = {};
+                for(const key in x) {
+                    result[key] = groundJson(x[key], sub, mapping);
+                }
+                if(id !== null) mapping[id] = result;
+                return result;
+            }
+        default:
+            return x;
+    }
+}
+// */
 
-function refreshJson(x: Json, sub: Substitution<Json>, mapping: {[index: number]: Variable}): [Json, Substitution<Json>] {
+function refreshJson(x: Json, sub: Substitution<Json>, mapping: {[index: number]: Variable} = {}): [Json, Substitution<Json>] {
     switch(typeof x) {
         case 'object':
             if(x === null) {
@@ -318,6 +354,7 @@ class Generator implements Scheduler {
         if(count === 0) { 
             if(this.table.length === 0) { 
                 this.table.push([]);
+                this.scheduleResumes(); // TODO: Is this correct? We do need to notify consumers due to the early completion.
                 this.complete();
             } // else, do nothing, we've already completed
         } else {
@@ -330,7 +367,10 @@ class Generator implements Scheduler {
             // which point *any* answer entails an early completion.
             const answer = new Array<Json>(count);
             for(let i = 0; i < count; ++i) {
-                answer[i] = sub.lookupById(i); // TODO: Should I ground these? I think the answer is it's unnecessary.
+                //answer[i] = sub.lookupById(i); // TODO: Should I ground these? I think the answer is it's unnecessary.
+                answer[i] = groundJson(sub.lookupById(i), sub);
+                // TODO: I think this is actually wrong either way, since either way it can return unbound variables in this substitution
+                // that are bound in the substitution of the consumer.
             }
             (<JsonTrieTerm<boolean>>this.answerSet).modify(answer, exists => { if(!exists) { this.table.push(answer); }; return true; });
         }
@@ -343,13 +383,6 @@ export interface Predicate {
 export class EdbPredicate implements Predicate {
     constructor(private readonly table: Array<Json>) {}
 
-    // NOTE: This spews a ton of answers which can easily lead to a ton of blocked processes.
-    // As an alternative, we can produce results one at a time and enqueue the remainder. This
-    // doesn't completely solve the problem since we'll still return answers before the earlier
-    // alternatives have failed, but it gives them more of an opportunity to complete. We can
-    // imagine having a trade-off between these two options; returning a fixed number of answers
-    // (or some other approach to throttle) at a time.
-    /* */
     consume(row: Json): LP<Json, Substitution<Json>> { // Eager approach.
         return gen => s => k => {
             const arr = this.table;
@@ -360,50 +393,6 @@ export class EdbPredicate implements Predicate {
             }
         };
     }
-    // */
-    /* *
-    consume(row: Json): LP<Json, Substitution<Json>> { // Less eager approach.
-        return gen => s => k => {
-            const arr = this.table;
-            const len = arr.length;
-            let i = 0;
-            const loop = () => {
-                while(i < len) {
-                    const s2 = unifyJson(arr[i++], row, s);
-                    if(s2 !== null) { 
-                        k(s2);
-                        gen.push(loop);
-                        return;
-                    } 
-                }
-            };
-            loop();
-        };
-    }
-    // */
-    /* *
-    consume(row: Json): LP<Json, Substitution<Json>> { // Throttled approach.
-        return gen => s => k => {
-            const arr = this.table;
-            const len = arr.length;
-            let i = 0;
-            const loop = () => {
-                let count = this.throttle;
-                while(i < len) {
-                    const s2 = unifyJson(arr[i++], row, s);
-                    if(s2 !== null) { 
-                        k(s2);
-                        if(--count === 0) {
-                            gen.push(loop);
-                            return;
-                        }
-                    } 
-                }
-            };
-            loop();
-        };
-    }
-    // */
 }
 
 export class UntabledPredicate implements Predicate {
@@ -419,36 +408,35 @@ export class TabledPredicate implements Predicate {
     constructor(private readonly body: (row: Json) => LP<Json, Substitution<Json>>) { }
 
     private getGenerator(row: Json, sched: Scheduler): [Generator, Array<Variable>] {
-        let vm: any = null;
-        const g = this.generators.modifyWithVars(row, (gen, varMap: {count: number, [index: number]: number}) => {
-            vm = varMap;
+        let vs: any = null;
+        const g = this.generators.modifyWithVars(row, (gen, varMap: VarMap) => {
+            vs = varMap.vars;
             if(gen === void(0)) {
-                const [r, s] = refreshJson(row, Substitution.emptyPersistent(), {});
-                return Generator.create(this.body(r), sched, varMap.count, s);
+                const [r, s] = refreshJson(row, Substitution.emptyPersistent());
+                return Generator.create(this.body(r), sched, vs.length, s);
             } else {
                 return gen;
             }
         });
-        const keys = new Array<Variable>(vm.count);
-        for(const key in vm) {
-            if(key !== 'count') {
-                keys[vm[key]] = new Variable(Number(key));
-            }
-        }
-        return [g, keys];
+        return [g, vs];
     }
 
     consume(row: Json): LP<Json, Substitution<Json>> {
         return gen => s => k => {
+            // TODO: Can I add back the groundingModifyWithVars to eliminate this groundJson?
             const [generator, vs] = this.getGenerator(groundJson(row, s), gen);
             gen.dependOn(generator);
             const len = vs.length;
             generator.consume(cs => {
-                let s2 = s;
+                const [cs2, s2] = refreshJson(cs, s, vs); // TODO: Combine these or something.
+                const s3 = <Substitution<Json>>unifyJson(vs, cs2, s2);
+                /*
+                let s3 = s2;
                 for(let i = 0; i < len; ++i) {
-                    s2 = s2.bind(vs[i], cs[i]);
+                    s3 = s3.bind(vs[i], cs2[i]);
                 }
-                k(s2);
+                */
+                k(s3);
             });
         };
     }
@@ -535,6 +523,7 @@ const edge: Predicate = new EdbPredicate([
     [1, 2],
     [2, 3],
     [3, 1]]);
+    //[3, 4]]);
 const path: Predicate = new TabledPredicate(row => rule(
     [0, () => [edge.consume(row)]],
     [1, Y  => [path.consume([row[0], Y]), path.consume([Y, row[1]])]]));
@@ -548,6 +537,10 @@ const path4: Predicate = new TabledPredicate(row => rule(
     [1, Y  => [edge.consume([row[0], Y]), path4.consume([Y, row[1]])]],
     [0, () => [edge.consume(row)]]));
 
+const path5: Predicate = new TabledPredicate(([X, Z, P]) => rule(
+    [2, (P2, Y)  => [path5.consume([X, Y, P2]), edge.consume([Y, Z]), unify(P, [Z, P2])]],
+    [0, () => [edge.consume([X, Z]), unify(P, [Z, [X, []]])]]));
+
 const r: Predicate = new TabledPredicate(row => rule(
     [0, () => [r.consume(row)]]));
 
@@ -556,6 +549,7 @@ const p: Predicate = new TabledPredicate(row => rule(
 const q: Predicate = new TabledPredicate(row => rule(
     [0, () => [p.consume(row)]]));
 
+/* *
 const cyl: Predicate = new EdbPredicate([
     [1,30],
     [1,40],
@@ -1661,7 +1655,8 @@ const cyl: Predicate = new EdbPredicate([
     [551,569],
     [552,569],
     [552,564]]);
-/*
+// */
+/* */
 // Non-trivial answers: ['evelyn','dorothy'],['ann', 'bertrand'],
 const cyl: Predicate = new EdbPredicate([
     ['dorothy','george'],
@@ -1670,18 +1665,25 @@ const cyl: Predicate = new EdbPredicate([
     ['ann','dorothy'],
     ['hilary','ann'],
     ['charles','everlyn']]);
-*/
+// */
 
 const sg: Predicate = new TabledPredicate(([X, Y]) => rule(
     [0, () => [unify(X, Y)]],
     [1, Z  => [cyl.consume([X, Z]), sg.consume([Z, Z]), cyl.consume([Y, Z])]]));
 
+const vp: Predicate = new TabledPredicate(X => rule([0, () => []]));
+
 const sched = new TopLevelScheduler();
+// runLP(sched, fresh(2, (Y, X) => seq(conj(unify(1, X), vp.consume(X)), ground([Y, X]))), a => console.dir(a, {depth: null}));
+// runLP(sched, fresh(2, (Y, X) => seq(conj(vp.consume(X), unify(1, Y)), ground([Y, X]))), a => console.dir(a, {depth: null}));
+// runLP(sched, fresh(2, (Y, X) => seq(conj(vp.consume(X), unify(1, X)), ground([Y, X]))), a => console.dir(a, {depth: null}));
 // runLP(sched, fresh(2, (l, r) => seq(append.consume([l, r, list(1,2,3,4,5)]), ground([l, r]))), a => console.dir(a, {depth: null}));
 // runLP(sched, fresh(2, (s, e) => { const row = [s,e]; return seq(path.consume(row), ground(row)); }), a => console.dir(a, {depth: null}));
 // runLP(sched, fresh(2, (s, e) => { const row = [s,e]; return seq(path2.consume(row), ground(row)); }), a => console.dir(a, {depth: null}));
 // runLP(sched, fresh(2, (s, e) => { const row = [s,e]; return seq(path3.consume(row), ground(row)); }), a => console.dir(a, {depth: null}));
 // runLP(sched, fresh(2, (s, e) => { const row = [s,e]; return seq(path4.consume(row), ground(row)); }), a => console.dir(a, {depth: null}));
+//runLP(sched, fresh(3, (s, e, p) => { const row = [s, e, p]; return seq(path5.consume(row), ground(row)); }), a => console.dir(a, {depth: null}));
+//runLP(sched, fresh(6, (s, e, p1, p2, p3, p4, p5) => { const row = [s, e, [p1, [p2, [p3, [p4, [p5, []]]]]]]; return seq(path5.consume(row), ground(row)); }), a => console.dir(a, {depth: null}));
 // runLP(sched, r.consume(null), a => console.log('completed'));
 // runLP(sched, p.consume(null), a => console.log('completed'));
 runLP(sched, fresh(2, (s, e) => { const row = [s,e]; return seq(sg.consume(row), ground(row)); }), a => console.dir(a, {depth: null}));

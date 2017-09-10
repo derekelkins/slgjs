@@ -10,6 +10,8 @@ function convert(type: "boolean" | "number" | "string", val: string): Json {
     return val; // It's a string.
 }
 
+export type VarMap = {vars: Array<Variable>, [index: number]: number};
+
 /**
  * A key-value mapping keyed by JSON objects. This can also be used as a representation
  * for a collection of JSON objects that shares prefixes (where object keys are stored
@@ -355,8 +357,8 @@ export class JsonTrieTerm<A> {
         return this.modifyRec(key, f, this.trie, {count: 0});
     }
 
-    modifyWithVars(key: Json, f: (a: A | undefined, varMap: {count: number, [index:number]: number}) => A): A {
-        return this.modifyWithVarsRec(key, f, this.trie, {count: 0});
+    modifyWithVars(key: Json, f: (a: A | undefined, varMap: VarMap) => A): A {
+        return this.modifyWithVarsRec(key, f, this.trie, {vars: []});
     }
 
     contains(key: Json): boolean {
@@ -661,14 +663,17 @@ export class JsonTrieTerm<A> {
         }
     }
 
-    private modifyWithVarsRec(key: Json, f: (a: A | undefined, varMap: {count: number, [index: number]: number}) => A, curr: any, varMap: {count: number, [index: number]: number}): any {
+    private modifyWithVarsRec(key: Json, f: (a: A | undefined, varMap: VarMap) => A, curr: any, varMap: VarMap): any {
         const type = typeof key;
         if(type === 'object') {
             if(key === null) {
                 return curr.null = f(curr.null, varMap);
             } else if(key instanceof Variable) {
                 let vId = varMap[key.id];
-                if(vId === void(0)) varMap[key.id] = vId = varMap.count++;
+                if(vId === void(0)) {
+                    varMap[key.id] = vId = varMap.vars.length;
+                    varMap.vars.push(key);
+                }
                 let node = curr.variable;
                 if(node === void(0)) curr.variable = node = {};
                 return node[vId] = f(node[vId], varMap);

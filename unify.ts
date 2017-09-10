@@ -39,6 +39,10 @@ export class Substitution<A> {
         return val === void(0) ? x.id : val;
     }
 
+    lookupVar(v: Variable): {id: number, value?: A} {
+        return this.uf.find(v.id);
+    }
+
     lookupAsVar(v: Variable): A | Variable {
         const x = this.uf.find(v.id);
         const val = x.value;
