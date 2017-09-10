@@ -367,10 +367,7 @@ class Generator implements Scheduler {
             // which point *any* answer entails an early completion.
             const answer = new Array<Json>(count);
             for(let i = 0; i < count; ++i) {
-                //answer[i] = sub.lookupById(i); // TODO: Should I ground these? I think the answer is it's unnecessary.
                 answer[i] = groundJson(sub.lookupById(i), sub);
-                // TODO: I think this is actually wrong either way, since either way it can return unbound variables in this substitution
-                // that are bound in the substitution of the consumer.
             }
             (<JsonTrieTerm<boolean>>this.answerSet).modify(answer, exists => { if(!exists) { this.table.push(answer); }; return true; });
         }
@@ -428,15 +425,19 @@ export class TabledPredicate implements Predicate {
             gen.dependOn(generator);
             const len = vs.length;
             generator.consume(cs => {
-                const [cs2, s2] = refreshJson(cs, s, vs); // TODO: Combine these or something.
-                const s3 = <Substitution<Json>>unifyJson(vs, cs2, s2);
-                /*
-                let s3 = s2;
+                // const [cs2, s2] = refreshJson(cs, s, vs); // TODO: Combine these or something.
+                // const s3 = <Substitution<Json>>unifyJson(vs, cs2, s2);
+                // k(s3);
+                let s2 = s;
                 for(let i = 0; i < len; ++i) {
-                    s3 = s3.bind(vs[i], cs2[i]);
+                    const [c, s3] = refreshJson(cs[i], s2, vs);
+                    s2 = s3; 
+                    cs[i] = c;
                 }
-                */
-                k(s3);
+                for(let i = 0; i < len; ++i) {
+                    s2 = <Substitution<Json>>unifyJson(vs[i], cs[i], s2);
+                }
+                k(s2);
             });
         };
     }
