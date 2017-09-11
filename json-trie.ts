@@ -1,4 +1,4 @@
-import { Variable } from "./unify"
+import { Variable, Substitution } from "./unify"
 
 function emptyObjectUnless(x: any): any { return x === void(0) ? {} : x; }
 
@@ -44,38 +44,44 @@ export class JsonTrie<A> {
     }
 
     insert(key: Json, val: A): A {
-        return this.insertRec(key, val, this.trie);
+        return JsonTrie.insertRec(key, val, this.trie);
     }
 
     modify(key: Json, f: (a: A | undefined) => A): A {
-        return this.modifyRec(key, f, this.trie);
+        return JsonTrie.modifyRec(key, f, this.trie);
     }
 
     contains(key: Json): boolean {
-        return this.containsRec(key, this.trie);
+        return JsonTrie.containsRec(key, this.trie);
     }
 
     lookup(key: Json): A | undefined {
-        return this.lookupRec(key, this.trie);
+        return JsonTrie.lookupRec(key, this.trie);
     }
 
     *keys(): Iterable<Json> {
-        for(const [k, _] of this.rowRec(this.trie)) {
+        for(const [k, _] of JsonTrie.rowRec(this.trie)) {
             yield k;
         }
     }
 
     *values(): Iterable<A> {
-        for(const [_, v] of this.rowRec(this.trie)) {
+        for(const [_, v] of JsonTrie.rowRec(this.trie)) {
             yield v;
         }
     }
 
-    *entries(): Iterable<[Json, A]> {
-        yield* this.rowRec(this.trie);
+    entries(): Iterable<[Json, A]> {
+        return JsonTrie.rowRec(this.trie);
     }
 
-    private *rowRecObject(curr: any, result: Array<[string, Json]>): Iterable<[Json, any]> {
+    /*
+    match(key: Json, sub: Substitution<Json>): Iterable<Substitution<Json>> {
+        return JsonTrie.matchRec(key, sub, this.trie);
+    }
+    */
+
+    private static *rowRecObject(curr: any, result: Array<[string, Json]>): Iterable<[Json, any]> {
         if(curr.empty !== void(0)) {
             const obj: Json = {};
             for(const [k, v] of result) {
@@ -91,27 +97,27 @@ export class JsonTrie<A> {
             for(const type in node) {
                 switch(type) {
                     case 'array':
-                        for(const [key, rest] of this.rowRecArray(node.array, []) ){
+                        for(const [key, rest] of JsonTrie.rowRecArray(node.array, []) ){
                             result.push([k, key]);
-                            yield* this.rowRecObject(rest, result);
+                            yield* JsonTrie.rowRecObject(rest, result);
                             result.pop();
                         }
                         break;
                     case 'object':
-                        for(const [key, rest] of this.rowRecObject(node.array, []) ){
+                        for(const [key, rest] of JsonTrie.rowRecObject(node.array, []) ){
                             result.push([k, key]);
-                            yield* this.rowRecObject(rest, result);
+                            yield* JsonTrie.rowRecObject(rest, result);
                             result.pop();
                         }
                         break;
                     case 'null':
                         result.push([k, null]);
-                        yield* this.rowRecObject(node.null, result);
+                        yield* JsonTrie.rowRecObject(node.null, result);
                         result.pop();
                         break;
                     case 'undefined':
                         result.push([k, void(0)]);
-                        yield* this.rowRecObject(node.undefined, result);
+                        yield* JsonTrie.rowRecObject(node.undefined, result);
                         result.pop();
                         break;
                     case 'number':
@@ -120,7 +126,7 @@ export class JsonTrie<A> {
                         const valNode = node[type];
                         for(const k2 in valNode) {
                             result.push([k, convert(type, k2)]);
-                            yield* this.rowRecObject(valNode[k2], result);
+                            yield* JsonTrie.rowRecObject(valNode[k2], result);
                             result.pop();
                         }
                 }
@@ -128,34 +134,34 @@ export class JsonTrie<A> {
         }
     }
 
-    private *rowRecArray(curr: any, result: Array<Json>): Iterable<[Json, any]> {
+    private static *rowRecArray(curr: any, result: Array<Json>): Iterable<[Json, any]> {
         for(const type in curr) {
             switch(type) {
                 case 'empty':
                     yield [result.slice(), curr.empty];
                     break;
                 case 'array':
-                    for(const [key, rest] of this.rowRecArray(curr.array, []) ){
+                    for(const [key, rest] of JsonTrie.rowRecArray(curr.array, []) ){
                         result.push(key);
-                        yield* this.rowRecArray(rest, result);
+                        yield* JsonTrie.rowRecArray(rest, result);
                         result.pop();
                     }
                     break;
                 case 'object':
-                    for(const [key, rest] of this.rowRecObject(curr.object, []) ){
+                    for(const [key, rest] of JsonTrie.rowRecObject(curr.object, []) ){
                         result.push(key);
-                        yield* this.rowRecArray(rest, result);
+                        yield* JsonTrie.rowRecArray(rest, result);
                         result.pop();
                     }
                     break;
                 case 'null':
                     result.push(null);
-                    yield* this.rowRecArray(curr.null, result);
+                    yield* JsonTrie.rowRecArray(curr.null, result);
                     result.pop();
                     break;
                 case 'undefined':
                     result.push(void(0));
-                    yield* this.rowRecArray(curr.undefined, result);
+                    yield* JsonTrie.rowRecArray(curr.undefined, result);
                     result.pop();
                     break;
                 case 'number':
@@ -164,21 +170,21 @@ export class JsonTrie<A> {
                     const valNode = curr[type];
                     for(const k in valNode) {
                         result.push(convert(type, k));
-                        yield* this.rowRecArray(valNode[k], result);
+                        yield* JsonTrie.rowRecArray(valNode[k], result);
                         result.pop();
                     }
             }
         }
     }
 
-    private *rowRec(curr: any): Iterable<[Json, any]> {
+    private static *rowRec(curr: any): Iterable<[Json, any]> {
         for(const type in curr) {
             switch(type) {
                 case 'array':
-                    yield* this.rowRecArray(curr.array, []);
+                    yield* JsonTrie.rowRecArray(curr.array, []);
                     break;
                 case 'object':
-                    yield* this.rowRecObject(curr.object, []);
+                    yield* JsonTrie.rowRecObject(curr.object, []);
                     break;
                 case 'null':
                     yield [null, curr.null];
@@ -197,7 +203,7 @@ export class JsonTrie<A> {
         }
     }
 
-    private lookupRec(key: Json, curr: any): any {
+    private static lookupRec(key: Json, curr: any): any {
         const type = typeof key;
         if(type === 'object') {
             if(key === null) {
@@ -207,7 +213,7 @@ export class JsonTrie<A> {
                 if(node === void(0)) return void(0);
                 const len = key.length;
                 for(let i = 0; i < len; ++i) {
-                    node = this.lookupRec(key[i], node);
+                    node = JsonTrie.lookupRec(key[i], node);
                     if(node === void(0)) return void(0);
                 }
                 node = node.empty;
@@ -223,7 +229,7 @@ export class JsonTrie<A> {
                     if(node === void(0)) return void(0);
                     node = node[k];
                     if(node === void(0)) return void(0);
-                    node = this.lookupRec(key[k], node);
+                    node = JsonTrie.lookupRec(key[k], node);
                     if(node === void(0)) return void(0);
                 }
                 node = node.empty;
@@ -238,7 +244,7 @@ export class JsonTrie<A> {
         }
     }
 
-    private containsRec(key: Json, curr: any): boolean {
+    private static containsRec(key: Json, curr: any): boolean {
         const type = typeof key;
         if(type === 'object') {
             if(key === null) {
@@ -248,7 +254,7 @@ export class JsonTrie<A> {
                 if(node === void(0)) return false;
                 const len = key.length;
                 for(let i = 0; i < len; ++i) {
-                    node = this.lookupRec(key[i], node);
+                    node = JsonTrie.lookupRec(key[i], node);
                     if(node === void(0)) return false;
                 }
                 return 'empty' in node;
@@ -263,7 +269,7 @@ export class JsonTrie<A> {
                     if(node === void(0)) return false;
                     node = node[k];
                     if(node === void(0)) return false;
-                    node = this.lookupRec(key[k], node);
+                    node = JsonTrie.lookupRec(key[k], node);
                     if(node === void(0)) return false;
                 }
                 return 'empty' in node;
@@ -277,7 +283,7 @@ export class JsonTrie<A> {
         }
     }
 
-    private insertRec(key: Json, val: any, curr: any): any {
+    private static insertRec(key: Json, val: any, curr: any): any {
         const type = typeof key;
         if(type === 'object') {
             if(key === null) {
@@ -289,7 +295,7 @@ export class JsonTrie<A> {
                 if(node === void(0)) curr.array = node = {};
                 const len = key.length;
                 for(let i = 0; i < len; ++i) {
-                    node = this.insertRec(key[i], {}, node);
+                    node = JsonTrie.insertRec(key[i], {}, node);
                 }
                 let node2 = node.empty;
                 if(node2 === void(0)) node.empty = node2 = val;
@@ -305,7 +311,7 @@ export class JsonTrie<A> {
                     if(node2 === void(0)) node.more = node2 = {};
                     let node3 = node2[k];
                     if(node3 === void(0)) node2[k] = node3 = {};
-                    node = this.insertRec(key[k], {}, node3);
+                    node = JsonTrie.insertRec(key[k], {}, node3);
                 }
                 let node2 = node.empty;
                 if(node2 === void(0)) node.empty = node2 = val;
@@ -324,7 +330,7 @@ export class JsonTrie<A> {
         }
     }
 
-    private modifyRec(key: Json, f: (a: A | undefined) => A, curr: any): any {
+    private static modifyRec<A>(key: Json, f: (a: A | undefined) => A, curr: any): any {
         const type = typeof key;
         if(type === 'object') {
             if(key === null) {
@@ -334,7 +340,7 @@ export class JsonTrie<A> {
                 if(node === void(0)) curr.array = node = {};
                 const len = key.length;
                 for(let i = 0; i < len; ++i) {
-                    node = this.modifyRec(key[i], emptyObjectUnless, node);
+                    node = JsonTrie.modifyRec(key[i], emptyObjectUnless, node);
                 }
                 return node.empty = f(node.empty);
             } else { // it's an object
@@ -348,7 +354,7 @@ export class JsonTrie<A> {
                     if(node2 === void(0)) node.more = node2 = {};
                     let node3 = node2[k];
                     if(node3 === void(0)) node2[k] = node3 = {};
-                    node = this.modifyRec(key[k], emptyObjectUnless, node3);
+                    node = JsonTrie.modifyRec(key[k], emptyObjectUnless, node3);
                 }
                 return node.empty = f(node.empty);
             }
@@ -389,42 +395,42 @@ export class JsonTrieTerm<A> {
     }
 
     insert(key: Json, val: A): A {
-        return this.insertRec(key, val, this.trie, {count: 0});
+        return JsonTrieTerm.insertRec(key, val, this.trie, {count: 0});
     }
 
     modify(key: Json, f: (a: A | undefined) => A): A {
-        return this.modifyRec(key, f, this.trie, {count: 0});
+        return JsonTrieTerm.modifyRec(key, f, this.trie, {count: 0});
     }
 
     modifyWithVars(key: Json, f: (a: A | undefined, varMap: VarMap) => A): A {
-        return this.modifyWithVarsRec(key, f, this.trie, {vars: []});
+        return JsonTrieTerm.modifyWithVarsRec(key, f, this.trie, {vars: []});
     }
 
     contains(key: Json): boolean {
-        return this.containsRec(key, this.trie, {count: 0});
+        return JsonTrieTerm.containsRec(key, this.trie, {count: 0});
     }
 
     lookup(key: Json): A | undefined {
-        return this.lookupRec(key, this.trie, {count: 0});
+        return JsonTrieTerm.lookupRec(key, this.trie, {count: 0});
     }
 
     *keys(): Iterable<Json> {
-        for(const [k, _] of this.rowRec(this.trie)) {
+        for(const [k, _] of JsonTrieTerm.rowRec(this.trie)) {
             yield k;
         }
     }
 
     *values(): Iterable<A> {
-        for(const [_, v] of this.rowRec(this.trie)) {
+        for(const [_, v] of JsonTrieTerm.rowRec(this.trie)) {
             yield v;
         }
     }
 
-    *entries(): Iterable<[Json, A]> {
-        yield* this.rowRec(this.trie);
+    entries(): Iterable<[Json, A]> {
+        return JsonTrieTerm.rowRec(this.trie);
     }
 
-    private *rowRecObject(curr: any, result: Array<[string, Json]>): Iterable<[Json, any]> {
+    private static *rowRecObject(curr: any, result: Array<[string, Json]>): Iterable<[Json, any]> {
         if(curr.empty !== void(0)) {
             const obj: Json = {};
             for(const [k, v] of result) {
@@ -440,27 +446,27 @@ export class JsonTrieTerm<A> {
             for(const type in node) {
                 switch(type) {
                     case 'array':
-                        for(const [key, rest] of this.rowRecArray(node.array, []) ){
+                        for(const [key, rest] of JsonTrieTerm.rowRecArray(node.array, []) ){
                             result.push([k, key]);
-                            yield* this.rowRecObject(rest, result);
+                            yield* JsonTrieTerm.rowRecObject(rest, result);
                             result.pop();
                         }
                         break;
                     case 'object':
-                        for(const [key, rest] of this.rowRecObject(node.array, []) ){
+                        for(const [key, rest] of JsonTrieTerm.rowRecObject(node.array, []) ){
                             result.push([k, key]);
-                            yield* this.rowRecObject(rest, result);
+                            yield* JsonTrieTerm.rowRecObject(rest, result);
                             result.pop();
                         }
                         break;
                     case 'null':
                         result.push([k, null]);
-                        yield* this.rowRecObject(node.null, result);
+                        yield* JsonTrieTerm.rowRecObject(node.null, result);
                         result.pop();
                         break;
                     case 'undefined':
                         result.push([k, void(0)]);
-                        yield* this.rowRecObject(node.undefined, result);
+                        yield* JsonTrieTerm.rowRecObject(node.undefined, result);
                         result.pop();
                         break;
                     case 'number':
@@ -470,7 +476,7 @@ export class JsonTrieTerm<A> {
                         const valNode = node[type];
                         for(const k2 in valNode) {
                             result.push([k, JsonTrieTerm.convert(type, k2)]);
-                            yield* this.rowRecObject(valNode[k2], result);
+                            yield* JsonTrieTerm.rowRecObject(valNode[k2], result);
                             result.pop();
                         }
                         break;
@@ -480,34 +486,34 @@ export class JsonTrieTerm<A> {
         }
     }
 
-    private *rowRecArray(curr: any, result: Array<Json>): Iterable<[Json, any]> {
+    private static *rowRecArray(curr: any, result: Array<Json>): Iterable<[Json, any]> {
         for(const type in curr) {
             switch(type) {
                 case 'empty':
                     yield [result.slice(), curr.empty];
                     break;
                 case 'array':
-                    for(const [key, rest] of this.rowRecArray(curr.array, []) ){
+                    for(const [key, rest] of JsonTrieTerm.rowRecArray(curr.array, []) ){
                         result.push(key);
-                        yield* this.rowRecArray(rest, result);
+                        yield* JsonTrieTerm.rowRecArray(rest, result);
                         result.pop();
                     }
                     break;
                 case 'object':
-                    for(const [key, rest] of this.rowRecObject(curr.object, []) ){
+                    for(const [key, rest] of JsonTrieTerm.rowRecObject(curr.object, []) ){
                         result.push(key);
-                        yield* this.rowRecArray(rest, result);
+                        yield* JsonTrieTerm.rowRecArray(rest, result);
                         result.pop();
                     }
                     break;
                 case 'null':
                     result.push(null);
-                    yield* this.rowRecArray(curr.null, result);
+                    yield* JsonTrieTerm.rowRecArray(curr.null, result);
                     result.pop();
                     break;
                 case 'undefined':
                     result.push(void(0));
-                    yield* this.rowRecArray(curr.undefined, result);
+                    yield* JsonTrieTerm.rowRecArray(curr.undefined, result);
                     result.pop();
                     break;
                 case 'number':
@@ -517,7 +523,7 @@ export class JsonTrieTerm<A> {
                     const valNode = curr[type];
                     for(const k in valNode) {
                         result.push(JsonTrieTerm.convert(type, k));
-                        yield* this.rowRecArray(valNode[k], result);
+                        yield* JsonTrieTerm.rowRecArray(valNode[k], result);
                         result.pop();
                     }
                     break;
@@ -526,14 +532,14 @@ export class JsonTrieTerm<A> {
         }
     }
 
-    private *rowRec(curr: any): Iterable<[Json, any]> {
+    private static *rowRec(curr: any): Iterable<[Json, any]> {
         for(const type in curr) {
             switch(type) {
                 case 'array':
-                    yield* this.rowRecArray(curr.array, []);
+                    yield* JsonTrieTerm.rowRecArray(curr.array, []);
                     break;
                 case 'object':
-                    yield* this.rowRecObject(curr.object, []);
+                    yield* JsonTrieTerm.rowRecObject(curr.object, []);
                     break;
                 case 'null':
                     yield [null, curr.null];
@@ -555,7 +561,7 @@ export class JsonTrieTerm<A> {
         }
     }
 
-    private lookupRec(key: Json, curr: any, varMap: {count: number, [index: number]: number}): any {
+    private static lookupRec(key: Json, curr: any, varMap: {count: number, [index: number]: number}): any {
         const type = typeof key;
         if(type === 'object') {
             if(key === null) {
@@ -573,7 +579,7 @@ export class JsonTrieTerm<A> {
                 if(node === void(0)) return void(0);
                 const len = key.length;
                 for(let i = 0; i < len; ++i) {
-                    node = this.lookupRec(key[i], node, varMap);
+                    node = JsonTrieTerm.lookupRec(key[i], node, varMap);
                     if(node === void(0)) return void(0);
                 }
                 node = node.empty;
@@ -589,7 +595,7 @@ export class JsonTrieTerm<A> {
                     if(node === void(0)) return void(0);
                     node = node[k];
                     if(node === void(0)) return void(0);
-                    node = this.lookupRec(key[k], node, varMap);
+                    node = JsonTrieTerm.lookupRec(key[k], node, varMap);
                     if(node === void(0)) return void(0);
                 }
                 node = node.empty;
@@ -604,7 +610,7 @@ export class JsonTrieTerm<A> {
         }
     }
 
-    private containsRec(key: Json, curr: any, varMap: {count: number, [index: number]: number}): boolean {
+    private static containsRec(key: Json, curr: any, varMap: {count: number, [index: number]: number}): boolean {
         const type = typeof key;
         if(type === 'object') {
             if(key === null) {
@@ -623,7 +629,7 @@ export class JsonTrieTerm<A> {
                 if(node === void(0)) return false;
                 const len = key.length;
                 for(let i = 0; i < len; ++i) {
-                    node = this.lookupRec(key[i], node, varMap);
+                    node = JsonTrieTerm.lookupRec(key[i], node, varMap);
                     if(node === void(0)) return false;
                 }
                 return 'empty' in node;
@@ -638,7 +644,7 @@ export class JsonTrieTerm<A> {
                     if(node === void(0)) return false;
                     node = node[k];
                     if(node === void(0)) return false;
-                    node = this.lookupRec(key[k], node, varMap);
+                    node = JsonTrieTerm.lookupRec(key[k], node, varMap);
                     if(node === void(0)) return false;
                 }
                 return 'empty' in node;
@@ -652,7 +658,7 @@ export class JsonTrieTerm<A> {
         }
     }
 
-    private insertRec(key: Json, val: any, curr: any, varMap: {count: number, [index: number]: number}): any {
+    private static insertRec(key: Json, val: any, curr: any, varMap: {count: number, [index: number]: number}): any {
         const type = typeof key;
         if(type === 'object') {
             if(key === null) {
@@ -672,7 +678,7 @@ export class JsonTrieTerm<A> {
                 if(node === void(0)) curr.array = node = {};
                 const len = key.length;
                 for(let i = 0; i < len; ++i) {
-                    node = this.insertRec(key[i], {}, node, varMap);
+                    node = JsonTrieTerm.insertRec(key[i], {}, node, varMap);
                 }
                 let node2 = node.empty;
                 if(node2 === void(0)) node.empty = node2 = val;
@@ -688,7 +694,7 @@ export class JsonTrieTerm<A> {
                     if(node2 === void(0)) node.more = node2 = {};
                     let node3 = node2[k];
                     if(node3 === void(0)) node2[k] = node3 = {};
-                    node = this.insertRec(key[k], {}, node3, varMap);
+                    node = JsonTrieTerm.insertRec(key[k], {}, node3, varMap);
                 }
                 let node2 = node.empty;
                 if(node2 === void(0)) node.empty = node2 = val;
@@ -707,7 +713,7 @@ export class JsonTrieTerm<A> {
         }
     }
 
-    private modifyRec(key: Json, f: (a: A | undefined) => A, curr: any, varMap: {count: number, [index: number]: number}): any {
+    private static modifyRec<A>(key: Json, f: (a: A | undefined) => A, curr: any, varMap: {count: number, [index: number]: number}): any {
         const type = typeof key;
         if(type === 'object') {
             if(key === null) {
@@ -723,7 +729,7 @@ export class JsonTrieTerm<A> {
                 if(node === void(0)) curr.array = node = {};
                 const len = key.length;
                 for(let i = 0; i < len; ++i) {
-                    node = this.modifyRec(key[i], emptyObjectUnless, node, varMap);
+                    node = JsonTrieTerm.modifyRec(key[i], emptyObjectUnless, node, varMap);
                 }
                 return node.empty = f(node.empty);
             } else { // it's an object
@@ -737,7 +743,7 @@ export class JsonTrieTerm<A> {
                     if(node2 === void(0)) node.more = node2 = {};
                     let node3 = node2[k];
                     if(node3 === void(0)) node2[k] = node3 = {};
-                    node = this.modifyRec(key[k], emptyObjectUnless, node3, varMap);
+                    node = JsonTrieTerm.modifyRec(key[k], emptyObjectUnless, node3, varMap);
                 }
                 return node.empty = f(node.empty);
             }
@@ -750,7 +756,7 @@ export class JsonTrieTerm<A> {
         }
     }
 
-    private modifyWithVarsRec(key: Json, f: (a: A | undefined, varMap: VarMap) => A, curr: any, varMap: VarMap): any {
+    private static modifyWithVarsRec<A>(key: Json, f: (a: A | undefined, varMap: VarMap) => A, curr: any, varMap: VarMap): any {
         const type = typeof key;
         if(type === 'object') {
             if(key === null) {
@@ -769,7 +775,7 @@ export class JsonTrieTerm<A> {
                 if(node === void(0)) curr.array = node = {};
                 const len = key.length;
                 for(let i = 0; i < len; ++i) {
-                    node = this.modifyWithVarsRec(key[i], emptyObjectUnless, node, varMap);
+                    node = JsonTrieTerm.modifyWithVarsRec(key[i], emptyObjectUnless, node, varMap);
                 }
                 return node.empty = f(node.empty, varMap);
             } else { // it's an object
@@ -783,7 +789,7 @@ export class JsonTrieTerm<A> {
                     if(node2 === void(0)) node.more = node2 = {};
                     let node3 = node2[k];
                     if(node3 === void(0)) node2[k] = node3 = {};
-                    node = this.modifyWithVarsRec(key[k], emptyObjectUnless, node3, varMap);
+                    node = JsonTrieTerm.modifyWithVarsRec(key[k], emptyObjectUnless, node3, varMap);
                 }
                 return node.empty = f(node.empty, varMap);
             }
