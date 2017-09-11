@@ -94,8 +94,8 @@ function refreshJson(x: JsonTerm, sub: Substitution<JsonTerm>, mapping: {[index:
     }
 }
 
-/*
-function looseMatchJson(x: Json, y: JsonTerm, sub: Substitution<JsonTerm>): Substitution<JsonTerm> | null {
+// This is asymmetrical and only requires x to have a subset of y's keys when both are objects (and recursively).
+function looseUnifyJson(x: JsonTerm, y: JsonTerm, sub: Substitution<JsonTerm>): Substitution<JsonTerm> | null {
     if(x instanceof Variable) x = sub.lookupAsVar(x);
     if(y instanceof Variable) y = sub.lookupAsVar(y);
     if(x instanceof Variable) {
@@ -105,7 +105,7 @@ function looseMatchJson(x: Json, y: JsonTerm, sub: Substitution<JsonTerm>): Subs
             return sub.bind(x, y);
         }
     } else if(y instanceof Variable) {
-        return unifyJson(y, x, sub); // Not the most efficient thing, but it saves code.
+        return sub.bind(y, x);
     } else {
         switch(typeof x) {
             case 'object':
@@ -117,7 +117,7 @@ function looseMatchJson(x: Json, y: JsonTerm, sub: Substitution<JsonTerm>): Subs
                         if(len !== y.length) return null;
                         let s: Substitution<any> | null = sub;
                         for(let i = 0; i < len; ++i) {
-                            s = looseMatchJson(x[i], y[i], s);
+                            s = looseUnifyJson(x[i], y[i], s);
                             if(s === null) return null;
                         }
                         return s;
@@ -126,15 +126,10 @@ function looseMatchJson(x: Json, y: JsonTerm, sub: Substitution<JsonTerm>): Subs
                     }
                 } else { // it's an object
                     if(y === null || typeof y !== 'object' || y instanceof Array) return null;
-                    const xKeys = Object.keys(x).sort();
-                    const yKeys = Object.keys(y).sort();
-                    const len = xKeys.length;
-                    if(len !== yKeys.length) return null;
                     let s: Substitution<any> | null = sub;
-                    for(let i = 0; i < len; ++i) {
-                        const key = xKeys[i];
-                        if(key !== yKeys[i]) return null;
-                        s = looseMatchJson(x[key], y[key], s);
+                    for(const key in x) {
+                        if(!(key in y)) return null;
+                        s = looseUnifyJson(x[key], y[key], s);
                         if(s === null) return null;
                     }
                     return s;
@@ -149,7 +144,6 @@ function looseMatchJson(x: Json, y: JsonTerm, sub: Substitution<JsonTerm>): Subs
         }
     }
 }
-*/
 
 function unifyJson(x: JsonTerm, y: JsonTerm, sub: Substitution<JsonTerm>): Substitution<JsonTerm> | null {
     if(x instanceof Variable) x = sub.lookupAsVar(x);
@@ -161,7 +155,7 @@ function unifyJson(x: JsonTerm, y: JsonTerm, sub: Substitution<JsonTerm>): Subst
             return sub.bind(x, y);
         }
     } else if(y instanceof Variable) {
-        return unifyJson(y, x, sub); // Not the most efficient thing, but it saves code.
+        return sub.bind(y, x);
     } else {
         switch(typeof x) {
             case 'object':
@@ -591,6 +585,15 @@ export function unify(x: JsonTerm, y: JsonTerm): LP<Substitution<JsonTerm>, Subs
     };
 }
 
+export function looseUnify(x: JsonTerm, y: JsonTerm): LP<Substitution<JsonTerm>, Substitution<JsonTerm>> {
+    return gen => s => k => {
+        const s2 = looseUnifyJson(x, y, s);
+        if(s2 !== null) {
+            return k(s2);
+        }
+    };
+}
+
 export function rule<V>(...alternatives: Array<[number, (...vs: Array<Variable>) => Array<LP<Substitution<V>, Substitution<V>>>]>): LP<Substitution<V>, Substitution<V>> {
     return disj.apply(null, alternatives.map(([n, cs]) => fresh(n, (...vs) => conj.apply(null, cs.apply(null, vs)))));
 }
@@ -842,20 +845,25 @@ const sg: Predicate = new TabledPredicate(([X, Y]) => rule(
 
 const vp: Predicate = new TabledPredicate(X => rule([0, () => []]));
 
+const objects: Predicate = new EdbPredicate([
+    {foo: 1, bar: 2},
+    {foo: 3, bar: 4}]);
+
 const sched = new TopLevelScheduler();
 // runLP(sched, fresh(2, (Y, X) => seq(conj(unify(1, X), vp.match(X)), ground([Y, X]))), a => console.dir(a, {depth: null}));
 // runLP(sched, fresh(2, (Y, X) => seq(conj(vp.match(X), unify(1, Y)), ground([Y, X]))), a => console.dir(a, {depth: null}));
 // runLP(sched, fresh(2, (Y, X) => seq(conj(vp.match(X), unify(1, X)), ground([Y, X]))), a => console.dir(a, {depth: null}));
 // runLP(sched, fresh(2, (l, r) => seq(append.match([l, r, list(1,2,3,4,5)]), ground([l, r]))), a => console.dir(a, {depth: null}));
-// runLP(sched, fresh(2, (s, e) => { const row = [s,e]; return seq(path.match(row), ground(row)); }), a => console.dir(a, {depth: null}));
-// runLP(sched, fresh(2, (s, e) => { const row = [s,e]; return seq(path2.match(row), ground(row)); }), a => console.dir(a, {depth: null}));
-// runLP(sched, fresh(2, (s, e) => { const row = [s,e]; return seq(path3.match(row), ground(row)); }), a => console.dir(a, {depth: null}));
-// runLP(sched, fresh(2, (s, e) => { const row = [s,e]; return seq(path4.match(row), ground(row)); }), a => console.dir(a, {depth: null}));
-//runLP(sched, fresh(3, (s, e, p) => { const row = [s, e, p]; return seq(path5.match(row), ground(row)); }), a => console.dir(a, {depth: null}));
-//runLP(sched, fresh(6, (s, e, p1, p2, p3, p4, p5) => { const row = [s, e, [p1, [p2, [p3, [p4, [p5, []]]]]]]; return seq(path5.match(row), ground(row)); }), a => console.dir(a, {depth: null}));
+// runLP(sched, fresh(2, (S, E) => { const Row = [S, E]; return seq(path.match(Row), ground(Row)); }), a => console.dir(a, {depth: null}));
+// runLP(sched, fresh(2, (S, E) => { const Row = [S, E]; return seq(path2.match(Row), ground(Row)); }), a => console.dir(a, {depth: null}));
+// runLP(sched, fresh(2, (S, E) => { const Row = [S, E]; return seq(path3.match(Row), ground(Row)); }), a => console.dir(a, {depth: null}));
+// runLP(sched, fresh(2, (S, E) => { const Row = [S, E]; return seq(path4.match(Row), ground(Row)); }), a => console.dir(a, {depth: null}));
+//runLP(sched, fresh(3, (S, E, P) => { const Row = [S, E, P]; return seq(path5.match(Row), ground(Row)); }), a => console.dir(a, {depth: null}));
+//runLP(sched, fresh(6, (S, E, P1, P2, P3, P4, P5) => { const Row = [S, E, [P1, [P2, [P3, [P4, [P5, []]]]]]]; return seq(path5.match(Row), ground(Row)); }), a => console.dir(a, {depth: null}));
 // runLP(sched, r.match(null), a => console.log('completed'));
 // runLP(sched, p.match(null), a => console.log('completed'));
-//runLP(sched, fresh(2, (s, e) => { const row = [s,e]; return seq(sg.match(row), ground(row)); }), a => console.dir(a, {depth: null}));
+//runLP(sched, fresh(2, (S, E) => { const Row = [S, E]; return seq(sg.match(Row), ground(Row)); }), a => console.dir(a, {depth: null}));
+// runLP(sched, fresh(2, (X, Y) => seq(conj(objects.match(X), looseUnify({foo: Y}, X)), ground(Y))), a => console.dir(a, {depth: null}));
 sched.execute();
 
 // const sub = Substitution.emptyPersistent();
