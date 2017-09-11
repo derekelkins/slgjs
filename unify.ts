@@ -7,8 +7,8 @@ export class Variable {
 export class Substitution<A> {
     private constructor(private readonly uf: PUF<A>, private readonly nextVariable = 0) {}
 
-    static emptyPersistent<A>(): Substitution<A> { return new Substitution<A>(PUF.createPersistent(10)); }
-    static emptySemiPersistent<A>(): Substitution<A> { return new Substitution<A>(PUF.createSemiPersistent(10)); }
+    static emptyPersistent<A>(initialCapacity = 10): Substitution<A> { return new Substitution<A>(PUF.createPersistent(initialCapacity)); }
+    static emptySemiPersistent<A>(initialCapacity = 10): Substitution<A> { return new Substitution<A>(PUF.createSemiPersistent(initialCapacity)); }
 
     freshVar(): [Variable, Substitution<A>] {
         const nv = this.nextVariable;
