@@ -81,6 +81,10 @@ export class JsonTrie<A> {
         }
     }
 
+    matchWithValue(key: Json, sub: Substitution<Json>): Iterable<[A, Substitution<Json>]> {
+        return JsonTrie.matchRec(key, sub, this.trie);
+    }
+
     private static *matchRecArray(key: Array<Json>, i: number, sub: Substitution<Json>, curr: any): Iterable<[any, Substitution<Json>]> {
         if(i < key.length) {
             for(const [node, s] of JsonTrie.matchRec(key[i], sub, curr)) {
@@ -900,18 +904,23 @@ export class JsonTrieTerm<A> {
     trie2.insert([1,2], 5);
     trie2.insert([1,3], 6);
     trie2.insert({}, 7);
+    trie2.insert({foo: {start: 1, end: 2}, end: 3}, 8);
+    trie2.insert({foo: {start: 1, end: 3}, end: 3}, 9);
     const matches = [];
     const [[X, Y], sub] = Substitution.emptyPersistent().fresh(2);
     for(const s of trie2.match({start: X, end: Y}, sub)) { 
         matches.push([s.lookup(X), s.lookup(Y)]); 
     }
-    console.log('Object match:');
     console.dir(matches, {depth: null});
     matches.length = 0;
     for(const s of trie2.match([X, Y], sub)) { 
         matches.push([s.lookup(X), s.lookup(Y)]); 
     }
-    console.log('Array match:');
+    console.dir(matches, {depth: null});
+    matches.length = 0;
+    for(const s of trie2.match({foo: {start: X, end: Y}, end: Y}, sub)) { 
+        matches.push([s.lookup(X), s.lookup(Y)]); 
+    }
     console.dir(matches, {depth: null});
 })();
 */
