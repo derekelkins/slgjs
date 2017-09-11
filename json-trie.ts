@@ -4,6 +4,8 @@ function emptyObjectUnless(x: any): any { return x === void(0) ? {} : x; }
 
 export type Json = any;
 
+export type JsonTerm = Json | Variable;
+
 function convert(type: "boolean" | "number" | "string", val: string): Json {
     if(type === 'boolean') return Boolean(val);
     if(type === 'number') return Number(val);
@@ -75,17 +77,17 @@ export class JsonTrie<A> {
         return JsonTrie.rowRec(this.trie);
     }
 
-    *match(key: Json, sub: Substitution<Json>): Iterable<Substitution<Json>> {
+    *match(key: JsonTerm, sub: Substitution<JsonTerm>): Iterable<Substitution<JsonTerm>> {
         for(let [_, s] of JsonTrie.matchRec(key, sub, this.trie)) {
             yield s;
         }
     }
 
-    matchWithValue(key: Json, sub: Substitution<Json>): Iterable<[A, Substitution<Json>]> {
+    matchWithValue(key: JsonTerm, sub: Substitution<JsonTerm>): Iterable<[A, Substitution<JsonTerm>]> {
         return JsonTrie.matchRec(key, sub, this.trie);
     }
 
-    private static *matchRecArray(key: Array<Json>, i: number, sub: Substitution<Json>, curr: any): Iterable<[any, Substitution<Json>]> {
+    private static *matchRecArray(key: Array<JsonTerm>, i: number, sub: Substitution<JsonTerm>, curr: any): Iterable<[any, Substitution<JsonTerm>]> {
         if(i < key.length) {
             for(const [node, s] of JsonTrie.matchRec(key[i], sub, curr)) {
                 yield* JsonTrie.matchRecArray(key, i+1, s, node);
@@ -96,7 +98,7 @@ export class JsonTrie<A> {
         }
     }
 
-    private static *matchRecObject(key: any, keys: Array<string>, i: number, sub: Substitution<Json>, curr: any): Iterable<[any, Substitution<Json>]> {
+    private static *matchRecObject(key: JsonTerm, keys: Array<string>, i: number, sub: Substitution<JsonTerm>, curr: any): Iterable<[any, Substitution<JsonTerm>]> {
         if(i < keys.length) {
             let node = curr.more;
             if(node === void(0)) return;
@@ -112,7 +114,7 @@ export class JsonTrie<A> {
         }
     }
 
-    private static *matchRec(key: Json, sub: Substitution<Json>, curr: any): Iterable<[any, Substitution<Json>]> {
+    private static *matchRec(key: JsonTerm, sub: Substitution<JsonTerm>, curr: any): Iterable<[any, Substitution<JsonTerm>]> {
         const type = typeof key;
         if(type === 'object') {
             if(key === null) { 
@@ -453,7 +455,7 @@ export class JsonTrieTerm<A> {
         return new JsonTrieTerm();
     }
 
-    private static convert(type: "boolean" | "number" | "string" | "variable", val: string): Json {
+    private static convert(type: "boolean" | "number" | "string" | "variable", val: string): JsonTerm {
         if(type === 'boolean') return Boolean(val);
         if(type === 'number') return Number(val);
         if(type === 'variable') return new Variable(Number(val));
@@ -464,27 +466,27 @@ export class JsonTrieTerm<A> {
         return this.trie;
     }
 
-    insert(key: Json, val: A): A {
+    insert(key: JsonTerm, val: A): A {
         return JsonTrieTerm.insertRec(key, val, this.trie, {count: 0});
     }
 
-    modify(key: Json, f: (a: A | undefined) => A): A {
+    modify(key: JsonTerm, f: (a: A | undefined) => A): A {
         return JsonTrieTerm.modifyRec(key, f, this.trie, {count: 0});
     }
 
-    modifyWithVars(key: Json, f: (a: A | undefined, varMap: VarMap) => A): A {
+    modifyWithVars(key: JsonTerm, f: (a: A | undefined, varMap: VarMap) => A): A {
         return JsonTrieTerm.modifyWithVarsRec(key, f, this.trie, {vars: []});
     }
 
-    contains(key: Json): boolean {
+    contains(key: JsonTerm): boolean {
         return JsonTrieTerm.containsRec(key, this.trie, {count: 0});
     }
 
-    lookup(key: Json): A | undefined {
+    lookup(key: JsonTerm): A | undefined {
         return JsonTrieTerm.lookupRec(key, this.trie, {count: 0});
     }
 
-    *keys(): Iterable<Json> {
+    *keys(): Iterable<JsonTerm> {
         for(const [k, _] of JsonTrieTerm.rowRec(this.trie)) {
             yield k;
         }
@@ -496,13 +498,13 @@ export class JsonTrieTerm<A> {
         }
     }
 
-    entries(): Iterable<[Json, A]> {
+    entries(): Iterable<[JsonTerm, A]> {
         return JsonTrieTerm.rowRec(this.trie);
     }
 
-    private static *rowRecObject(curr: any, result: Array<[string, Json]>): Iterable<[Json, any]> {
+    private static *rowRecObject(curr: any, result: Array<[string, JsonTerm]>): Iterable<[JsonTerm, any]> {
         if(curr.empty !== void(0)) {
-            const obj: Json = {};
+            const obj: JsonTerm = {};
             for(const [k, v] of result) {
                 obj[k] = v;
             }
@@ -556,7 +558,7 @@ export class JsonTrieTerm<A> {
         }
     }
 
-    private static *rowRecArray(curr: any, result: Array<Json>): Iterable<[Json, any]> {
+    private static *rowRecArray(curr: any, result: Array<JsonTerm>): Iterable<[JsonTerm, any]> {
         for(const type in curr) {
             switch(type) {
                 case 'empty':
@@ -602,7 +604,7 @@ export class JsonTrieTerm<A> {
         }
     }
 
-    private static *rowRec(curr: any): Iterable<[Json, any]> {
+    private static *rowRec(curr: any): Iterable<[JsonTerm, any]> {
         for(const type in curr) {
             switch(type) {
                 case 'array':
@@ -631,7 +633,7 @@ export class JsonTrieTerm<A> {
         }
     }
 
-    private static lookupRec(key: Json, curr: any, varMap: {count: number, [index: number]: number}): any {
+    private static lookupRec(key: JsonTerm, curr: any, varMap: {count: number, [index: number]: number}): any {
         const type = typeof key;
         if(type === 'object') {
             if(key === null) {
@@ -680,7 +682,7 @@ export class JsonTrieTerm<A> {
         }
     }
 
-    private static containsRec(key: Json, curr: any, varMap: {count: number, [index: number]: number}): boolean {
+    private static containsRec(key: JsonTerm, curr: any, varMap: {count: number, [index: number]: number}): boolean {
         const type = typeof key;
         if(type === 'object') {
             if(key === null) {
@@ -728,7 +730,7 @@ export class JsonTrieTerm<A> {
         }
     }
 
-    private static insertRec(key: Json, val: any, curr: any, varMap: {count: number, [index: number]: number}): any {
+    private static insertRec(key: JsonTerm, val: any, curr: any, varMap: {count: number, [index: number]: number}): any {
         const type = typeof key;
         if(type === 'object') {
             if(key === null) {
@@ -783,7 +785,7 @@ export class JsonTrieTerm<A> {
         }
     }
 
-    private static modifyRec<A>(key: Json, f: (a: A | undefined) => A, curr: any, varMap: {count: number, [index: number]: number}): any {
+    private static modifyRec<A>(key: JsonTerm, f: (a: A | undefined) => A, curr: any, varMap: {count: number, [index: number]: number}): any {
         const type = typeof key;
         if(type === 'object') {
             if(key === null) {
@@ -826,7 +828,7 @@ export class JsonTrieTerm<A> {
         }
     }
 
-    private static modifyWithVarsRec<A>(key: Json, f: (a: A | undefined, varMap: VarMap) => A, curr: any, varMap: VarMap): any {
+    private static modifyWithVarsRec<A>(key: JsonTerm, f: (a: A | undefined, varMap: VarMap) => A, curr: any, varMap: VarMap): any {
         const type = typeof key;
         if(type === 'object') {
             if(key === null) {

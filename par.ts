@@ -1,8 +1,7 @@
 import { Variable, Substitution } from "./unify"
-import { VarMap, Json, JsonTrie, JsonTrieTerm } from "./json-trie"
+import { VarMap, Json, JsonTerm, JsonTrie, JsonTrieTerm } from "./json-trie"
 
-/* * // Lacks sharing
-function groundJson(x: Json, sub: Substitution<Json>): Json {
+function groundJsonNoSharing(x: JsonTerm, sub: Substitution<JsonTerm>): JsonTerm {
     if(x instanceof Variable) x = sub.lookupAsVar(x);
     switch(typeof x) {
         case 'object':
@@ -11,11 +10,11 @@ function groundJson(x: Json, sub: Substitution<Json>): Json {
             } else if(x instanceof Variable) {
                 return x;
             } else if(x instanceof Array) {
-                return x.map(y => groundJson(y, sub));
+                return x.map(y => groundJsonNoSharing(y, sub));
             } else { // it's an object
-                const result: Json = {};
+                const result: JsonTerm = {};
                 for(const key in x) {
-                    result[key] = groundJson(x[key], sub);
+                    result[key] = groundJsonNoSharing(x[key], sub);
                 }
                 return result;
             }
@@ -23,9 +22,8 @@ function groundJson(x: Json, sub: Substitution<Json>): Json {
             return x;
     }
 }
-// */
-/* */ // Has sharing
-function groundJson(x: Json, sub: Substitution<Json>, mapping: {[id: number]: Json} = {}): Json {
+
+function groundJson(x: JsonTerm, sub: Substitution<JsonTerm>, mapping: {[id: number]: JsonTerm} = {}): JsonTerm {
     let id: number | null = null;
     if(x instanceof Variable) { 
         const v = sub.lookupVar(x);
@@ -45,7 +43,7 @@ function groundJson(x: Json, sub: Substitution<Json>, mapping: {[id: number]: Js
                 if(id !== null) mapping[id] = result;
                 return result;
             } else { // it's an object
-                const result: Json = {};
+                const result: JsonTerm = {};
                 for(const key in x) {
                     result[key] = groundJson(x[key], sub, mapping);
                 }
@@ -56,9 +54,8 @@ function groundJson(x: Json, sub: Substitution<Json>, mapping: {[id: number]: Js
             return x;
     }
 }
-// */
 
-function refreshJson(x: Json, sub: Substitution<Json>, mapping: {[index: number]: Variable} = {}): [Json, Substitution<Json>] {
+function refreshJson(x: JsonTerm, sub: Substitution<JsonTerm>, mapping: {[index: number]: Variable} = {}): [JsonTerm, Substitution<JsonTerm>] {
     switch(typeof x) {
         case 'object':
             if(x === null) {
@@ -75,7 +72,7 @@ function refreshJson(x: Json, sub: Substitution<Json>, mapping: {[index: number]
             } else if(x instanceof Array) {
                 let s = sub;
                 const len = x.length;
-                const newArray = new Array<Json>(len);
+                const newArray = new Array<JsonTerm>(len);
                 for(let i = 0; i < len; ++i) {
                     const t = refreshJson(x[i], s, mapping);
                     newArray[i] = t[0];
@@ -84,7 +81,7 @@ function refreshJson(x: Json, sub: Substitution<Json>, mapping: {[index: number]
                 return [newArray, s];
             } else { // it's an object
                 let s = sub;
-                const newObject: Json = {};
+                const newObject: JsonTerm = {};
                 for(const key in x) {
                     const t = refreshJson(x[key], s, mapping);
                     newObject[key] = t[0];
@@ -97,8 +94,64 @@ function refreshJson(x: Json, sub: Substitution<Json>, mapping: {[index: number]
     }
 }
 
-// No occurs check.
-function unifyJson(x: Json | Variable, y: Json | Variable, sub: Substitution<Json | Variable>): Substitution<Json | Variable> | null {
+/*
+function looseMatchJson(x: Json, y: JsonTerm, sub: Substitution<JsonTerm>): Substitution<JsonTerm> | null {
+    if(x instanceof Variable) x = sub.lookupAsVar(x);
+    if(y instanceof Variable) y = sub.lookupAsVar(y);
+    if(x instanceof Variable) {
+        if(y instanceof Variable) {
+            return sub.unifyVar(x, y);
+        } else {
+            return sub.bind(x, y);
+        }
+    } else if(y instanceof Variable) {
+        return unifyJson(y, x, sub); // Not the most efficient thing, but it saves code.
+    } else {
+        switch(typeof x) {
+            case 'object':
+                if(x === null) {
+                    return y === null ? sub : null;
+                } else if(x instanceof Array) {
+                    if(y instanceof Array) {
+                        const len = x.length;
+                        if(len !== y.length) return null;
+                        let s: Substitution<any> | null = sub;
+                        for(let i = 0; i < len; ++i) {
+                            s = looseMatchJson(x[i], y[i], s);
+                            if(s === null) return null;
+                        }
+                        return s;
+                    } else {
+                        return null;
+                    }
+                } else { // it's an object
+                    if(y === null || typeof y !== 'object' || y instanceof Array) return null;
+                    const xKeys = Object.keys(x).sort();
+                    const yKeys = Object.keys(y).sort();
+                    const len = xKeys.length;
+                    if(len !== yKeys.length) return null;
+                    let s: Substitution<any> | null = sub;
+                    for(let i = 0; i < len; ++i) {
+                        const key = xKeys[i];
+                        if(key !== yKeys[i]) return null;
+                        s = looseMatchJson(x[key], y[key], s);
+                        if(s === null) return null;
+                    }
+                    return s;
+                }
+            case 'undefined':
+            case 'number':
+            case 'string':
+            case 'boolean':
+                return x === y ? sub : null;
+            default:
+                return null; // We were given a function or a symbol or some other nonsense.
+        }
+    }
+}
+*/
+
+function unifyJson(x: JsonTerm, y: JsonTerm, sub: Substitution<JsonTerm>): Substitution<JsonTerm> | null {
     if(x instanceof Variable) x = sub.lookupAsVar(x);
     if(y instanceof Variable) y = sub.lookupAsVar(y);
     if(x instanceof Variable) {
@@ -213,9 +266,9 @@ class Generator implements Scheduler {
     private /*readonly*/ processes: Queue<() => void> | null = [];
     // We check for completion whenever this queue is empty.
     
-    private /*readonly*/ consumers: Array<[number, (cs: Array<Json>) => void]> | null = [];
+    private /*readonly*/ consumers: Array<[number, (cs: Array<JsonTerm>) => void]> | null = [];
 
-    private readonly table: Array<Array<Json>> = [];
+    private readonly table: Array<Array<JsonTerm>> = [];
     // NOTE: We could have the answerSet store nodes of a linked list which could be traversed
     // by the answer iterators, and that would mean we wouldn't need the table, but I don't think
     // that will really make much difference in time or space, nor is it clear that it is a good
@@ -237,7 +290,7 @@ class Generator implements Scheduler {
         this.directLink = Math.min(this.directLink, v.directLink);
     }
 
-    consume(k: (cs: Array<Json>) => void): void {
+    consume(k: (cs: Array<JsonTerm>) => void): void {
         if(this.isComplete) {
             const answers = this.table;
             const len = answers.length;
@@ -245,13 +298,13 @@ class Generator implements Scheduler {
                 k(answers[i]);
             }
         } else {
-            const cs = <Array<[number, (cs: Array<Json>) => void]>>this.consumers;
+            const cs = <Array<[number, (cs: Array<JsonTerm>) => void]>>this.consumers;
             cs.push([0, k]);
             if(cs.length === 1) this.execute();
         }
     }
 
-    private scheduleAnswers(consumer: [number, (cs: Array<Json>) => void]): boolean {
+    private scheduleAnswers(consumer: [number, (cs: Array<JsonTerm>) => void]): boolean {
         const answers = this.table;
         const len = answers.length;
         const start = consumer[0];
@@ -296,7 +349,7 @@ class Generator implements Scheduler {
     }
 
     private scheduleResumes(): boolean {
-        const cs = <Array<[number, (cs: Array<Json>) => void]>>this.consumers;
+        const cs = <Array<[number, (cs: Array<JsonTerm>) => void]>>this.consumers;
         const len = cs.length;
         let wereUnconsumed = false;
         for(let i = 0; i < len; ++i) {
@@ -343,13 +396,13 @@ class Generator implements Scheduler {
 
     get isComplete(): boolean { return this.answerSet === null; }
 
-    static create<V>(body: LP<Json, Substitution<Json>>, sched: Scheduler, count: number, s0: Substitution<Json>): Generator {
+    static create<V>(body: LP<JsonTerm, Substitution<JsonTerm>>, sched: Scheduler, count: number, s0: Substitution<JsonTerm>): Generator {
         const gen = new Generator(sched);
         gen.push(() => body(gen)(s0)(s => gen.insertAnswer(count, s)));
         return gen;
     }
 
-    private insertAnswer(count: number, sub: Substitution<Json>): void {
+    private insertAnswer(count: number, sub: Substitution<JsonTerm>): void {
         if(count === 0) { 
             if(this.table.length === 0) { 
                 this.table.push([]);
@@ -364,7 +417,7 @@ class Generator implements Scheduler {
             // That said, early completion is only *necessary* when there's negation, which for SLG is restricted to applying to
             // (dynamically) ground literals, i.e. count === 0. So the early completion check can be restricted to ground goals at 
             // which point *any* answer entails an early completion.
-            const answer = new Array<Json>(count);
+            const answer = new Array<JsonTerm>(count);
             for(let i = 0; i < count; ++i) {
                 answer[i] = groundJson(sub.lookupById(i), sub);
             }
@@ -373,8 +426,8 @@ class Generator implements Scheduler {
     }
 }
 export interface Predicate {    
-    match(row: Json): LP<Json, Substitution<Json>>;
-    // notMatch(row: Json): LP<Json, Substitution<Json>>;
+    match(row: JsonTerm): LP<JsonTerm, Substitution<JsonTerm>>;
+    // notMatch(row: JsonTerm): LP<JsonTerm, Substitution<JsonTerm>>;
 }
 
 export class TrieEdbPredicate implements Predicate {
@@ -388,7 +441,7 @@ export class TrieEdbPredicate implements Predicate {
     }
     constructor(private readonly trie: JsonTrie<any>) {}
 
-    match(row: Json): LP<Json, Substitution<Json>> {
+    match(row: JsonTerm): LP<JsonTerm, Substitution<JsonTerm>> {
         return gen => s => k => {
             for(let s2 of this.trie.match(row, s)) {
                 k(s2);
@@ -396,7 +449,7 @@ export class TrieEdbPredicate implements Predicate {
         };
     }
 
-    notMatch(row: Json): LP<Json, Substitution<Json>> {
+    notMatch(row: JsonTerm): LP<JsonTerm, Substitution<JsonTerm>> {
         return gen => s => k => {
             for(let s2 of this.trie.match(row, s)) {
                 return;
@@ -409,7 +462,7 @@ export class TrieEdbPredicate implements Predicate {
 export class EdbPredicate implements Predicate {
     constructor(private readonly table: Array<Json>) {}
 
-    match(row: Json): LP<Json, Substitution<Json>> {
+    match(row: JsonTerm): LP<JsonTerm, Substitution<JsonTerm>> {
         return gen => s => k => {
             const arr = this.table;
             const len = arr.length;
@@ -420,7 +473,7 @@ export class EdbPredicate implements Predicate {
         };
     }
 
-    notMatch(row: Json): LP<Json, Substitution<Json>> {
+    notMatch(row: JsonTerm): LP<JsonTerm, Substitution<JsonTerm>> {
         return gen => s => k => {
             const arr = this.table;
             const len = arr.length;
@@ -434,18 +487,18 @@ export class EdbPredicate implements Predicate {
 }
 
 export class UntabledPredicate implements Predicate {
-    constructor(private readonly body: (row: Json) => LP<Json, Substitution<Json>>) { }
+    constructor(private readonly body: (row: JsonTerm) => LP<JsonTerm, Substitution<JsonTerm>>) { }
 
-    match(row: Json): LP<Json, Substitution<Json>> {
+    match(row: JsonTerm): LP<JsonTerm, Substitution<JsonTerm>> {
         return this.body(row);
     }
 }
 
 export class TabledPredicate implements Predicate {
     private readonly generators: JsonTrieTerm<Generator> = JsonTrieTerm.create();
-    constructor(private readonly body: (row: Json) => LP<Json, Substitution<Json>>) { }
+    constructor(private readonly body: (row: JsonTerm) => LP<JsonTerm, Substitution<JsonTerm>>) { }
 
-    private getGenerator(row: Json, sched: Scheduler): [Generator, Array<Variable>] {
+    private getGenerator(row: JsonTerm, sched: Scheduler): [Generator, Array<Variable>] {
         let vs: any = null;
         const g = this.generators.modifyWithVars(row, (gen, varMap: VarMap) => {
             vs = varMap.vars;
@@ -459,7 +512,7 @@ export class TabledPredicate implements Predicate {
         return [g, vs];
     }
 
-    match(row: Json): LP<Json, Substitution<Json>> {
+    match(row: JsonTerm): LP<JsonTerm, Substitution<JsonTerm>> {
         return gen => s => k => {
             // TODO: Can I add back the groundingModifyWithVars to eliminate this groundJson?
             const [generator, vs] = this.getGenerator(groundJson(row, s), gen);
@@ -467,7 +520,7 @@ export class TabledPredicate implements Predicate {
             const len = vs.length;
             generator.consume(cs => {
                 // const [cs2, s2] = refreshJson(cs, s, vs); // TODO: Combine these or something.
-                // const s3 = <Substitution<Json>>unifyJson(vs, cs2, s2);
+                // const s3 = <Substitution<JsonTerm>>unifyJson(vs, cs2, s2);
                 // k(s3);
                 let s2 = s;
                 for(let i = 0; i < len; ++i) {
@@ -476,7 +529,7 @@ export class TabledPredicate implements Predicate {
                     cs[i] = c;
                 }
                 for(let i = 0; i < len; ++i) {
-                    s2 = <Substitution<Json>>unifyJson(vs[i], cs[i], s2);
+                    s2 = <Substitution<JsonTerm>>unifyJson(vs[i], cs[i], s2);
                 }
                 k(s2);
             });
@@ -488,7 +541,7 @@ export function seq<V, A>(m: LP<V, Substitution<V>>, f: LP<V, A>): LP<V, A> {
     return gen => s => k => m(gen)(s)(s => f(gen)(s)(k))
 }
 
-export function ground(val: Json): LP<Json, Json> {
+export function ground(val: JsonTerm): LP<JsonTerm, JsonTerm> {
     return gen => s => k => k(groundJson(val, s));
 }
 
@@ -529,7 +582,7 @@ export function fresh<V, A>(count: number, body: (...vs: Array<Variable>) => LP<
     };
 }
 
-export function unify(x: Json, y: Json): LP<Substitution<Json>, Substitution<Json>> {
+export function unify(x: JsonTerm, y: JsonTerm): LP<Substitution<JsonTerm>, Substitution<JsonTerm>> {
     return gen => s => k => {
         const s2 = unifyJson(x, y, s);
         if(s2 !== null) {
@@ -547,14 +600,14 @@ export function runLP<V, A>(sched: Scheduler, m: LP<V, A>, k: (a: A) => void): v
 }
 
 (() => {
-const append: Predicate = new UntabledPredicate(([Xs, Ys, Zs]: Json) => rule(
+const append: Predicate = new UntabledPredicate(([Xs, Ys, Zs]: JsonTerm) => rule(
     [0, () =>
         [unify([], Xs), unify(Ys, Zs)]],
     [3, (X1, Xs1, Zs1) =>  
         [unify([X1, Xs1], Xs), unify([X1, Zs1], Zs), append.match([Xs1, Ys, Zs1])]]));
 
-function list(...xs: Array<Json>): Json {
-    let ys: Json = [];
+function list(...xs: Array<JsonTerm>): JsonTerm {
+    let ys: JsonTerm = [];
     for(let i = xs.length-1; i >= 0; --i) {
         ys = [xs[i], ys];
     }
@@ -804,4 +857,15 @@ const sched = new TopLevelScheduler();
 // runLP(sched, p.match(null), a => console.log('completed'));
 //runLP(sched, fresh(2, (s, e) => { const row = [s,e]; return seq(sg.match(row), ground(row)); }), a => console.dir(a, {depth: null}));
 sched.execute();
+
+// const sub = Substitution.emptyPersistent();
+// let [vs, s] = sub.fresh(30);
+// s = s.bind(vs[0], [1,2]);
+// for(let i = 1; i < vs.length; ++i) {
+//     s = s.bind(vs[i], [vs[i-1],vs[i-1]]);
+// }
+// console.log('slow');
+// groundJsonNoSharing(vs[vs.length - 1], s);
+// console.log('fast');
+// groundJson(vs[vs.length - 1], s);
 })();
