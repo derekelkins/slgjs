@@ -75,11 +75,77 @@ export class JsonTrie<A> {
         return JsonTrie.rowRec(this.trie);
     }
 
-    /*
-    match(key: Json, sub: Substitution<Json>): Iterable<Substitution<Json>> {
-        return JsonTrie.matchRec(key, sub, this.trie);
+    *match(key: Json, sub: Substitution<Json>): Iterable<Substitution<Json>> {
+        for(let [_, s] of JsonTrie.matchRec(key, sub, this.trie)) {
+            yield s;
+        }
     }
-    */
+
+    private static *matchRecArray(key: Array<Json>, i: number, sub: Substitution<Json>, curr: any): Iterable<[any, Substitution<Json>]> {
+        if(i < key.length) {
+            for(const [node, s] of JsonTrie.matchRec(key[i], sub, curr)) {
+                yield* JsonTrie.matchRecArray(key, i+1, s, node);
+            }
+        } else {
+            const node = curr.empty;
+            if(node !== void(0)) yield [node, sub];
+        }
+    }
+
+    private static *matchRecObject(key: any, keys: Array<string>, i: number, sub: Substitution<Json>, curr: any): Iterable<[any, Substitution<Json>]> {
+        if(i < keys.length) {
+            let node = curr.more;
+            if(node === void(0)) return;
+            const k = keys[i];
+            node = node[k];
+            if(node === void(0)) return;
+            for(const [node2, s] of JsonTrie.matchRec(key[k], sub, node)) {
+                yield* JsonTrie.matchRecObject(key, keys, i+1, s, node2);
+            }
+        } else {
+            const node = curr.empty;
+            if(node !== void(0)) yield [node, sub];
+        }
+    }
+
+    private static *matchRec(key: Json, sub: Substitution<Json>, curr: any): Iterable<[any, Substitution<Json>]> {
+        const type = typeof key;
+        if(type === 'object') {
+            if(key === null) { 
+                const node = curr.null;
+                if(node !== void(0)) yield [node, sub];
+            } else if(key instanceof Variable) {
+                const v = sub.lookupAsVar(key);
+                if(v instanceof Variable) { // it's unbound
+                    for(let [val, node] of JsonTrie.rowRec(curr)) {
+                        yield [node, sub.bind(v, val)];
+                    }
+                } else {
+                    yield* JsonTrie.matchRec(v, sub, curr);
+                }
+            } else if(key instanceof Array) {
+                let node = curr.array;
+                if(node !== void(0)) {
+                    yield* JsonTrie.matchRecArray(key, 0, sub, node);
+                }
+            } else { // it's an object
+                let node = curr.object;
+                if(node !== void(0)) {
+                    const keys = Object.keys(key).sort();
+                    yield* JsonTrie.matchRecObject(key, keys, 0, sub, node);
+                }
+            }
+        } else if(type === 'undefined') {
+            const node = curr.undefined;
+            if(node !== void(0)) yield [node, sub];
+        } else {
+            let node = curr[type];
+            if(node !== void(0)) {
+                node = node[key];
+                if(node !== void(0)) yield [node, sub];
+            }
+        }
+    }
 
     private static *rowRecObject(curr: any, result: Array<[string, Json]>): Iterable<[Json, any]> {
         if(curr.empty !== void(0)) {
@@ -824,5 +890,28 @@ export class JsonTrieTerm<A> {
     const rows = [];
     for(const row of trie.entries()) { rows.push(row); }
     console.dir(rows, {depth: null});
+
+    const trie2 = JsonTrie.create<number>();
+    trie2.insert([null, {start: 1, end: 2}], 0);
+    trie2.insert([null, {start: 1, end: 3}], 1);
+    trie2.insert(['foo', {start: 1, end: 3}], 2);
+    trie2.insert({start: 1, end: 2}, 3);
+    trie2.insert({start: 1, end: 3}, 4);
+    trie2.insert([1,2], 5);
+    trie2.insert([1,3], 6);
+    trie2.insert({}, 7);
+    const matches = [];
+    const [[X, Y], sub] = Substitution.emptyPersistent().fresh(2);
+    for(const s of trie2.match({start: X, end: Y}, sub)) { 
+        matches.push([s.lookup(X), s.lookup(Y)]); 
+    }
+    console.log('Object match:');
+    console.dir(matches, {depth: null});
+    matches.length = 0;
+    for(const s of trie2.match([X, Y], sub)) { 
+        matches.push([s.lookup(X), s.lookup(Y)]); 
+    }
+    console.log('Array match:');
+    console.dir(matches, {depth: null});
 })();
 */
