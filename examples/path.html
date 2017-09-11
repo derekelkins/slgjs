@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
@@ -35,8 +36,8 @@ const path = new par.TabledPredicate(row => par.rule(
     [0, () => [edge.match(row)]],
     [1, Y  => [path.match([row[0], Y]), edge.match([Y, row[1]])]]));
 
-const edgeEdges = par.toArray(par.fresh(2, (S, E) => par.seq(edge.match([S, E]), par.ground({from: S, to: E}))));
-const pathEdges = par.toArray(par.fresh(2, (S, E) => par.seq(path.match([S, E]), par.ground({from: S, to: E}))));
+const edgeEdges = par.toArrayQ(Q => par.clause(2, (S, E) => [edge.match([S, E]), par.unify(Q, {from: S, to: E})]));
+const pathEdges = par.toArrayQ(Q => par.clause(2, (S, E) => [path.match([S, E]), par.unify(Q, {from: S, to: E})]));
 
 const edgeData = {
     nodes: nodes,

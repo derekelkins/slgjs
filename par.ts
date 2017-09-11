@@ -233,6 +233,8 @@ class TopLevelScheduler implements Scheduler {
 
 type CPS<A> = (k: (value: A) => void) => void;
 export type LP<V, A> = (scheduler: Scheduler) => (sub: Substitution<V>) => CPS<A>;
+type LPSub<V> = LP<V, Substitution<V>>;
+export type LPTerm = LP<JsonTerm, Substitution<JsonTerm>>;
 
 type Queue<A> = Array<A>;
 
@@ -390,7 +392,7 @@ class Generator implements Scheduler {
 
     get isComplete(): boolean { return this.answerSet === null; }
 
-    static create<V>(body: LP<JsonTerm, Substitution<JsonTerm>>, sched: Scheduler, count: number, s0: Substitution<JsonTerm>): Generator {
+    static create<V>(body: LPTerm, sched: Scheduler, count: number, s0: Substitution<JsonTerm>): Generator {
         const gen = new Generator(sched);
         gen.push(() => body(gen)(s0)(s => gen.insertAnswer(count, s)));
         return gen;
@@ -420,8 +422,8 @@ class Generator implements Scheduler {
     }
 }
 export interface Predicate {    
-    match(row: JsonTerm): LP<JsonTerm, Substitution<JsonTerm>>;
-    // notMatch(row: JsonTerm): LP<JsonTerm, Substitution<JsonTerm>>;
+    match(row: JsonTerm): LPTerm;
+    // notMatch(row: JsonTerm): LPTerm;
 }
 
 export class TrieEdbPredicate implements Predicate {
@@ -435,7 +437,7 @@ export class TrieEdbPredicate implements Predicate {
     }
     constructor(private readonly trie: JsonTrie<any>) {}
 
-    match(row: JsonTerm): LP<JsonTerm, Substitution<JsonTerm>> {
+    match(row: JsonTerm): LPTerm {
         return gen => s => k => {
             for(let s2 of this.trie.match(row, s)) {
                 k(s2);
@@ -443,7 +445,7 @@ export class TrieEdbPredicate implements Predicate {
         };
     }
 
-    notMatch(row: JsonTerm): LP<JsonTerm, Substitution<JsonTerm>> {
+    notMatch(row: JsonTerm): LPTerm {
         return gen => s => k => {
             for(let s2 of this.trie.match(row, s)) {
                 return;
@@ -456,18 +458,29 @@ export class TrieEdbPredicate implements Predicate {
 export class EdbPredicate implements Predicate {
     constructor(private readonly table: Array<Json>) {}
 
-    match(row: JsonTerm): LP<JsonTerm, Substitution<JsonTerm>> {
+    match(row: JsonTerm): LPTerm {
         return gen => s => k => {
             const arr = this.table;
             const len = arr.length;
             for(let i = 0; i < len; ++i) {
-                const s2 = unifyJson(arr[i], row, s); // TODO: This could be simplified to a "matchJson" if we assume the table contains only ground terms.
+                const s2 = unifyJson(row, arr[i], s); // TODO: This could be simplified to a "matchJson" if we assume the table contains only ground terms.
                 if(s2 !== null) k(s2);
             }
         };
     }
 
-    notMatch(row: JsonTerm): LP<JsonTerm, Substitution<JsonTerm>> {
+    looseMatch(row: JsonTerm): LPTerm {
+        return gen => s => k => {
+            const arr = this.table;
+            const len = arr.length;
+            for(let i = 0; i < len; ++i) {
+                const s2 = looseUnifyJson(row, arr[i], s); // TODO: This could be simplified to a "looseMatchJson" if we assume the table contains only ground terms.
+                if(s2 !== null) k(s2);
+            }
+        };
+    }
+
+    notMatch(row: JsonTerm): LPTerm {
         return gen => s => k => {
             const arr = this.table;
             const len = arr.length;
@@ -481,16 +494,16 @@ export class EdbPredicate implements Predicate {
 }
 
 export class UntabledPredicate implements Predicate {
-    constructor(private readonly body: (row: JsonTerm) => LP<JsonTerm, Substitution<JsonTerm>>) { }
+    constructor(private readonly body: (row: JsonTerm) => LPTerm) { }
 
-    match(row: JsonTerm): LP<JsonTerm, Substitution<JsonTerm>> {
+    match(row: JsonTerm): LPTerm {
         return this.body(row);
     }
 }
 
 export class TabledPredicate implements Predicate {
     private readonly generators: JsonTrieTerm<Generator> = JsonTrieTerm.create();
-    constructor(private readonly body: (row: JsonTerm) => LP<JsonTerm, Substitution<JsonTerm>>) { }
+    constructor(private readonly body: (row: JsonTerm) => LPTerm) { }
 
     private getGenerator(row: JsonTerm, sched: Scheduler): [Generator, Array<Variable>] {
         let vs: any = null;
@@ -506,7 +519,7 @@ export class TabledPredicate implements Predicate {
         return [g, vs];
     }
 
-    match(row: JsonTerm): LP<JsonTerm, Substitution<JsonTerm>> {
+    match(row: JsonTerm): LPTerm {
         return gen => s => k => {
             // TODO: Can I add back the groundingModifyWithVars to eliminate this groundJson?
             const [generator, vs] = this.getGenerator(groundJson(row, s), gen);
@@ -531,7 +544,7 @@ export class TabledPredicate implements Predicate {
     }
 }
 
-export function seq<V, A>(m: LP<V, Substitution<V>>, f: LP<V, A>): LP<V, A> {
+export function seq<V, A>(m: LPSub<V>, f: LP<V, A>): LP<V, A> {
     return gen => s => k => m(gen)(s)(s => f(gen)(s)(k))
 }
 
@@ -539,7 +552,7 @@ export function ground(val: JsonTerm): LP<JsonTerm, JsonTerm> {
     return gen => s => k => k(groundJson(val, s));
 }
 
-export function conj<V>(...cs: Array<LP<V, Substitution<V>>>): LP<V, Substitution<V>> {
+export function conj<V>(...cs: Array<LPSub<V>>): LPSub<V> {
     return gen => {
         const cs2 = cs.map(c => c(gen));
         return s => k => {
@@ -556,7 +569,7 @@ export function conj<V>(...cs: Array<LP<V, Substitution<V>>>): LP<V, Substitutio
     };
 }
 
-export function disj<V>(...ds: Array<LP<V, Substitution<V>>>): LP<V, Substitution<V>> {
+export function disj<V>(...ds: Array<LPSub<V>>): LPSub<V> {
     return gen => {
         const ds2 = ds.map(d => d(gen));
         return s => k => {
@@ -576,7 +589,14 @@ export function fresh<V, A>(count: number, body: (...vs: Array<Variable>) => LP<
     };
 }
 
-export function unify(x: JsonTerm, y: JsonTerm): LP<Substitution<JsonTerm>, Substitution<JsonTerm>> {
+export function clause<V>(count: number, body: (...vs: Array<Variable>) => Array<LPSub<V>>): LPSub<V> {
+    return gen => s => k => {
+        const [vs, s2] = s.fresh(count);
+        return conj.apply(null, body.apply(null, vs))(gen)(s2)(k);
+    };
+}
+
+export function unify(x: JsonTerm, y: JsonTerm): LPTerm {
     return gen => s => k => {
         const s2 = unifyJson(x, y, s);
         if(s2 !== null) {
@@ -585,7 +605,7 @@ export function unify(x: JsonTerm, y: JsonTerm): LP<Substitution<JsonTerm>, Subs
     };
 }
 
-export function looseUnify(x: JsonTerm, y: JsonTerm): LP<Substitution<JsonTerm>, Substitution<JsonTerm>> {
+export function looseUnify(x: JsonTerm, y: JsonTerm): LPTerm {
     return gen => s => k => {
         const s2 = looseUnifyJson(x, y, s);
         if(s2 !== null) {
@@ -594,8 +614,8 @@ export function looseUnify(x: JsonTerm, y: JsonTerm): LP<Substitution<JsonTerm>,
     };
 }
 
-export function rule<V>(...alternatives: Array<[number, (...vs: Array<Variable>) => Array<LP<Substitution<V>, Substitution<V>>>]>): LP<Substitution<V>, Substitution<V>> {
-    return disj.apply(null, alternatives.map(([n, cs]) => fresh(n, (...vs) => conj.apply(null, cs.apply(null, vs)))));
+export function rule<V>(...alternatives: Array<[number, (...vs: Array<Variable>) => Array<LPSub<V>>]>): LPSub<V> {
+    return disj.apply(null, alternatives.map(([n, cs]) => clause(n, (...vs) => cs.apply(null, vs))));
 }
 
 export function runLP<V, A>(sched: Scheduler, m: LP<V, A>, k: (a: A) => void): void {
@@ -608,11 +628,39 @@ export function run<V, A>(m: LP<V, A>, k: (a: A) => void): void {
     sched.execute();
 }
 
+export function runQ(body: (q: Variable) => LPTerm, k: (a: JsonTerm) => void): void {
+    run(fresh(1, Q => seq(body(Q), ground(Q))), k);
+}
+
 export function toArray<V, A>(m: LP<V, A>): Array<A> {
     const result: Array<A> = [];
     run(m, a => result.push(a));
     return result;
 }
+
+export function toArrayQ(body: (q: Variable) => LPTerm): Array<JsonTerm> {
+    const results: Array<JsonTerm> = [];
+    runQ(body, a => results.push(a));
+    return results;
+}
+
+// Fluent wrapper
+/*
+export function term(t: JsonTerm): TermWrapper { return new TermWrapper(t); }
+
+class LPWrapper<V, A> {
+    constructor(private readonly body: LP<V, A>) {}
+    and<B>(rest: LP<V, B>): LPWrapper<V, B> {}
+    or(rest: LP<V, A>): LPWrapper<V, A> {}
+}
+
+class TermWrapper {
+    constructor(private readonly term: JsonTerm) {}
+    matches(t: JsonTerm): LPTerm { return unify(this.term, t); }
+    looseMatches(t: JsonTerm): LPTerm { return looseUnify(this.term, t); }
+    ground(): LP<JsonTerm, JsonTerm> { return ground(this.term); }
+}
+*/
 
 (() => {
 const append: Predicate = new UntabledPredicate(([Xs, Ys, Zs]: JsonTerm) => rule(
