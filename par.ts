@@ -582,18 +582,26 @@ export function disj<V>(...ds: Array<LPSub<V>>): LPSub<V> {
     };
 }
 
-export function fresh<V, A>(count: number, body: (...vs: Array<Variable>) => LP<V, A>): LP<V, A> {
+export function freshN<V, A>(count: number, body: (...vs: Array<Variable>) => LP<V, A>): LP<V, A> {
     return gen => s => k => {
         const [vs, s2] = s.fresh(count);
         return body.apply(null, vs)(gen)(s2)(k);
     };
 }
 
-export function clause<V>(count: number, body: (...vs: Array<Variable>) => Array<LPSub<V>>): LPSub<V> {
+export function fresh<V, A>(body: (...vs: Array<Variable>) => LP<V, A>): LP<V, A> {
+    return freshN(body.length, body);
+}
+
+export function clauseN<V>(count: number, body: (...vs: Array<Variable>) => Array<LPSub<V>>): LPSub<V> {
     return gen => s => k => {
         const [vs, s2] = s.fresh(count);
         return conj.apply(null, body.apply(null, vs))(gen)(s2)(k);
     };
+}
+
+export function clause<V>(body: (...vs: Array<Variable>) => Array<LPSub<V>>): LPSub<V> {
+    return clauseN(body.length, body);
 }
 
 export function unify(x: JsonTerm, y: JsonTerm): LPTerm {
@@ -614,8 +622,8 @@ export function looseUnify(x: JsonTerm, y: JsonTerm): LPTerm {
     };
 }
 
-export function rule<V>(...alternatives: Array<[number, (...vs: Array<Variable>) => Array<LPSub<V>>]>): LPSub<V> {
-    return disj.apply(null, alternatives.map(([n, cs]) => clause(n, (...vs) => cs.apply(null, vs))));
+export function rule<V>(...alternatives: Array<(...vs: Array<Variable>) => Array<LPSub<V>>>): LPSub<V> {
+    return disj.apply(null, alternatives.map(cs => clauseN(cs.length, (...vs) => cs.apply(null, vs))));
 }
 
 export function runLP<V, A>(sched: Scheduler, m: LP<V, A>, k: (a: A) => void): void {
@@ -629,7 +637,7 @@ export function run<V, A>(m: LP<V, A>, k: (a: A) => void): void {
 }
 
 export function runQ(body: (q: Variable) => LPTerm, k: (a: JsonTerm) => void): void {
-    run(fresh(1, Q => seq(body(Q), ground(Q))), k);
+    run(fresh(Q => seq(body(Q), ground(Q))), k);
 }
 
 export function toArray<V, A>(m: LP<V, A>): Array<A> {
@@ -644,30 +652,41 @@ export function toArrayQ(body: (q: Variable) => LPTerm): Array<JsonTerm> {
     return results;
 }
 
-// Fluent wrapper
 /*
-export function term(t: JsonTerm): TermWrapper { return new TermWrapper(t); }
+// Fluent wrapper
+export default function term(t: JsonTerm): TermWrapper { return new TermWrapper(t); }
 
-class LPWrapper<V, A> {
-    constructor(private readonly body: LP<V, A>) {}
-    and<B>(rest: LP<V, B>): LPWrapper<V, B> {}
-    or(rest: LP<V, A>): LPWrapper<V, A> {}
+class LPWrapper<V> {
+    constructor(private readonly body: LPSub<V>, private readonly alts: Array<LPSub<V>> = []) {}
+    and(rest: LPSub<V>): LPWrapper<V> { return new LPWrapper(seq(this.body, rest), this.alts); }
+    or(rest: LPSub<V>): LPWrapper<V> {
+        const newAlts = this.alts.slice();
+        newAlts.push(this.body);
+        return new LPWrapper(rest, newAlts);
+    }
+    to(q: Variable): LPTerm {
+        const newAlts = this.alts.slice();
+        newAlts.push(seq(this.body, ground(q)));
+        return disj.apply(null, newAlts);
+    }
 }
 
 class TermWrapper {
     constructor(private readonly term: JsonTerm) {}
-    matches(t: JsonTerm): LPTerm { return unify(this.term, t); }
-    looseMatches(t: JsonTerm): LPTerm { return looseUnify(this.term, t); }
+    is(t: JsonTerm): LPWrapper<JsonTerm> { return new LPWrapper(unify(this.term, t)); }
+    isLoosely(t: JsonTerm): LPWrapper<JsonTerm> { return new LPWrapper(looseUnify(this.term, t)); }
+    isIn(pred: Predicate): LPWrapper<JsonTerm> { return new LPWrapper(pred.match(this.term)); }
+    isLooselyIn(pred: EdbPredicate): LPWrapper<JsonTerm> { return new LPWrapper(pred.looseMatch(this.term)); }
     ground(): LP<JsonTerm, JsonTerm> { return ground(this.term); }
 }
 */
 
 (() => {
 const append: Predicate = new UntabledPredicate(([Xs, Ys, Zs]: JsonTerm) => rule(
-    [0, () =>
-        [unify([], Xs), unify(Ys, Zs)]],
-    [3, (X1, Xs1, Zs1) =>  
-        [unify([X1, Xs1], Xs), unify([X1, Zs1], Zs), append.match([Xs1, Ys, Zs1])]]));
+    () =>
+        [unify([], Xs), unify(Ys, Zs)],
+    (X1, Xs1, Zs1) =>  
+        [unify([X1, Xs1], Xs), unify([X1, Zs1], Zs), append.match([Xs1, Ys, Zs1])]));
 
 function list(...xs: Array<JsonTerm>): JsonTerm {
     let ys: JsonTerm = [];
@@ -683,29 +702,29 @@ const edge: Predicate = new EdbPredicate([
     [3, 1]]);
     //[3, 4]]);
 const path: Predicate = new TabledPredicate(row => rule(
-    [0, () => [edge.match(row)]],
-    [1, Y  => [path.match([row[0], Y]), path.match([Y, row[1]])]]));
+    () => [edge.match(row)],
+    Y  => [path.match([row[0], Y]), path.match([Y, row[1]])]));
 const path2: Predicate = new TabledPredicate(row => rule(
-    [1, Y  => [path2.match([row[0], Y]), path2.match([Y, row[1]])]],
-    [0, () => [edge.match(row)]]));
+    Y  => [path2.match([row[0], Y]), path2.match([Y, row[1]])],
+    () => [edge.match(row)]));
 const path3: Predicate = new TabledPredicate(row => rule(
-    [1, Y  => [path3.match([row[0], Y]), edge.match([Y, row[1]])]],
-    [0, () => [edge.match(row)]]));
+    Y  => [path3.match([row[0], Y]), edge.match([Y, row[1]])],
+    () => [edge.match(row)]));
 const path4: Predicate = new TabledPredicate(row => rule(
-    [1, Y  => [edge.match([row[0], Y]), path4.match([Y, row[1]])]],
-    [0, () => [edge.match(row)]]));
+    Y  => [edge.match([row[0], Y]), path4.match([Y, row[1]])],
+    () => [edge.match(row)]));
 
 const path5: Predicate = new TabledPredicate(([X, Z, P]) => rule(
-    [2, (P2, Y)  => [path5.match([X, Y, P2]), edge.match([Y, Z]), unify(P, [Z, P2])]],
-    [0, () => [edge.match([X, Z]), unify(P, [Z, [X, []]])]]));
+    (P2, Y)  => [path5.match([X, Y, P2]), edge.match([Y, Z]), unify(P, [Z, P2])],
+    () => [edge.match([X, Z]), unify(P, [Z, [X, []]])]));
 
 const r: Predicate = new TabledPredicate(row => rule(
-    [0, () => [r.match(row)]]));
+    () => [r.match(row)]));
 
 const p: Predicate = new TabledPredicate(row => rule(
-    [0, () => [q.match(row)]]));
+    () => [q.match(row)]));
 const q: Predicate = new TabledPredicate(row => rule(
-    [0, () => [p.match(row)]]));
+    () => [p.match(row)]));
 
 /* *
 //const cyl: Predicate = TrieEdbPredicate.fromArray([
@@ -900,30 +919,30 @@ const cyl: Predicate = new EdbPredicate([
 // */
 
 const sg: Predicate = new TabledPredicate(([X, Y]) => rule(
-    [0, () => [unify(X, Y)]],
-    [1, Z  => [cyl.match([X, Z]), sg.match([Z, Z]), cyl.match([Y, Z])]]));
+    () => [unify(X, Y)],
+    Z  => [cyl.match([X, Z]), sg.match([Z, Z]), cyl.match([Y, Z])]));
 
-const vp: Predicate = new TabledPredicate(X => rule([0, () => []]));
+const vp: Predicate = new TabledPredicate(X => rule(() => []));
 
 const objects: Predicate = new EdbPredicate([
     {foo: 1, bar: 2},
     {foo: 3, bar: 4}]);
 
 const sched = new TopLevelScheduler();
-// runLP(sched, fresh(2, (Y, X) => seq(conj(unify(1, X), vp.match(X)), ground([Y, X]))), a => console.dir(a, {depth: null}));
-// runLP(sched, fresh(2, (Y, X) => seq(conj(vp.match(X), unify(1, Y)), ground([Y, X]))), a => console.dir(a, {depth: null}));
-// runLP(sched, fresh(2, (Y, X) => seq(conj(vp.match(X), unify(1, X)), ground([Y, X]))), a => console.dir(a, {depth: null}));
-// runLP(sched, fresh(2, (l, r) => seq(append.match([l, r, list(1,2,3,4,5)]), ground([l, r]))), a => console.dir(a, {depth: null}));
-// runLP(sched, fresh(2, (S, E) => { const Row = [S, E]; return seq(path.match(Row), ground(Row)); }), a => console.dir(a, {depth: null}));
-// runLP(sched, fresh(2, (S, E) => { const Row = [S, E]; return seq(path2.match(Row), ground(Row)); }), a => console.dir(a, {depth: null}));
-// runLP(sched, fresh(2, (S, E) => { const Row = [S, E]; return seq(path3.match(Row), ground(Row)); }), a => console.dir(a, {depth: null}));
-// runLP(sched, fresh(2, (S, E) => { const Row = [S, E]; return seq(path4.match(Row), ground(Row)); }), a => console.dir(a, {depth: null}));
-//runLP(sched, fresh(3, (S, E, P) => { const Row = [S, E, P]; return seq(path5.match(Row), ground(Row)); }), a => console.dir(a, {depth: null}));
-//runLP(sched, fresh(6, (S, E, P1, P2, P3, P4, P5) => { const Row = [S, E, [P1, [P2, [P3, [P4, [P5, []]]]]]]; return seq(path5.match(Row), ground(Row)); }), a => console.dir(a, {depth: null}));
+// runLP(sched, fresh((Y, X) => seq(conj(unify(1, X), vp.match(X)), ground([Y, X]))), a => console.dir(a, {depth: null}));
+// runLP(sched, fresh((Y, X) => seq(conj(vp.match(X), unify(1, Y)), ground([Y, X]))), a => console.dir(a, {depth: null}));
+// runLP(sched, fresh((Y, X) => seq(conj(vp.match(X), unify(1, X)), ground([Y, X]))), a => console.dir(a, {depth: null}));
+// runLP(sched, fresh((l, r) => seq(append.match([l, r, list(1,2,3,4,5)]), ground([l, r]))), a => console.dir(a, {depth: null}));
+// runLP(sched, fresh((S, E) => { const Row = [S, E]; return seq(path.match(Row), ground(Row)); }), a => console.dir(a, {depth: null}));
+// runLP(sched, fresh((S, E) => { const Row = [S, E]; return seq(path2.match(Row), ground(Row)); }), a => console.dir(a, {depth: null}));
+// runLP(sched, fresh((S, E) => { const Row = [S, E]; return seq(path3.match(Row), ground(Row)); }), a => console.dir(a, {depth: null}));
+// runLP(sched, fresh((S, E) => { const Row = [S, E]; return seq(path4.match(Row), ground(Row)); }), a => console.dir(a, {depth: null}));
+//runLP(sched, fresh((S, E, P) => { const Row = [S, E, P]; return seq(path5.match(Row), ground(Row)); }), a => console.dir(a, {depth: null}));
+//runLP(sched, fresh((S, E, P1, P2, P3, P4, P5) => { const Row = [S, E, [P1, [P2, [P3, [P4, [P5, []]]]]]]; return seq(path5.match(Row), ground(Row)); }), a => console.dir(a, {depth: null}));
 // runLP(sched, r.match(null), a => console.log('completed'));
 // runLP(sched, p.match(null), a => console.log('completed'));
-//runLP(sched, fresh(2, (S, E) => { const Row = [S, E]; return seq(sg.match(Row), ground(Row)); }), a => console.dir(a, {depth: null}));
-// runLP(sched, fresh(2, (X, Y) => seq(conj(objects.match(X), looseUnify({foo: Y}, X)), ground(Y))), a => console.dir(a, {depth: null}));
+//runLP(sched, fresh((S, E) => { const Row = [S, E]; return seq(sg.match(Row), ground(Row)); }), a => console.dir(a, {depth: null}));
+// runLP(sched, fresh((X, Y) => seq(conj(objects.match(X), looseUnify({foo: Y}, X)), ground(Y))), a => console.dir(a, {depth: null}));
 sched.execute();
 
 // const sub = Substitution.emptyPersistent();

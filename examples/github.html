@@ -14,7 +14,7 @@ fetch('https://api.github.com/repos/derekelkins/agda-vim/commits', {headers:{Acc
 const commits = new par.EdbPredicate(commitData);
 //const comments = new par.EdbPredicate(commentsData);
 const ul = document.getElementById('result');
-par.runQ(Q => par.clause(3, (SHA, Msg, CommentBody) => [
+par.runQ(Q => par.clause((SHA, Msg, CommentBody) => [
         commits.looseMatch({sha: SHA, commit: {message: Msg}}), 
         //comments.looseMatch({commit_id: SHA, body: CommentBody}),
         par.unify(Q, {sha: SHA, message: Msg})]),

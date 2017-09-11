@@ -187,11 +187,15 @@ export function conj<C>(...rs: Array<LP<C>>): LP<C> {
     return loop(0);
 }
 
-export function fresh<C, R>(count: number, body: (...vs: Array<Term<C>>) => LP<R>): LP<R> {
+export function freshN<C, R>(count: number, body: (...vs: Array<Term<C>>) => LP<R>): LP<R> {
     return s => {
         const [vs, s2] = s.fresh(count);
         return body.apply(null, vs.map(v => new Var(v)))(s2);
     };
+}
+
+export function fresh<C, R>(body: (...vs: Array<Term<C>>) => LP<R>): LP<R> {
+    return freshN(body.length, body);
 }
 
 export function* runLP<C>(body: (q: Term<C>) => LP<C>): Iterable<Term<C>> {
@@ -207,8 +211,8 @@ export function* runLP<C>(body: (q: Term<C>) => LP<C>): Iterable<Term<C>> {
     }
 }
 
-export function rule<C>(...alternatives: Array<[number, (...vs: Array<Term<C>>) => Array<LP<C>>]>): LP<C> {
-    return disj.apply(null, alternatives.map(([n, cs]) => fresh(n, (...vs) => conj.apply(null, cs.apply(null, vs)))));
+export function rule<C>(...alternatives: Array<(...vs: Array<Term<C>>) => Array<LP<C>>>): LP<C> {
+    return disj.apply(null, alternatives.map(cs => freshN(cs.length, (...vs) => conj.apply(null, cs.apply(null, vs)))));
 }
 
 const nil: Term<any> = new Const('nil');
@@ -217,11 +221,9 @@ function cons<C>(x: Term<C>, xs: Term<C>): Term<C> {
     return new Tuple([x, xs]);
 }
 
-function append<C>(Xs: Term<C>, Ys: Term<C>, Zs: Term<C>): LP<C> {
-    return rule<C>([0, () =>
-                        [unify(nil, Xs), unify(Ys, Zs)]],
-                   [3, (X1, Xs1, Zs1) =>  
-                        [unify(cons(X1, Xs1), Xs), unify(cons(X1, Zs1), Zs), append(Xs1, Ys, Zs1)]]);
+function append<C>(Xs: Term<C>, Ys: Term<C>, Zs: Term<C>): LP<C> { return rule<C>(
+    ()             => [unify(nil, Xs), unify(Ys, Zs)],
+    (X1, Xs1, Zs1) => [unify(cons(X1, Xs1), Xs), unify(cons(X1, Zs1), Zs), append(Xs1, Ys, Zs1)]);
 }
 
 function list<C>(...xs: Array<C>): Term<C> {
@@ -232,6 +234,6 @@ function list<C>(...xs: Array<C>): Term<C> {
     return ys;
 }
 
-for(const t of runLP(q => fresh(2, (l,r) => conj(unify(cons(l,r), q), append(l, r, list(1,2,3,4,5)))))) {
+for(const t of runLP(q => fresh((l, r) => conj(unify(cons(l,r), q), append(l, r, list(1,2,3,4,5)))))) {
     console.log(t.toString());
 }

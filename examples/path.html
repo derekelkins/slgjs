@@ -33,11 +33,11 @@ const edge = new par.EdbPredicate([
     [3, 1]]);
     //[3, 4]]);
 const path = new par.TabledPredicate(row => par.rule(
-    [0, () => [edge.match(row)]],
-    [1, Y  => [path.match([row[0], Y]), edge.match([Y, row[1]])]]));
+    () => [edge.match(row)],
+    Y  => [path.match([row[0], Y]), edge.match([Y, row[1]])]));
 
-const edgeEdges = par.toArrayQ(Q => par.clause(2, (S, E) => [edge.match([S, E]), par.unify(Q, {from: S, to: E})]));
-const pathEdges = par.toArrayQ(Q => par.clause(2, (S, E) => [path.match([S, E]), par.unify(Q, {from: S, to: E})]));
+const edgeEdges = par.toArrayQ(Q => par.clause((S, E) => [edge.match([S, E]), par.unify(Q, {from: S, to: E})]));
+const pathEdges = par.toArrayQ(Q => par.clause((S, E) => [path.match([S, E]), par.unify(Q, {from: S, to: E})]));
 
 const edgeData = {
     nodes: nodes,
