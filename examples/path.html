@@ -35,10 +35,8 @@ const path = new par.TabledPredicate(row => par.rule(
     [0, () => [edge.match(row)]],
     [1, Y  => [path.match([row[0], Y]), edge.match([Y, row[1]])]]));
 
-const edgeEdges = [];
-const pathEdges = [];
-par.run(par.fresh(2, (S, E) => par.seq(edge.match([S, E]), par.ground({from: S, to: E}))), a => edgeEdges.push(a));
-par.run(par.fresh(2, (S, E) => par.seq(path.match([S, E]), par.ground({from: S, to: E}))), a => pathEdges.push(a));
+const edgeEdges = par.toArray(par.fresh(2, (S, E) => par.seq(edge.match([S, E]), par.ground({from: S, to: E}))));
+const pathEdges = par.toArray(par.fresh(2, (S, E) => par.seq(path.match([S, E]), par.ground({from: S, to: E}))));
 
 const edgeData = {
     nodes: nodes,

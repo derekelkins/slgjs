@@ -608,6 +608,12 @@ export function run<V, A>(m: LP<V, A>, k: (a: A) => void): void {
     sched.execute();
 }
 
+export function toArray<V, A>(m: LP<V, A>): Array<A> {
+    const result: Array<A> = [];
+    run(m, a => result.push(a));
+    return result;
+}
+
 (() => {
 const append: Predicate = new UntabledPredicate(([Xs, Ys, Zs]: JsonTerm) => rule(
     [0, () =>
