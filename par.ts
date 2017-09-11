@@ -602,6 +602,12 @@ export function runLP<V, A>(sched: Scheduler, m: LP<V, A>, k: (a: A) => void): v
     return sched.push(() => m(sched)(Substitution.emptyPersistent())(k));
 }
 
+export function run<V, A>(m: LP<V, A>, k: (a: A) => void): void {
+    const sched = new TopLevelScheduler();
+    runLP(sched, m, k);
+    sched.execute();
+}
+
 (() => {
 const append: Predicate = new UntabledPredicate(([Xs, Ys, Zs]: JsonTerm) => rule(
     [0, () =>
