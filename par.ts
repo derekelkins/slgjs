@@ -1,7 +1,6 @@
 import { Variable, Substitution } from "./unify"
 import { VarMap, Json, JsonTrie, JsonTrieTerm } from "./json-trie"
 
-// TODO: Make this preserve sharing, at least. Possibly a separate version.
 /* * // Lacks sharing
 function groundJson(x: Json, sub: Substitution<Json>): Json {
     if(x instanceof Variable) x = sub.lookupAsVar(x);
@@ -130,8 +129,8 @@ function unifyJson(x: Json | Variable, y: Json | Variable, sub: Substitution<Jso
                     }
                 } else { // it's an object
                     if(y === null || typeof y !== 'object' || y instanceof Array) return null;
-                    const xKeys = Object.keys(x);
-                    const yKeys = Object.keys(y);
+                    const xKeys = Object.keys(x).sort();
+                    const yKeys = Object.keys(y).sort();
                     const len = xKeys.length;
                     if(len !== yKeys.length) return null;
                     let s: Substitution<any> | null = sub;
@@ -803,6 +802,6 @@ const sched = new TopLevelScheduler();
 //runLP(sched, fresh(6, (s, e, p1, p2, p3, p4, p5) => { const row = [s, e, [p1, [p2, [p3, [p4, [p5, []]]]]]]; return seq(path5.match(row), ground(row)); }), a => console.dir(a, {depth: null}));
 // runLP(sched, r.match(null), a => console.log('completed'));
 // runLP(sched, p.match(null), a => console.log('completed'));
-runLP(sched, fresh(2, (s, e) => { const row = [s,e]; return seq(sg.match(row), ground(row)); }), a => console.dir(a, {depth: null}));
+//runLP(sched, fresh(2, (s, e) => { const row = [s,e]; return seq(sg.match(row), ground(row)); }), a => console.dir(a, {depth: null}));
 sched.execute();
 })();
