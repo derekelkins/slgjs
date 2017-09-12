@@ -1,22 +1,79 @@
 // From "A Persistent Union-Find Data Structure" by Conchon and Filliatre
 
-class Variable<A> {
+/**
+ * An immutable pair of a numeric ID and an optional value.
+ * @param A The type of the optional value.
+ */
+export class Variable<A> {
     constructor(readonly id: number, readonly value?: A) {}
 
+    /**
+     * Produce a new [[Variable]] with the value bound to `v`. It is an error
+     * to attempt to bind a [[Variable]] that is already bound.
+     * @param v The value to bind to the [[Variable]].
+     * @returns A new, bound [[Variable]].
+     */
     bind(v: A): Variable<A> { 
         if(this.value !== void(0)) throw new Error('Variable.bind: binding already bound variable.'); // ASSERTION
         return new Variable(this.id, v); 
     }
 
+    /**
+     * Test whether the [[Variable]] is bound.
+     * 
+     * This is basically only used for assertion tests.
+     * @returns `true` if the [[Variable]] is bound, `false` otherwise.
+     */
     get isBound(): boolean { return this.value !== void(0); }
 }
 
+/**
+ * An interface to a [union-find](https://en.wikipedia.org/wiki/Disjoint-set_data_structure), aka disjoint-set data, structure
+ * augmented values. The interface is a persistent one, but the guarantees depend on the implementation.
+ *
+ * The data structure will grow as needed. All the implementations store IDs densely starting from 0, so IDs should
+ * be restricted to a contiguous range starting from 0 to not waste space.
+ * @param A The type of values associated to the representatives.
+ */
 export interface UnionFind<A> {
+    /**
+     * Find the [[Variable]] of the representative.
+     * @param id An ID in an equivalence class.
+     * @returns A [[Variable]] corresponding to the representative of the equivalence class containing `id`.
+     */
     find(id: number): Variable<A>;
+
+    /**
+     * Bind the [[Variable]] of the representative of the equivalence class containing `id` to `value`.
+     * It is an error to attempt to bind a [[Variable]] twice.
+     * @param id An ID in an equivalence class whose representative [[Variable]] is unbound.
+     * @param value The value to bind to the representative [[Variable]].
+     * @returns An updated [[UnionFind]] structure where the representative [[Variable]] is bound.
+     */
     bindValue(id: number, value: A): UnionFind<A>;
+
+    /**
+     * Merge the two equivalence classes of `x` and `y`. The value, if any, of the [[Variable]] representing
+     * the equivalance class of `y` becomes the value of the [[Variable]] representing the resulting combined
+     * equivalence class. It is an error if the [[Variable]] representing the equivalence class of `x` is
+     * bound, even if the [[Variable]] representing the equivalence class of `y` is unbound. If neither is
+     * bound, this is just the standard "union" operation.
+     * @param x An ID in an equivalence class whose representative [[Variable]] is unbound.
+     * @param y An ID in an equivalence class whose representative [[Variable]] may be bound.
+     * @returns An updated [[UnionFind]] structure where the equivalence classes of `x` and `y` have been merged.
+     */
     bindVariable(x: number, y: number): UnionFind<A>
 }
 
+/**
+ * An in-place, mutable implementation of [[UnionFind]], i.e. the standard one going back to 1970.
+ *
+ * `bindValue` and `bindVariable` just return `this`.
+ *
+ * This isn't used for anything and probably won't be. I do potentially have a use for an ephemeral
+ * union-find structure for SCC maintenance, but that use warrants different choices than are made
+ * here, so this is mostly for reference.
+ */
 export class EphemeralUnionFind<A> implements UnionFind<A> {
     private readonly ranks: Array<number>; 
     private readonly parents: Array<Variable<A>>;
@@ -91,54 +148,17 @@ export class EphemeralUnionFind<A> implements UnionFind<A> {
     }
 }
 
-/*
-export class NaiveUnionFind<A> implements UnionFind<A> {
-    static create<A>(): NaiveUnionFind<A> {
-        return new NaiveUnionFind([]);
-    }
-
-    private constructor(private readonly mapping: Array<Variable<A>>) {}
-
-    private grow(): void {
-        this.mapping.length *= 2;
-    }
-
-    find(id: number): Variable<A> {
-        if(id >= this.mapping.length) { this.grow(); }
-        let prev = id;
-        do {
-            const curr = this.mapping[prev];
-            if(curr === void(0)) return new Variable(prev);
-            prev = curr.id;
-        } while(true);
-    }
-
-    bindValue(id: number, value: A): UnionFind<A> {
-        const v = this.find(id);
-        const m = this.mapping.slice();
-        if(v.isBound) throw new Error('NaiveUnionFind.bindValue: binding variable that has already been bound.'); // ASSERTION
-        m[id] = v.bind(value);
-        return new NaiveUnionFind(m);
-    }
-
-    bindVariable(x: number, y: number): UnionFind<A> {
-        const rx = this.find(x);
-        if(rx.isBound) throw new Error('NaiveUnionFind.bindVariable: binding variable that has already been bound.'); // ASSERTION
-        const ry = this.find(y);
-        const m = this.mapping.slice();
-        m[rx.id] = ry;
-        return new NaiveUnionFind(m);
-    }
-}
-*/
-
 // This should perform reasonably well for ephemeral usage patterns or for backtracking patterns of use,
-// especially with the adaptation to semi-persistence, and rather poorly when accessing old copies as in linear in the depth of update.
+// especially with the adaptation to semi-persistence, and rather poorly when accessing old copies as in linear in the depth of updates.
 interface PersistentArray<A> {
     get(index: number): A;
     set(index: number, value: A): PersistentArray<A>;
 }
 
+// All of these operations are defined by cases. The code below is an OO rendition of this, but
+// that spreads the meaning of an operation across multiple classes. It does more easily allow
+// reusing the DiffArray and InvalidArray cases between the persistent and semi-persistent 
+// implementations which differ only in how the rerootAux function works in the ImmediateArray case.
 interface InternalPersistentArray<A> {
     get(cell: ArrayCell<A>, index: number): A;
     set(cell: ArrayCell<A>, index: number, value: A): PersistentArray<A>;
@@ -289,7 +309,19 @@ class InvalidArray<A> implements InternalPersistentArray<A> {
     }
 }
 
+/**
+ * A (semi-)persistent implementation of [[UnionFind]] following the algorithm of 
+ * [A Persistent Union-Find Data Structure](https://doi.org/10.1145/1292535.1292541) by Conchon and Filliatre. 
+ * It behaves persistently or semi-persistently depending on how it is created.
+ */
 export default class PersistentUnionFind<A> implements UnionFind<A> {
+    /**
+     * Create a persistent implementation allowing arbitrary reuse of prior versions
+     * of the [[UnionFind]] structure.
+     * @param initialCapacity The number of [[Variable]]s to pre-allocate. This is only a hint
+     * it will grow as needed.
+     * @returns A persistent [[UnionFind]] structure where each ID is its own equivalence class.
+     */
     static createPersistent<A>(initialCapacity: number): PersistentUnionFind<A> {
         const ranks = new Array<number>(initialCapacity);
         const reps = new Array<Variable<A>>(initialCapacity);
@@ -297,6 +329,14 @@ export default class PersistentUnionFind<A> implements UnionFind<A> {
                                        new ArrayCell(new PersistentImmediateArray(reps, i => new Variable<A>(i))));
     }
 
+    /**
+     * Create a semi-persistent implementation where only the most recently updated copy and its
+     * earlier versions are valid. In particular, updating the same [[UnionFind]] structure twice
+     * invalidates the structure returned by the first update.
+     * @param initialCapacity The number of [[Variable]]s to pre-allocate. This is only a hint
+     * it will grow as needed.
+     * @returns A semi-persistent [[UnionFind]] structure where each ID is its own equivalence class.
+     */
     static createSemiPersistent<A>(initialCapacity: number): PersistentUnionFind<A> {
         const ranks = new Array<number>(initialCapacity);
         const reps = new Array<Variable<A>>(initialCapacity);
