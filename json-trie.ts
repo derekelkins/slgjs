@@ -1,17 +1,6 @@
-import { Variable, Substitution } from "./unify"
+import { Json, JsonTerm, Variable, Substitution } from "./unify"
 
 function emptyObjectUnless(x: any): any { return x === void(0) ? {} : x; }
-
-/**
- * Intended to be restricted to JavaScript objects that correspond to JSON.
- * In particular, no functions.
- */
-export type Json = any;
-
-/**
- * Intended to be [[Json]] except that we may have [[Variable]]s at any point.
- */
-export type JsonTerm = Json | Variable;
 
 function convert(type: "boolean" | "number" | "string", val: string): Json {
     if(type === 'boolean') return Boolean(val);

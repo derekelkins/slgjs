@@ -1,7 +1,6 @@
 import "jest"
 
-import { Variable } from "./unify"
-import { JsonTerm } from "./json-trie"
+import { Variable, JsonTerm } from "./unify"
 import { Predicate, UntabledPredicate, TabledPredicate, EdbPredicate, TrieEdbPredicate,
          rule, clause, unify, looseUnify, toArrayQ } from "./slg"
 

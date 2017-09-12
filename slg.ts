@@ -1,217 +1,5 @@
-import { Variable, Substitution } from "./unify"
-import { VarMap, Json, JsonTerm, JsonTrie, JsonTrieTerm } from "./json-trie"
-
-/*
-// const sub = Substitution.emptyPersistent();
-// let [vs, s] = sub.fresh(30);
-// s = s.bind(vs[0], [1,2]);
-// for(let i = 1; i < vs.length; ++i) {
-//     s = s.bind(vs[i], [vs[i-1],vs[i-1]]);
-// }
-// console.log('slow');
-// groundJsonNoSharing(vs[vs.length - 1], s);
-// console.log('fast');
-// groundJson(vs[vs.length - 1], s);
-
-function groundJsonNoSharing(x: JsonTerm, sub: Substitution<JsonTerm>): JsonTerm {
-    if(x instanceof Variable) x = sub.lookupAsVar(x);
-    switch(typeof x) {
-        case 'object':
-            if(x === null) {
-                return x;
-            } else if(x instanceof Variable) {
-                return x;
-            } else if(x instanceof Array) {
-                return x.map(y => groundJsonNoSharing(y, sub));
-            } else { // it's an object
-                const result: JsonTerm = {};
-                for(const key in x) {
-                    result[key] = groundJsonNoSharing(x[key], sub);
-                }
-                return result;
-            }
-        default:
-            return x;
-    }
-}
-*/
-
-function groundJson(x: JsonTerm, sub: Substitution<JsonTerm>, mapping: {[id: number]: JsonTerm} = {}): JsonTerm {
-    let id: number | null = null;
-    if(x instanceof Variable) { 
-        const v = sub.lookupVar(x);
-        id = v.id;
-        const shared = mapping[id];
-        if(shared !== void(0)) return shared;
-        x = v.value === void(0) ? new Variable(id) : v.value;
-    }
-    switch(typeof x) {
-        case 'object':
-            if(x === null) {
-                return x;
-            } else if(x instanceof Variable) {
-                return x;
-            } else if(x instanceof Array) {
-                const result = x.map(y => groundJson(y, sub, mapping));
-                if(id !== null) mapping[id] = result;
-                return result;
-            } else { // it's an object
-                const result: JsonTerm = {};
-                for(const key in x) {
-                    result[key] = groundJson(x[key], sub, mapping);
-                }
-                if(id !== null) mapping[id] = result;
-                return result;
-            }
-        default:
-            return x;
-    }
-}
-
-function refreshJson(x: JsonTerm, sub: Substitution<JsonTerm>, mapping: {[index: number]: Variable} = {}): [JsonTerm, Substitution<JsonTerm>] {
-    switch(typeof x) {
-        case 'object':
-            if(x === null) {
-                return [x, sub];
-            } else if(x instanceof Variable) {
-                const v = mapping[x.id];
-                if(v === void(0)) {
-                    const t = sub.freshVar();
-                    mapping[x.id] = t[0];
-                    return t;
-                } else {
-                    return [v, sub];
-                }
-            } else if(x instanceof Array) {
-                let s = sub;
-                const len = x.length;
-                const newArray = new Array<JsonTerm>(len);
-                for(let i = 0; i < len; ++i) {
-                    const t = refreshJson(x[i], s, mapping);
-                    newArray[i] = t[0];
-                    s = t[1];
-                }
-                return [newArray, s];
-            } else { // it's an object
-                let s = sub;
-                const newObject: JsonTerm = {};
-                for(const key in x) {
-                    const t = refreshJson(x[key], s, mapping);
-                    newObject[key] = t[0];
-                    s = t[1];
-                }
-                return [newObject, s];
-            }
-        default:
-            return [x, sub];
-    }
-}
-
-// This is asymmetrical and only requires x to have a subset of y's keys when both are objects (and recursively).
-function looseUnifyJson(x: JsonTerm, y: JsonTerm, sub: Substitution<JsonTerm>): Substitution<JsonTerm> | null {
-    if(x instanceof Variable) x = sub.lookupAsVar(x);
-    if(y instanceof Variable) y = sub.lookupAsVar(y);
-    if(x instanceof Variable) {
-        if(y instanceof Variable) {
-            return sub.unifyVar(x, y);
-        } else {
-            return sub.bind(x, y);
-        }
-    } else if(y instanceof Variable) {
-        return sub.bind(y, x);
-    } else {
-        switch(typeof x) {
-            case 'object':
-                if(x === null) {
-                    return y === null ? sub : null;
-                } else if(x instanceof Array) {
-                    if(y instanceof Array) {
-                        const len = x.length;
-                        if(len !== y.length) return null;
-                        let s: Substitution<any> | null = sub;
-                        for(let i = 0; i < len; ++i) {
-                            s = looseUnifyJson(x[i], y[i], s);
-                            if(s === null) return null;
-                        }
-                        return s;
-                    } else {
-                        return null;
-                    }
-                } else { // it's an object
-                    if(y === null || typeof y !== 'object' || y instanceof Array) return null;
-                    let s: Substitution<any> | null = sub;
-                    for(const key in x) {
-                        if(!(key in y)) return null;
-                        s = looseUnifyJson(x[key], y[key], s);
-                        if(s === null) return null;
-                    }
-                    return s;
-                }
-            case 'undefined':
-            case 'number':
-            case 'string':
-            case 'boolean':
-                return x === y ? sub : null;
-            default:
-                return null; // We were given a function or a symbol or some other nonsense.
-        }
-    }
-}
-
-function unifyJson(x: JsonTerm, y: JsonTerm, sub: Substitution<JsonTerm>): Substitution<JsonTerm> | null {
-    if(x instanceof Variable) x = sub.lookupAsVar(x);
-    if(y instanceof Variable) y = sub.lookupAsVar(y);
-    if(x instanceof Variable) {
-        if(y instanceof Variable) {
-            return sub.unifyVar(x, y);
-        } else {
-            return sub.bind(x, y);
-        }
-    } else if(y instanceof Variable) {
-        return sub.bind(y, x);
-    } else {
-        switch(typeof x) {
-            case 'object':
-                if(x === null) {
-                    return y === null ? sub : null;
-                } else if(x instanceof Array) {
-                    if(y instanceof Array) {
-                        const len = x.length;
-                        if(len !== y.length) return null;
-                        let s: Substitution<any> | null = sub;
-                        for(let i = 0; i < len; ++i) {
-                            s = unifyJson(x[i], y[i], s);
-                            if(s === null) return null;
-                        }
-                        return s;
-                    } else {
-                        return null;
-                    }
-                } else { // it's an object
-                    if(y === null || typeof y !== 'object' || y instanceof Array) return null;
-                    const xKeys = Object.keys(x).sort();
-                    const yKeys = Object.keys(y).sort();
-                    const len = xKeys.length;
-                    if(len !== yKeys.length) return null;
-                    let s: Substitution<any> | null = sub;
-                    for(let i = 0; i < len; ++i) {
-                        const key = xKeys[i];
-                        if(key !== yKeys[i]) return null;
-                        s = unifyJson(x[key], y[key], s);
-                        if(s === null) return null;
-                    }
-                    return s;
-                }
-            case 'undefined':
-            case 'number':
-            case 'string':
-            case 'boolean':
-                return x === y ? sub : null;
-            default:
-                return null; // We were given a function or a symbol or some other nonsense.
-        }
-    }
-}
+import { Json, JsonTerm, Variable, Substitution, groundJson, looseUnifyJson, unifyJson, refreshJson } from "./unify"
+import { VarMap, JsonTrie, JsonTrieTerm } from "./json-trie"
 
 type Stack<A> = Array<A>;
 
@@ -247,8 +35,11 @@ class TopLevelScheduler implements Scheduler {
 }
 
 type CPS<A> = (k: (value: A) => void) => void;
+
 export type LP<V, A> = (scheduler: Scheduler) => (sub: Substitution<V>) => CPS<A>;
+
 type LPSub<V> = LP<V, Substitution<V>>;
+
 export type LPTerm = LP<JsonTerm, Substitution<JsonTerm>>;
 
 type Queue<A> = Array<A>;
@@ -438,6 +229,7 @@ class Generator implements Scheduler {
         }
     }
 }
+
 export interface Predicate {    
     match(row: JsonTerm): LPTerm;
     // notMatch(row: JsonTerm): LPTerm;
