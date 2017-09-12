@@ -234,6 +234,6 @@ function list<C>(...xs: Array<C>): Term<C> {
     return ys;
 }
 
-for(const t of runLP(q => fresh((l, r) => conj(unify(cons(l,r), q), append(l, r, list(1,2,3,4,5)))))) {
+for(const t of runLP(Q => fresh((L, R) => conj(unify(cons(L, R), Q), append(L, R, list(1,2,3,4,5)))))) {
     console.log(t.toString());
 }

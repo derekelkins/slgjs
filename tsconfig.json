@@ -17,14 +17,12 @@
         ]
     },
     "files": [
-        "rel.ts",
         "puf.ts",
         "jsqc.ts",
         "unify.ts",
         "unify.test.ts",
         "slg.ts",
         "slg.test.ts",
-        "kanren.ts",
         "json-trie.ts",
         "json-trie.test.ts",
         "scc.ts"
