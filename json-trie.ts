@@ -93,8 +93,7 @@ export class JsonTrie<A> {
                 yield* JsonTrie.matchRecArray(key, i+1, s, node);
             }
         } else {
-            const node = curr.empty;
-            if(node !== void(0)) yield [node, sub];
+            if('empty' in curr) yield [curr.empty, sub];
         }
     }
 
@@ -109,8 +108,7 @@ export class JsonTrie<A> {
                 yield* JsonTrie.matchRecObject(key, keys, i+1, s, node2);
             }
         } else {
-            const node = curr.empty;
-            if(node !== void(0)) yield [node, sub];
+            if('empty' in curr) yield [curr.empty, sub];
         }
     }
 
@@ -118,8 +116,7 @@ export class JsonTrie<A> {
         const type = typeof key;
         if(type === 'object') {
             if(key === null) { 
-                const node = curr.null;
-                if(node !== void(0)) yield [node, sub];
+                if('null' in curr) yield [curr.null, sub];
             } else if(key instanceof Variable) {
                 const v = sub.lookupAsVar(key);
                 if(v instanceof Variable) { // it's unbound
@@ -142,25 +139,22 @@ export class JsonTrie<A> {
                 }
             }
         } else if(type === 'undefined') {
-            const node = curr.undefined;
-            if(node !== void(0)) yield [node, sub];
+            if('undefined' in curr) yield [curr.undefined, sub];
         } else {
-            let node = curr[type];
+            const node = curr[type];
             if(node !== void(0)) {
-                node = node[key];
-                if(node !== void(0)) yield [node, sub];
+                if(key in node) yield [node[key], sub];
             }
         }
     }
 
     private static *rowRecObject(curr: any, result: Array<[string, Json]>): Iterable<[Json, any]> {
-        if(curr.empty !== void(0)) {
+        if('empty' in curr) {
             const obj: Json = {};
             for(const [k, v] of result) {
                 obj[k] = v;
             }
             yield [obj, curr.empty];
-
         }
         const moreNode = curr.more;
         if(moreNode === void(0)) return;
@@ -176,7 +170,7 @@ export class JsonTrie<A> {
                         }
                         break;
                     case 'object':
-                        for(const [key, rest] of JsonTrie.rowRecObject(node.array, []) ){
+                        for(const [key, rest] of JsonTrie.rowRecObject(node.object, []) ){
                             result.push([k, key]);
                             yield* JsonTrie.rowRecObject(rest, result);
                             result.pop();
@@ -503,13 +497,12 @@ export class JsonTrieTerm<A> {
     }
 
     private static *rowRecObject(curr: any, result: Array<[string, JsonTerm]>): Iterable<[JsonTerm, any]> {
-        if(curr.empty !== void(0)) {
+        if('empty' in curr) {
             const obj: JsonTerm = {};
             for(const [k, v] of result) {
                 obj[k] = v;
             }
             yield [obj, curr.empty];
-
         }
         const moreNode = curr.more;
         if(moreNode === void(0)) return;
@@ -525,7 +518,7 @@ export class JsonTrieTerm<A> {
                         }
                         break;
                     case 'object':
-                        for(const [key, rest] of JsonTrieTerm.rowRecObject(node.array, []) ){
+                        for(const [key, rest] of JsonTrieTerm.rowRecObject(node.object, []) ){
                             result.push([k, key]);
                             yield* JsonTrieTerm.rowRecObject(rest, result);
                             result.pop();
@@ -874,55 +867,3 @@ export class JsonTrieTerm<A> {
         }
     }
 }
-
-/*
-(function() {
-    const trie = JsonTrieTerm.create<number>();
-    trie.insert([null, {start: 1, end: 2}], 0);
-    trie.insert([null, {start: 1, end: 3}], 1);
-    trie.insert(['foo', {start: 1, end: 3}], 2);
-    trie.insert({start: 1, end: 2}, 3);
-    trie.insert({start: 1, end: 3}, 4);
-    trie.insert([1,2], 5);
-    trie.insert([1,3], 6);
-    trie.insert({}, 7);
-    trie.insert({ foo: new Variable(0), bar: new Variable(0) }, 8);
-    console.log(JSON.stringify(trie.json));
-    console.log(trie.contains(['foo', {start: 1, end: 3}]));
-    console.log(trie.contains({foo: new Variable(0), bar: new Variable(0)})); // true
-    console.log(trie.contains({foo: new Variable(1), bar: new Variable(0)})); // false
-    console.log(trie.contains({foo: new Variable(0), bar: new Variable(1)})); // false
-    console.log(trie.contains({foo: new Variable(1), bar: new Variable(1)})); // true
-    const rows = [];
-    for(const row of trie.entries()) { rows.push(row); }
-    console.dir(rows, {depth: null});
-
-    const trie2 = JsonTrie.create<number>();
-    trie2.insert([null, {start: 1, end: 2}], 0);
-    trie2.insert([null, {start: 1, end: 3}], 1);
-    trie2.insert(['foo', {start: 1, end: 3}], 2);
-    trie2.insert({start: 1, end: 2}, 3);
-    trie2.insert({start: 1, end: 3}, 4);
-    trie2.insert([1,2], 5);
-    trie2.insert([1,3], 6);
-    trie2.insert({}, 7);
-    trie2.insert({foo: {start: 1, end: 2}, end: 3}, 8);
-    trie2.insert({foo: {start: 1, end: 3}, end: 3}, 9);
-    const matches = [];
-    const [[X, Y], sub] = Substitution.emptyPersistent().fresh(2);
-    for(const s of trie2.match({start: X, end: Y}, sub)) { 
-        matches.push([s.lookup(X), s.lookup(Y)]); 
-    }
-    console.dir(matches, {depth: null});
-    matches.length = 0;
-    for(const s of trie2.match([X, Y], sub)) { 
-        matches.push([s.lookup(X), s.lookup(Y)]); 
-    }
-    console.dir(matches, {depth: null});
-    matches.length = 0;
-    for(const s of trie2.match({foo: {start: X, end: Y}, end: Y}, sub)) { 
-        matches.push([s.lookup(X), s.lookup(Y)]); 
-    }
-    console.dir(matches, {depth: null});
-})();
-*/

@@ -19,12 +19,12 @@
     "files": [
         "rel.ts",
         "puf.ts",
-        "rel.test.ts",
         "jsqc.ts",
         "unify.ts",
         "par.ts",
         "kanren.ts",
         "json-trie.ts",
+        "json-trie.test.ts",
         "scc.ts"
     ]
 }
