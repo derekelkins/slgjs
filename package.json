@@ -1,8 +1,8 @@
 {
-  "name": "reljs",
+  "name": "slgjs",
   "version": "1.0.0",
   "description": "",
-  "main": "rel.js",
+  "main": "slg.js",
   "dependencies": {
     "jest": "^20.0.4",
     "ts-jest": "^20.0.10"
