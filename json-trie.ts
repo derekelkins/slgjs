@@ -2,8 +2,15 @@ import { Variable, Substitution } from "./unify"
 
 function emptyObjectUnless(x: any): any { return x === void(0) ? {} : x; }
 
+/**
+ * Intended to be restricted to JavaScript objects that correspond to JSON.
+ * In particular, no functions.
+ */
 export type Json = any;
 
+/**
+ * Intended to be [[Json]] except that we may have [[Variable]]s at any point.
+ */
 export type JsonTerm = Json | Variable;
 
 function convert(type: "boolean" | "number" | "string", val: string): Json {
@@ -23,6 +30,10 @@ export class JsonTrie<A> {
     private constructor(private readonly trie: any = {}) {}
 
     /**
+     * Create a [[JsonTrie]] from a JSON representation of its contents. `json` should not be modified
+     * externally after calling this and will be mutated by an [[JsonTrie]] operations that perform mutation.
+     *
+     * This doesn't verify the validity of the supplied JSON.
      * @param json Expects a JavaScript object that (correctly!) represents a trie. **This won't be copied.**
      * @returns A [[JsonTrie]] built from the passed in object.
      */
@@ -39,50 +50,113 @@ export class JsonTrie<A> {
     }
 
     /**
-     * The JSON backing. **This isn't a copy.**
+     * The JSON backing. **This isn't a copy.** This means the object should not be mutated and will be mutated if the [[JsonTrie]] is.
      */
     get json(): Json {
         return this.trie;
     }
 
+    /**
+     * Insert `val` at the location represented by `key` overwriting whatever was there.
+     * @param key The [[Json]] key.
+     * @param val The value to insert.
+     * @returns `val`
+     */
     insert(key: Json, val: A): A {
         return JsonTrie.insertRec(key, val, this.trie);
     }
 
+    /**
+     * Modify the value at the location represented by `key` with the function `f`.
+     *
+     * `insert(key, val)` is equivalent to `modify(key, _ => val)`.
+     * @param key The [[Json]] key.
+     * @param f A function that will be given the old value or `undefined` if there was no old value.
+     * @returns The result of the modification, i.e. the result of `f` on the found value or `undefined`.
+     */
     modify(key: Json, f: (a: A | undefined) => A): A {
         return JsonTrie.modifyRec(key, f, this.trie);
     }
 
+    /**
+     * Checks whether the `key` is in the [[JsonTrie]]. This is independent of the value stored.
+     * @param key The [[Json]] key to check.
+     * @returns `true` if `key` was found, `false` otherwise.
+     */
     contains(key: Json): boolean {
         return JsonTrie.containsRec(key, this.trie);
     }
 
+    /**
+     * Look up the value associated with `key`. If `A | undefined = A` you will not be able to distinguish
+     * between not finding a value and a value of `undefined`. Use [[contains]] in that situation.
+     * @param key The [[Json]] key to look up.
+     * @returns The value found or `undefined` if no value was found.
+     */
     lookup(key: Json): A | undefined {
         return JsonTrie.lookupRec(key, this.trie);
     }
 
+    /**
+     * The set of keys in the [[JsonTrie]] in no particular order.
+     *
+     * `keys()` is equivalent to `entries().map(([k, _]) => k)`.
+     * @returns An iterable over the keys.
+     */
     *keys(): Iterable<Json> {
         for(const [k, _] of JsonTrie.rowRec(this.trie)) {
             yield k;
         }
     }
 
+    /**
+     * The list of values in the [[JsonTrie]] in no particular order. There will be duplicates if
+     * multiple keys mapped to the same value.
+     *
+     * `values()` is equivalent to `entries().map(([_, v]) => v)`.
+     * @returns An iterable over the values.
+     */
     *values(): Iterable<A> {
         for(const [_, v] of JsonTrie.rowRec(this.trie)) {
             yield v;
         }
     }
 
+    /**
+     * The list of key-value pairs in the [[JsonTrie]] in no particular order.
+     * @returns An iterable of the key-value pairs.
+     */
     entries(): Iterable<[Json, A]> {
         return JsonTrie.rowRec(this.trie);
     }
 
+    /**
+     * Given a [[JsonTerm]] with potentially some unbound variables in the substitution `sub`,
+     * this returns a sequence of extended [[Substitution]]s binding the unbound variables to
+     * the corresponding parts of the keys in the [[JsonTrie]].
+     *
+     * `match(key, sub)` is equivalent to `matchWithValue(key, sub).map(([k, _]) => k)`.
+     * In particular, `match(key, sub)` is equivalent to unifying key against each result of `keys()` 
+     * and yielding the resulting [[Substitution]].
+     * @param key A [[JsonTerm]] serving as a template to match against.
+     * @param sub A [[Substitution]] to extend with bindings found when `key` matches a key in the [[JsonTrie]].
+     * @returns An iterable of extended [[Substitution]]s, one for each matching key.
+     */
     *match(key: JsonTerm, sub: Substitution<JsonTerm>): Iterable<Substitution<JsonTerm>> {
         for(let [_, s] of JsonTrie.matchRec(key, sub, this.trie)) {
             yield s;
         }
     }
 
+    /**
+     * Given a [[JsonTerm]] with potentially some unbound variables in the substitution `sub`,
+     * this returns a sequence of extended [[Substitution]]s binding the unbound variables to
+     * the corresponding parts of the keys in the [[JsonTrie]] and the value corresponding to that key.
+     *
+     * @param key A [[JsonTerm]] serving as a template to match against.
+     * @param sub A [[Substitution]] to extend with bindings found when `key` matches a key in the [[JsonTrie]].
+     * @returns An iterable of extended [[Substitution]]s, one for each matching key, paired with the corresponding value.
+     */
     matchWithValue(key: JsonTerm, sub: Substitution<JsonTerm>): Iterable<[A, Substitution<JsonTerm>]> {
         return JsonTrie.matchRec(key, sub, this.trie);
     }
@@ -434,17 +508,44 @@ export class JsonTrie<A> {
     }
 }
 
+/**
+ * The represents a list of [[Variable]]s and a mapping of their IDs onto the
+ * interval [0, N) where N is the length of the list of variables. This corresponds
+ * to a variable renaming of a term assuming one of the term's variables are have
+ * contiguous IDs starting at 0. This also means that [[VarMap]] represents a bijection as
+ * you can view the array as a mapping going the other direction.
+ */
 export type VarMap = {vars: Array<Variable>, [index: number]: number};
 
-// Also has variables
+/**
+ * A key-value mapping keyed by [[JsonTerm]]s modulo variable renaming. That is,
+ * a key is in the [[JsonTrieTerm]] if a variant of it, in the logic programming sense, is.
+ *
+ * For example, a [[JsonTerm]] like `[X, Y]` is a variant of `[Z, W]` and `[X, W]` but not of `[1, Y]` or `[X, X]`
+ * where the uppercase letters here represent [[Variable]]s. This is an equivalence relation so `[X, X]` is also
+ * not a variant of `[X, Y]`. In particular, this is *not* subsumption.
+ *
+ * @param A The type of values
+ */
 export class JsonTrieTerm<A> {
     private constructor(private readonly trie: any = {}) {}
 
-    // Expects a JavaScript object that (correctly!) represents a trie.
+    /**
+     * Create a [[JsonTrieTerm]] from a JSON representation of its contents. `json` should not be modified
+     * externally after calling this and will be mutated by an [[JsonTrieTerm]] operations that perform mutation.
+     *
+     * This doesn't verify the validity of the supplied JSON.
+     * @param json Expects a JavaScript object that (correctly!) represents a trie. **This won't be copied.**
+     * @returns A [[JsonTrieTerm]] built from the passed in object.
+     */
     static fromJson<A>(json: Json): JsonTrieTerm<A> {
         return new JsonTrieTerm(json);
     }
 
+    /**
+     * Create an empty [[JsonTrieTerm]].
+     * @returns An empty [[JsonTrieTerm]].
+     */
     static create<A>(): JsonTrieTerm<A> {
         return new JsonTrieTerm();
     }
@@ -456,42 +557,103 @@ export class JsonTrieTerm<A> {
         return val; // It's a string.
     }
 
+    /**
+     * The JSON backing. **This isn't a copy.** This means the object should not be mutated and will be mutated if the [[JsonTrieTerm]] is.
+     */
     get json(): Json {
         return this.trie;
     }
 
+    /**
+     * Insert `val` at the location represented by `key` overwriting whatever was there.
+     * The key comparison is a variant check. See [[JsonTrieTerm]] for an explanation.
+     * @param key The [[JsonTerm]] key.
+     * @param val The value to insert.
+     * @returns `val`
+     */
     insert(key: JsonTerm, val: A): A {
         return JsonTrieTerm.insertRec(key, val, this.trie, {count: 0});
     }
 
+    /**
+     * Modify the value at the location represented by `key` with the function `f`.
+     * The key comparison is a variant check. See [[JsonTrieTerm]] for an explanation.
+     *
+     * `insert(key, val)` is equivalent to `modify(key, _ => val)`.
+     * @param key The [[JsonTerm]] key.
+     * @param f A function that will be given the old value or `undefined` if there was no old value.
+     * @returns The result of the modification, i.e. the result of `f` on the found value or `undefined`.
+     */
     modify(key: JsonTerm, f: (a: A | undefined) => A): A {
         return JsonTrieTerm.modifyRec(key, f, this.trie, {count: 0});
     }
 
+    /**
+     * Modify the value at the location represented by `key` with the function `f`.
+     * `f` will additionally be provided with a [[VarMap]] providing a mapping between the
+     * unbound [[Variable]]s in `key` and the [[Variable]]s of the key in the [[JsonTrieTerm]]
+     * which represents the variable renaming required by the variant check.
+     * The key comparison is a variant check. See [[JsonTrieTerm]] for an explanation.
+     *
+     * `modify(key, f)` is equivalent to `modifyWithVars(key, (x, _) => f(x))`.
+     * @param key The [[JsonTerm]] key.
+     * @param f A function that will be given the old value or `undefined` if there was no old value.
+     * @returns The result of the modification, i.e. the result of `f` on the found value or `undefined`.
+     */
     modifyWithVars(key: JsonTerm, f: (a: A | undefined, varMap: VarMap) => A): A {
         return JsonTrieTerm.modifyWithVarsRec(key, f, this.trie, {vars: []});
     }
 
+    /**
+     * Checks whether the `key` is in the [[JsonTrieTerm]]. This is independent of the value stored.
+     * The key comparison is a variant check. See [[JsonTrieTerm]] for an explanation.
+     * @param key The [[JsonTerm]] key to check.
+     * @returns `true` if `key` was found, `false` otherwise.
+     */
     contains(key: JsonTerm): boolean {
         return JsonTrieTerm.containsRec(key, this.trie, {count: 0});
     }
 
+    /**
+     * Look up the value associated with `key`. If `A | undefined = A` you will not be able to distinguish
+     * between not finding a value and a value of `undefined`. Use [[contains]] in that situation.
+     * The key comparison is a variant check. See [[JsonTrieTerm]] for an explanation.
+     * @param key The [[JsonTerm]] key to look up.
+     * @returns The value found or `undefined` if no value was found.
+     */
     lookup(key: JsonTerm): A | undefined {
         return JsonTrieTerm.lookupRec(key, this.trie, {count: 0});
     }
 
+    /**
+     * The set of keys in the [[JsonTrieTerm]] in no particular order.
+     *
+     * `keys()` is equivalent to `entries().map(([k, _]) => k)`.
+     * @returns An iterable over the keys.
+     */
     *keys(): Iterable<JsonTerm> {
         for(const [k, _] of JsonTrieTerm.rowRec(this.trie)) {
             yield k;
         }
     }
 
+    /**
+     * The list of values in the [[JsonTrieTerm]] in no particular order. There will be duplicates if
+     * multiple keys mapped to the same value.
+     *
+     * `values()` is equivalent to `entries().map(([_, v]) => v)`.
+     * @returns An iterable over the values.
+     */
     *values(): Iterable<A> {
         for(const [_, v] of JsonTrieTerm.rowRec(this.trie)) {
             yield v;
         }
     }
 
+    /**
+     * The list of key-value pairs in the [[JsonTrieTerm]] in no particular order.
+     * @returns An iterable of the key-value pairs.
+     */
     entries(): Iterable<[JsonTerm, A]> {
         return JsonTrieTerm.rowRec(this.trie);
     }
