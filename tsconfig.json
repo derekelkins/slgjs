@@ -21,6 +21,7 @@
         "puf.ts",
         "jsqc.ts",
         "unify.ts",
+        "unify.test.ts",
         "par.ts",
         "kanren.ts",
         "json-trie.ts",
