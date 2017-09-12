@@ -34,12 +34,29 @@ class TopLevelScheduler implements Scheduler {
     dependOn(gen: Generator): void { } // Don't need to do anything.
 }
 
+/**
+ * A `void`-valued continuation monad.
+ */
 type CPS<A> = (k: (value: A) => void) => void;
 
+
+/**
+ * A monad for logic programming given `V`-valued [[Substitution]]s and returning `A`s.
+ * 
+ * Conceptually, this *should* be something like Haskell's: `ReaderT Scheduler (StateT (Substitution v) (Cont () a))`
+ * but what it *actually* is is: `ReaderT Scheduler (ReaderT (Substitution v) (Cont () a))`. However,
+ * `a = Substitution v` in the latter, corresponds to `a = ()` in the former. Most of the time, this latter view
+ * is what's being implicitly taken, but occasionally the extra flexibility is used. `seq` is the monadic bind
+ * restricted to the case where the first argument has `()` return type.
+ */
 export type LP<V, A> = (scheduler: Scheduler) => (sub: Substitution<V>) => CPS<A>;
 
 type LPSub<V> = LP<V, Substitution<V>>;
 
+/**
+ * The type of a typical monadic computation corresponding to, in Haskell syntax, `M ()` for a suitable monad `M`.
+ * See [[LP]]. The point is that `LPTerm` corresponds to a logic programming computation on [[JsonTerm]]s.
+ */
 export type LPTerm = LP<JsonTerm, Substitution<JsonTerm>>;
 
 type Queue<A> = Array<A>;
@@ -230,12 +247,31 @@ class Generator implements Scheduler {
     }
 }
 
+/**
+ * A predicate on [[JsonTerm]]s, or conceptually equivalently, a (multi-)set of [[JsonTerm]]s.
+ */
 export interface Predicate {    
+    /**
+     * Produces a computation which succeeds if `row` matches an entry in the extension of the predicate.
+     * @param row The [[JsonTerm]] to match against.
+     * @returns A computation which succeeds for each way of binding the free variables of `row`
+     * consistent with the predicate.
+     */
     match(row: JsonTerm): LPTerm;
     // notMatch(row: JsonTerm): LPTerm;
 }
 
+/**
+ * A predicate representing a fixed set of data stored as a [[JsonTrie]]. This is
+ * a form of indexing.
+ */
 export class TrieEdbPredicate implements Predicate {
+    /**
+     * This just inserts the data into a trie and returns a predicate built upon it.
+     * This will thus inherently eliminate duplicates.
+     * @param rows The data to load.
+     * @returns A [[Predicate]] backed by a [[JsonTrie]] representing the data in `row`.
+     */
     static fromArray(rows: Array<Json>): TrieEdbPredicate {
         const trie = JsonTrie.create<null>();
         const len = rows.length;
@@ -244,6 +280,16 @@ export class TrieEdbPredicate implements Predicate {
         }
         return new TrieEdbPredicate(trie);
     }
+
+    /**
+     * Uses `trie` as the backing store without copying.
+     * @param trie The backing store.
+     * @returns A [[Predicate]] backed by `trie`.
+     */
+    static fromJsonTrie(trie: JsonTrie<any>): TrieEdbPredicate {
+        return new TrieEdbPredicate(trie);
+    }
+
     constructor(private readonly trie: JsonTrie<any>) {}
 
     match(row: JsonTerm): LPTerm {
@@ -254,6 +300,13 @@ export class TrieEdbPredicate implements Predicate {
         };
     }
 
+    /**
+     * Produces an computation that fails if `row` matches any entry in the predicate, and
+     * succeeds otherwise without binding anything. This *should* be efficient, only
+     * requiring a single pass over `row` to determine if there is a match or not.
+     * @param row The [[JsonTerm]] to match against.
+     * @return A computation succeeding only if `row` is **not** in the extension of the predicate.
+     */
     notMatch(row: JsonTerm): LPTerm {
         return gen => s => k => {
             for(let s2 of this.trie.match(row, s)) {
@@ -264,6 +317,9 @@ export class TrieEdbPredicate implements Predicate {
     }
 }
 
+/**
+ * A predicate representing a fixed set of data stored as an array.
+ */
 export class EdbPredicate implements Predicate {
     constructor(private readonly table: Array<Json>) {}
 
@@ -278,6 +334,13 @@ export class EdbPredicate implements Predicate {
         };
     }
 
+    /**
+     * Produces a computation which succeeds for each entry in the extension of the predicate which `row` loosely unifies with.
+     * See [[looseUnifyJson]]. That is, it iterates over the backing array doing `looseUnifyJson(row, entry)`.
+     * @param row The row to loosely match against.
+     * @returns A computation which succeeds for each way of binding the free variables of `row`
+     * loosely consistent with the predicate.
+     */
     looseMatch(row: JsonTerm): LPTerm {
         return gen => s => k => {
             const arr = this.table;
@@ -289,6 +352,14 @@ export class EdbPredicate implements Predicate {
         };
     }
 
+    /**
+     * Produces an computation that fails if `row` matches any entry in the predicate, and
+     * succeeds otherwise without binding anything. This simply iterates over the backing
+     * array attempting to unify with each entry until it finds a match, in which case it
+     * fails, or reaches the end of the array, in which case it succeeds.
+     * @param row The [[JsonTerm]] to match against.
+     * @return A computation succeeding only if `row` is **not** in the extension of the predicate.
+     */
     notMatch(row: JsonTerm): LPTerm {
         return gen => s => k => {
             const arr = this.table;
@@ -302,6 +373,12 @@ export class EdbPredicate implements Predicate {
     }
 }
 
+/**
+ * An untabled predicate defined by a rule. In SLG terms, it evaluates via Program Clause Resolution.
+ * Operationally, it's just a wrapper around a [[JsonTerm]] to [[LPTerm]] function. The hard work is
+ * done by the operations which build [[LPTerm]]s. This works exactly like normal Prolog execution with
+ * all the pitfalls that implies, e.g. infinite loops in left recursion.
+ */
 export class UntabledPredicate implements Predicate {
     constructor(private readonly body: (row: JsonTerm) => LPTerm) { }
 
@@ -310,6 +387,19 @@ export class UntabledPredicate implements Predicate {
     }
 }
 
+/**
+ * A (variant-based) tabled predicate defined by a rule. Roughly, execution proceeds like normal
+ * Prolog except that we store the answers in a table and if we see an answer we've seen before
+ * (i.e. a variant of one we've seen before, see [[JsonTrieTerm]]), we return the result from the
+ * table rather than recalculate it. This allows us to break loops and stop when we reach a fixed
+ * point.
+ *
+ * Indeed, left-recursive code is ideal for a tabled predicate, whereas for an untabled predicate
+ * it is guaranteed to loop forever. Similarly, any Datalog program will terminate and execute
+ * with roughly comparable efficiency if all predicates are tabled. (In practice, a mixture of
+ * tabled and untabled execution is ideal for performance, and relatively few predicates need to
+ * be tabled to guarantee termination.)
+ */
 export class TabledPredicate implements Predicate {
     private readonly generators: JsonTrieTerm<Generator> = JsonTrieTerm.create();
     constructor(private readonly body: (row: JsonTerm) => LPTerm) { }
@@ -353,14 +443,21 @@ export class TabledPredicate implements Predicate {
     }
 }
 
-export function seq<V, A>(m: LPSub<V>, f: LP<V, A>): LP<V, A> {
-    return gen => s => k => m(gen)(s)(s => f(gen)(s)(k))
+/**
+ * Sequences two computations. See the discussion at [[LP]].
+ * If `A = Substitution<V>`, this is essentially `conj(m1, m2)`.
+ */
+export function seq<V, A>(m1: LPSub<V>, m2: LP<V, A>): LP<V, A> {
+    return gen => s => k => m1(gen)(s)(s => m2(gen)(s)(k))
 }
 
-export function ground(val: JsonTerm): LP<JsonTerm, JsonTerm> {
+function ground(val: JsonTerm): LP<JsonTerm, JsonTerm> {
     return gen => s => k => k(groundJson(val, s));
 }
 
+/**
+ * A computation that succeeds if all of its arguments do. That is, the conjunction.
+ */
 export function conj<V>(...cs: Array<LPSub<V>>): LPSub<V> {
     return gen => {
         const cs2 = cs.map(c => c(gen));
@@ -378,6 +475,9 @@ export function conj<V>(...cs: Array<LPSub<V>>): LPSub<V> {
     };
 }
 
+/**
+ * A computation that succeeds if any of its arguments do. That is, the disjunction.
+ */
 export function disj<V>(...ds: Array<LPSub<V>>): LPSub<V> {
     return gen => {
         const ds2 = ds.map(d => d(gen));
@@ -391,6 +491,9 @@ export function disj<V>(...ds: Array<LPSub<V>>): LPSub<V> {
     };
 }
 
+/**
+ * A computation which produces `count` fresh variables and passes them to `body`.
+ */
 export function freshN<V, A>(count: number, body: (...vs: Array<Variable>) => LP<V, A>): LP<V, A> {
     return gen => s => k => {
         const [vs, s2] = s.fresh(count);
@@ -398,10 +501,18 @@ export function freshN<V, A>(count: number, body: (...vs: Array<Variable>) => LP
     };
 }
 
+/**
+ * By definition, `freshN(body.length, body)`. This means it determines the number of variables
+ * to produce based on the arity of `body` which therefore must be fixed (i.e. no rest parameters
+ * or `arguments` shenanigans).
+ */
 export function fresh<V, A>(body: (...vs: Array<Variable>) => LP<V, A>): LP<V, A> {
     return freshN(body.length, body);
 }
 
+/**
+ * A computation which produces `count` fresh variables and passes them to the conjunction of `body`.
+ */
 export function clauseN<V>(count: number, body: (...vs: Array<Variable>) => Array<LPSub<V>>): LPSub<V> {
     return gen => s => k => {
         const [vs, s2] = s.fresh(count);
@@ -409,10 +520,19 @@ export function clauseN<V>(count: number, body: (...vs: Array<Variable>) => Arra
     };
 }
 
+/**
+ * By definition, `clauseN(body.length, body)`. This means it determines the number of variables
+ * to produce based on the arity of `body` which therefore must be fixed (i.e. no rest parameters
+ * or `arguments` shenanigans).
+ */
 export function clause<V>(body: (...vs: Array<Variable>) => Array<LPSub<V>>): LPSub<V> {
     return clauseN(body.length, body);
 }
 
+/**
+ * A computation that succeeds if `unifyJson(x, y)` does.
+ * See [[unifyJson]].
+ */
 export function unify(x: JsonTerm, y: JsonTerm): LPTerm {
     return gen => s => k => {
         const s2 = unifyJson(x, y, s);
@@ -422,6 +542,10 @@ export function unify(x: JsonTerm, y: JsonTerm): LPTerm {
     };
 }
 
+/**
+ * A computation that succeeds if `looseUnifyJson(x, y)` does.
+ * See [[looseUnifyJson]].
+ */
 export function looseUnify(x: JsonTerm, y: JsonTerm): LPTerm {
     return gen => s => k => {
         const s2 = looseUnifyJson(x, y, s);
@@ -431,30 +555,57 @@ export function looseUnify(x: JsonTerm, y: JsonTerm): LPTerm {
     };
 }
 
+/**
+ * A [[disj]]unction of [[clause]]s. The result looks roughly like a Prolog-style rule, e.g.
+ * ```
+ * const append: Predicate = new UntabledPredicate(([Xs, Ys, Zs]: JsonTerm) => rule(
+ *     () =>
+ *         [unify([], Xs), unify(Ys, Zs)],
+ *     (X1, Xs1, Zs1) =>  
+ *         [unify([X1, Xs1], Xs), unify([X1, Zs1], Zs), append.match([Xs1, Ys, Zs1])]));
+ * ```
+ * corresponds to the Prolog rule:
+ * ```
+ * append(Xs, Ys, Zs) :- [] = Xs, Ys = Zs.
+ * append(Xs, Ys, Zs) :- [X1, Xs1] = Xs, [X1, Zs1] = Zs, append(Xs1, Ys, Zs1).
+ * ```
+ */
 export function rule<V>(...alternatives: Array<(...vs: Array<Variable>) => Array<LPSub<V>>>): LPSub<V> {
     return disj.apply(null, alternatives.map(cs => clauseN(cs.length, (...vs) => cs.apply(null, vs))));
 }
 
-export function runLP<V, A>(sched: Scheduler, m: LP<V, A>, k: (a: A) => void): void {
+function runLP<V, A>(sched: Scheduler, m: LP<V, A>, k: (a: A) => void): void {
     return sched.push(() => m(sched)(Substitution.emptyPersistent())(k));
 }
 
-export function run<V, A>(m: LP<V, A>, k: (a: A) => void): void {
+/**
+ * Runs an [[LP]] computation `m` calling `k` each time it succeeds.
+ */
+function run<V, A>(m: LP<V, A>, k: (a: A) => void): void {
     const sched = new TopLevelScheduler();
     runLP(sched, m, k);
     sched.execute();
 }
 
+/**
+ * Runs an [[LP]] computation `body` passing it a fresh logic variable and calls `k` with
+ * the [[ground]]ing of that variable each time `body` succeeds.
+ */
 export function runQ(body: (q: Variable) => LPTerm, k: (a: JsonTerm) => void): void {
     run(fresh(Q => seq(body(Q), ground(Q))), k);
 }
 
-export function toArray<V, A>(m: LP<V, A>): Array<A> {
+function toArray<V, A>(m: LP<V, A>): Array<A> {
     const result: Array<A> = [];
     run(m, a => result.push(a));
     return result;
 }
 
+/**
+ * Runs an [[LP]] computation `body` passing it a fresh logic variable and collects
+ * the result of [[ground]]ing of that variable each time `body` succeeds into an array.
+ * @returns An array of ground [[JsonTerm]]s representing all successful results of `body`.
+ */
 export function toArrayQ(body: (q: Variable) => LPTerm): Array<JsonTerm> {
     const results: Array<JsonTerm> = [];
     runQ(body, a => results.push(a));
@@ -473,7 +624,6 @@ export function debugToArrayQ(body: (q: Variable) => LPTerm): [Array<[number, nu
     const sdgEdges = debugRunQ(body, a => results.push(a));
     return [sdgEdges, results];
 }
-
 
 /*
 // Fluent wrapper
@@ -503,279 +653,3 @@ class TermWrapper {
     ground(): LP<JsonTerm, JsonTerm> { return ground(this.term); }
 }
 */
-
-(() => {
-const append: Predicate = new UntabledPredicate(([Xs, Ys, Zs]: JsonTerm) => rule(
-    () =>
-        [unify([], Xs), unify(Ys, Zs)],
-    (X1, Xs1, Zs1) =>  
-        [unify([X1, Xs1], Xs), unify([X1, Zs1], Zs), append.match([Xs1, Ys, Zs1])]));
-
-function list(...xs: Array<JsonTerm>): JsonTerm {
-    let ys: JsonTerm = [];
-    for(let i = xs.length-1; i >= 0; --i) {
-        ys = [xs[i], ys];
-    }
-    return ys;
-}
-
-const edge: Predicate = new EdbPredicate([
-    [1, 2],
-    [2, 3],
-    [3, 1]]);
-    //[3, 4]]);
-const path: Predicate = new TabledPredicate(row => rule(
-    () => [edge.match(row)],
-    Y  => [path.match([row[0], Y]), path.match([Y, row[1]])]));
-const path2: Predicate = new TabledPredicate(row => rule(
-    Y  => [path2.match([row[0], Y]), path2.match([Y, row[1]])],
-    () => [edge.match(row)]));
-const path3: Predicate = new TabledPredicate(row => rule(
-    Y  => [path3.match([row[0], Y]), edge.match([Y, row[1]])],
-    () => [edge.match(row)]));
-const path4: Predicate = new TabledPredicate(row => rule(
-    Y  => [edge.match([row[0], Y]), path4.match([Y, row[1]])],
-    () => [edge.match(row)]));
-
-const path5: Predicate = new TabledPredicate(([X, Z, P]) => rule(
-    (P2, Y)  => [path5.match([X, Y, P2]), edge.match([Y, Z]), unify(P, [Z, P2])],
-    () => [edge.match([X, Z]), unify(P, [Z, [X, []]])]));
-
-const r: Predicate = new TabledPredicate(row => rule(
-    () => [r.match(row)]));
-
-const p: Predicate = new TabledPredicate(row => rule(
-    () => [q.match(row)]));
-const q: Predicate = new TabledPredicate(row => rule(
-    () => [p.match(row)]));
-
-/* *
-//const cyl: Predicate = TrieEdbPredicate.fromArray([
-const cyl: Predicate = new EdbPredicate([
-    [1,30], [1,40], [2,43], [2,34], [3,30], [3,33], [4,45], [4,40], [5,31],
-    [5,45], [6,31], [6,48], [7,31], [7,41], [8,25], [8,30], [9,40], [9,31],
-    [10,35], [10,46], [11,32], [11,28], [12,35], [12,43], [13,46], [13,48],
-    [14,39], [14,35], [15,46], [15,28], [16,28], [16,42], [17,33], [17,25],
-    [18,46], [18,27], [19,38], [19,47], [20,27], [20,41], [21,34], [21,38],
-    [22,27], [22,33], [23,26], [23,35], [24,36], [24,25], [25,70], [25,52],
-    [26,59], [26,71], [27,61], [27,58], [28,61], [28,54], [29,63], [29,70],
-    [30,58], [30,53], [31,56], [31,60], [32,58], [32,50], [33,62], [33,66],
-    [34,55], [34,72], [35,63], [35,58], [36,55], [36,64], [37,56], [37,58],
-    [38,68], [38,61], [39,64], [39,52], [40,57], [40,70], [41,69], [41,55],
-    [42,62], [42,53], [43,68], [43,65], [44,56], [44,62], [45,67], [45,71],
-    [46,71], [46,66], [47,61], [47,60], [48,60], [48,54], [49,93], [49,88],
-    [50,90], [50,93], [51,95], [51,92], [52,93], [52,94], [53,83], [53,90],
-    [54,78], [54,79], [55,79], [55,92], [56,96], [56,94], [57,94], [57,80],
-    [58,79], [58,83], [59,75], [59,96], [60,86], [60,79], [61,85], [61,75],
-    [62,82], [62,95], [63,85], [63,78], [64,92], [64,86], [65,76], [65,78],
-    [66,78], [66,81], [67,96], [67,78], [68,88], [68,77], [69,86], [69,90],
-    [70,93], [70,80], [71,92], [71,74], [72,88], [72,81], [73,113], [73,116],
-    [74,101], [74,100], [75,113], [75,109], [76,112], [76,98], [77,109],
-    [77,108], [78,112], [78,117], [79,101], [79,110], [80,110], [80,119],
-    [81,108], [81,98], [82,111], [82,113], [83,116], [83,111], [84,114],
-    [84,103], [85,97], [85,114], [86,107], [86,120], [87,116], [87,105],
-    [88,99], [88,105], [89,118], [89,110], [90,104], [90,108], [91,98],
-    [91,106], [92,100], [92,108], [93,117], [93,114], [94,115], [94,118],
-    [95,99], [95,108], [96,111], [96,98], [97,125], [97,132], [98,134],
-    [98,131], [99,124], [99,136], [100,122], [100,129], [101,140], [101,125],
-    [102,142], [102,137], [103,137], [103,141], [104,135], [104,132],
-    [105,126], [105,137], [106,142], [106,128], [107,123], [107,143],
-    [108,126], [108,132], [109,128], [109,130], [110,124], [110,136],
-    [111,123], [111,141], [112,128], [112,142], [113,130], [113,128],
-    [114,144], [114,139], [115,141], [115,139], [116,134], [116,126],
-    [117,135], [117,131], [118,137], [118,142], [119,133], [119,125],
-    [120,135], [120,139], [121,154], [121,151], [122,150], [122,156],
-    [123,158], [123,168], [124,160], [124,168], [125,159], [125,161],
-    [126,167], [126,156], [127,151], [127,167], [128,164], [128,152],
-    [129,154], [129,158], [130,164], [130,150], [131,165], [131,155],
-    [132,154], [132,157], [133,163], [133,161], [134,147], [134,160],
-    [135,156], [135,148], [136,153], [136,157], [137,159], [137,152],
-    [138,149], [138,152], [139,161], [139,157], [140,167], [140,161],
-    [141,168], [141,145], [142,161], [142,160], [143,146], [143,150],
-    [144,160], [144,163], [145,184], [145,171], [146,187], [146,171],
-    [147,179], [147,182], [148,185], [148,180], [149,187], [149,174],
-    [150,175], [150,190], [151,176], [151,185], [152,169], [152,182],
-    [153,181], [153,188], [154,190], [154,179], [155,184], [155,187],
-    [156,169], [156,184], [157,183], [157,186], [158,174], [158,179],
-    [159,175], [159,172], [160,190], [160,189], [161,180], [161,175],
-    [162,192], [162,182], [163,179], [163,175], [164,174], [164,181],
-    [165,178], [165,185], [166,170], [166,169], [167,183], [167,178],
-    [168,180], [168,181], [169,213], [169,207], [170,206], [170,203],
-    [171,195], [171,209], [172,214], [172,197], [173,205], [173,206],
-    [174,212], [174,214], [175,201], [175,204], [176,206], [176,200],
-    [177,202], [177,207], [178,202], [178,203], [179,216], [179,196],
-    [180,211], [180,197], [181,193], [181,207], [182,196], [182,194],
-    [183,215], [183,199], [184,203], [184,204], [185,196], [185,208],
-    [186,195], [186,212], [187,193], [187,194], [188,204], [188,200],
-    [189,205], [189,201], [190,210], [190,194], [191,193], [191,209],
-    [192,208], [192,209], [193,227], [193,223], [194,240], [194,227],
-    [195,239], [195,230], [196,228], [196,230], [197,234], [197,221],
-    [198,240], [198,222], [199,221], [199,235], [200,230], [200,235],
-    [201,230], [201,225], [202,238], [202,217], [203,224], [203,217],
-    [204,221], [204,234], [205,228], [205,217], [206,221], [206,230],
-    [207,220], [207,240], [208,224], [208,219], [209,217], [209,237],
-    [210,232], [210,239], [211,235], [211,223], [212,228], [212,220],
-    [213,229], [213,234], [214,230], [214,228], [215,223], [215,219],
-    [216,221], [216,240], [217,243], [217,256], [218,246], [218,252],
-    [219,250], [219,247], [220,257], [220,243], [221,245], [221,261],
-    [222,254], [222,245], [223,258], [223,252], [224,244], [224,242],
-    [225,253], [225,250], [226,263], [226,248], [227,251], [227,262],
-    [228,249], [228,248], [229,258], [229,257], [230,258], [230,256],
-    [231,262], [231,254], [232,242], [232,251], [233,244], [233,257],
-    [234,256], [234,260], [235,262], [235,253], [236,259], [236,264],
-    [237,261], [237,242], [238,260], [238,243], [239,260], [239,246],
-    [240,254], [240,263], [241,265], [241,269], [242,283], [242,267],
-    [243,270], [243,288], [244,280], [244,278], [245,271], [245,287],
-    [246,284], [246,277], [247,288], [247,281], [248,280], [248,277],
-    [249,273], [249,270], [250,277], [250,270], [251,286], [251,280],
-    [252,279], [252,268], [253,283], [253,279], [254,277], [254,276],
-    [255,265], [255,285], [256,277], [256,276], [257,284], [257,283],
-    [258,270], [258,271], [259,277], [259,279], [260,284], [260,268],
-    [261,267], [261,279], [262,271], [262,279], [263,268], [263,273],
-    [264,272], [264,277], [265,297], [265,300], [266,302], [266,304],
-    [267,292], [267,308], [268,296], [268,307], [269,306], [269,304],
-    [270,300], [270,308], [271,293], [271,291], [272,294], [272,305],
-    [273,293], [273,291], [274,303], [274,312], [275,294], [275,299],
-    [276,292], [276,305], [277,303], [277,299], [278,297], [278,302],
-    [279,302], [279,294], [280,291], [280,289], [281,294], [281,307],
-    [282,293], [282,296], [283,308], [283,294], [284,302], [284,310],
-    [285,289], [285,308], [286,292], [286,307], [287,293], [287,295],
-    [288,296], [288,292], [289,322], [289,331], [290,333], [290,313],
-    [291,326], [291,314], [292,334], [292,317], [293,317], [293,315],
-    [294,333], [294,331], [295,321], [295,335], [296,314], [296,322],
-    [297,321], [297,322], [298,332], [298,316], [299,321], [299,330],
-    [300,320], [300,315], [301,317], [301,326], [302,335], [302,318],
-    [303,336], [303,325], [304,325], [304,322], [305,332], [305,321],
-    [306,335], [306,325], [307,323], [307,326], [308,316], [308,320],
-    [309,321], [309,336], [310,322], [310,328], [311,332], [311,335],
-    [312,332], [312,322], [313,359], [313,347], [314,348], [314,349],
-    [315,350], [315,352], [316,351], [316,342], [317,354], [317,349],
-    [318,340], [318,358], [319,359], [319,339], [320,357], [320,355],
-    [321,357], [321,341], [322,344], [322,355], [323,340], [323,338],
-    [324,342], [324,356], [325,355], [325,342], [326,345], [326,353],
-    [327,345], [327,339], [328,360], [328,356], [329,358], [329,351],
-    [330,359], [330,353], [331,341], [331,356], [332,344], [332,339],
-    [333,351], [333,355], [334,355], [334,359], [335,350], [335,339],
-    [336,342], [336,354], [337,365], [337,374], [338,364], [338,384],
-    [339,373], [339,375], [340,380], [340,368], [341,372], [341,362],
-    [342,368], [342,367], [343,364], [343,369], [344,382], [344,373],
-    [345,367], [345,375], [346,370], [346,372], [347,363], [347,381],
-    [348,371], [348,365], [349,372], [349,364], [350,379], [350,372],
-    [351,381], [351,364], [352,381], [352,362], [353,370], [353,377],
-    [354,373], [354,362], [355,367], [355,382], [356,370], [356,384],
-    [357,371], [357,372], [358,361], [358,378], [359,371], [359,366],
-    [360,382], [360,364], [361,407], [361,408], [362,392], [362,393],
-    [363,393], [363,394], [364,387], [364,400], [365,397], [365,392],
-    [366,400], [366,408], [367,401], [367,388], [368,389], [368,394],
-    [369,388], [369,399], [370,405], [370,385], [371,398], [371,397],
-    [372,404], [372,387], [373,404], [373,390], [374,396], [374,397],
-    [375,401], [375,397], [376,399], [376,395], [377,397], [377,391],
-    [378,392], [378,385], [379,390], [379,386], [380,408], [380,394],
-    [381,398], [381,403], [382,385], [382,403], [383,385], [383,386],
-    [384,397], [384,387], [385,418], [385,429], [386,419], [386,415],
-    [387,413], [387,429], [388,415], [388,418], [389,429], [389,417],
-    [390,417], [390,424], [391,409], [391,425], [392,418], [392,409],
-    [393,428], [393,414], [394,427], [394,431], [395,429], [395,430],
-    [396,418], [396,419], [397,432], [397,419], [398,420], [398,414],
-    [399,419], [399,412], [400,415], [400,410], [401,420], [401,424],
-    [402,426], [402,412], [403,431], [403,419], [404,428], [404,422],
-    [405,417], [405,428], [406,422], [406,411], [407,424], [407,427],
-    [408,410], [408,416], [409,436], [409,435], [410,442], [410,439],
-    [411,456], [411,436], [412,449], [412,456], [413,453], [413,449],
-    [414,440], [414,434], [415,436], [415,437], [416,433], [416,452],
-    [417,433], [417,444], [418,436], [418,452], [419,445], [419,444],
-    [420,451], [420,455], [421,439], [421,455], [422,445], [422,454],
-    [423,456], [423,445], [424,445], [424,448], [425,434], [425,448],
-    [426,442], [426,440], [427,437], [427,438], [428,453], [428,446],
-    [429,437], [429,452], [430,444], [430,438], [431,449], [431,443],
-    [432,442], [432,450], [433,469], [433,476], [434,476], [434,479],
-    [435,478], [435,461], [436,467], [436,471], [437,479], [437,468],
-    [438,474], [438,467], [439,459], [439,473], [440,458], [440,459],
-    [441,467], [441,458], [442,470], [442,472], [443,477], [443,460],
-    [444,475], [444,474], [445,471], [445,480], [446,477], [446,474],
-    [447,472], [447,476], [448,469], [448,474], [449,465], [449,471],
-    [450,465], [450,459], [451,458], [451,475], [452,457], [452,462],
-    [453,478], [453,459], [454,472], [454,461], [455,469], [455,479],
-    [456,457], [456,458], [457,482], [457,500], [458,492], [458,488],
-    [459,488], [459,489], [460,483], [460,500], [461,504], [461,486],
-    [462,491], [462,492], [463,499], [463,493], [464,483], [464,502],
-    [465,495], [465,502], [466,483], [466,487], [467,491], [467,503],
-    [468,492], [468,498], [469,501], [469,504], [470,484], [470,487],
-    [471,502], [471,487], [472,499], [472,490], [473,500], [473,495],
-    [474,481], [474,487], [475,488], [475,494], [476,488], [476,500],
-    [477,492], [477,489], [478,504], [478,481], [479,502], [479,491],
-    [480,497], [480,487], [481,528], [481,522], [482,522], [482,520],
-    [483,516], [483,515], [484,526], [484,514], [485,511], [485,508],
-    [486,512], [486,524], [487,525], [487,520], [488,508], [488,520],
-    [489,526], [489,527], [490,517], [490,505], [491,514], [491,512],
-    [492,524], [492,522], [493,524], [493,517], [494,520], [494,518],
-    [495,516], [495,508], [496,508], [496,525], [497,523], [497,505],
-    [498,507], [498,505], [499,510], [499,523], [500,522], [500,518],
-    [501,511], [501,517], [502,506], [502,513], [503,505], [503,514],
-    [504,525], [504,519], [505,547], [505,534], [506,551], [506,538],
-    [507,538], [507,530], [508,551], [508,544], [509,550], [509,551],
-    [510,529], [510,539], [511,544], [511,549], [512,543], [512,549],
-    [513,540], [513,533], [514,551], [514,550], [515,536], [515,547],
-    [516,544], [516,531], [517,535], [517,549], [518,546], [518,542],
-    [519,537], [519,547], [520,547], [520,544], [521,531], [521,544],
-    [522,533], [522,530], [523,538], [523,546], [524,541], [524,531],
-    [525,530], [525,533], [526,530], [526,529], [527,550], [527,529],
-    [528,541], [528,534], [529,564], [529,574], [530,554], [530,564],
-    [531,564], [531,556], [532,569], [532,554], [533,561], [533,566],
-    [534,565], [534,576], [535,570], [535,558], [536,572], [536,571],
-    [537,555], [537,569], [538,564], [538,555], [539,558], [539,566],
-    [540,571], [540,576], [541,567], [541,561], [542,573], [542,570],
-    [543,576], [543,565], [544,572], [544,565], [545,553], [545,554],
-    [546,556], [546,574], [547,553], [547,575], [548,571], [548,573],
-    [549,556], [549,574], [550,575], [550,555], [551,558], [551,569],
-    [552,569], [552,564]]);
-// */
-/* */
-// Non-trivial answers: ['evelyn','dorothy'],['ann', 'bertrand'],
-const cyl: Predicate = new EdbPredicate([
-    ['dorothy','george'],
-    ['evelyn', 'george'],
-    ['bertrand','dorothy'],
-    ['ann','dorothy'],
-    ['hilary','ann'],
-    ['charles','everlyn']]);
-// */
-
-const sg: Predicate = new TabledPredicate(([X, Y]) => rule(
-    () => [unify(X, Y)],
-    Z  => [cyl.match([X, Z]), sg.match([Z, Z]), cyl.match([Y, Z])]));
-
-const vp: Predicate = new TabledPredicate(X => rule(() => []));
-
-const objects: Predicate = new EdbPredicate([
-    {foo: 1, bar: 2},
-    {foo: 3, bar: 4}]);
-
-const sched = new TopLevelScheduler();
-// runLP(sched, fresh((Y, X) => seq(conj(unify(1, X), vp.match(X)), ground([Y, X]))), a => console.dir(a, {depth: null}));
-// runLP(sched, fresh((Y, X) => seq(conj(vp.match(X), unify(1, Y)), ground([Y, X]))), a => console.dir(a, {depth: null}));
-// runLP(sched, fresh((Y, X) => seq(conj(vp.match(X), unify(1, X)), ground([Y, X]))), a => console.dir(a, {depth: null}));
-// runLP(sched, fresh((l, r) => seq(append.match([l, r, list(1,2,3,4,5)]), ground([l, r]))), a => console.dir(a, {depth: null}));
-// runLP(sched, fresh((S, E) => { const Row = [S, E]; return seq(path.match(Row), ground(Row)); }), a => console.dir(a, {depth: null}));
-// runLP(sched, fresh((S, E) => { const Row = [S, E]; return seq(path2.match(Row), ground(Row)); }), a => console.dir(a, {depth: null}));
-// runLP(sched, fresh((S, E) => { const Row = [S, E]; return seq(path3.match(Row), ground(Row)); }), a => console.dir(a, {depth: null}));
-// runLP(sched, fresh((S, E) => { const Row = [S, E]; return seq(path4.match(Row), ground(Row)); }), a => console.dir(a, {depth: null}));
-//runLP(sched, fresh((S, E, P) => { const Row = [S, E, P]; return seq(path5.match(Row), ground(Row)); }), a => console.dir(a, {depth: null}));
-//runLP(sched, fresh((S, E, P1, P2, P3, P4, P5) => { const Row = [S, E, [P1, [P2, [P3, [P4, [P5, []]]]]]]; return seq(path5.match(Row), ground(Row)); }), a => console.dir(a, {depth: null}));
-// runLP(sched, r.match(null), a => console.log('completed'));
-// runLP(sched, p.match(null), a => console.log('completed'));
-//runLP(sched, fresh((S, E) => { const Row = [S, E]; return seq(sg.match(Row), ground(Row)); }), a => console.dir(a, {depth: null}));
-// runLP(sched, fresh((X, Y) => seq(conj(objects.match(X), looseUnify({foo: Y}, X)), ground(Y))), a => console.dir(a, {depth: null}));
-sched.execute();
-
-// const sub = Substitution.emptyPersistent();
-// let [vs, s] = sub.fresh(30);
-// s = s.bind(vs[0], [1,2]);
-// for(let i = 1; i < vs.length; ++i) {
-//     s = s.bind(vs[i], [vs[i-1],vs[i-1]]);
-// }
-// console.log('slow');
-// groundJsonNoSharing(vs[vs.length - 1], s);
-// console.log('fast');
-// groundJson(vs[vs.length - 1], s);
-})();
