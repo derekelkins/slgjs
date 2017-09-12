@@ -18,8 +18,9 @@
 <div id="edgeGraph" class="graphBox"></div>
 Shake it loose:
 <div id="pathGraph" class="graphBox"></div>
+<div id="sdgGraph" class="graphBox"></div>
 <script type="text/javascript">
-requirejs(['../out/par'], function(par) {
+requirejs(['../out/slg'], function(slg) {
 const nodes = new vis.DataSet([
      {id: 1, label: '1'}
     ,{id: 2, label: '2'}
@@ -27,17 +28,28 @@ const nodes = new vis.DataSet([
     //,{id: 4, label: '4'}
 ]);
 
-const edge = new par.EdbPredicate([
+const edge = new slg.EdbPredicate([
     [1, 2],
     [2, 3],
     [3, 1]]);
     //[3, 4]]);
-const path = new par.TabledPredicate(row => par.rule(
+//const path = new slg.TabledPredicate(row => slg.rule(
+//    () => [edge.match(row)],
+//    Y  => [path.match([row[0], Y]), edge.match([Y, row[1]])]));
+const path = new slg.TabledPredicate(row => slg.rule(
     () => [edge.match(row)],
-    Y  => [path.match([row[0], Y]), edge.match([Y, row[1]])]));
+    Y  => [edge.match([row[0], Y]), path.match([Y, row[1]])]));
 
-const edgeEdges = par.toArrayQ(Q => par.clause((S, E) => [edge.match([S, E]), par.unify(Q, {from: S, to: E})]));
-const pathEdges = par.toArrayQ(Q => par.clause((S, E) => [path.match([S, E]), par.unify(Q, {from: S, to: E})]));
+const edgeEdges = slg.toArrayQ(Q => slg.clause((S, E) => [edge.match([S, E]), slg.unify(Q, {from: S, to: E})]));
+const [sdgEdges, pathEdges] = slg.debugToArrayQ(Q => slg.clause((S, E) => [path.match([S, E]), slg.unify(Q, {from: S, to: E})]));
+
+const dedup = {};
+for(let edge of sdgEdges) {
+    dedup[edge[0]] = edge[0];
+    dedup[edge[1]] = edge[1];
+}
+
+const sdgNodes = new vis.DataSet(Object.keys(dedup).map(k => ({id: dedup[k], label: k})));
 
 const edgeData = {
     nodes: nodes,
@@ -47,9 +59,14 @@ const pathData = {
     nodes: nodes,
     edges: new vis.DataSet(pathEdges)
 };
+const sdgData = {
+    nodes: sdgNodes,
+    edges: new vis.DataSet(sdgEdges.map(e => ({from: e[0], to: e[1]})))
+};
 const options = {edges: {arrows: 'to'}};
 new vis.Network(document.getElementById('edgeGraph'), edgeData, options);
 new vis.Network(document.getElementById('pathGraph'), pathData, options);
+new vis.Network(document.getElementById('sdgGraph'), sdgData, options);
 });
 </script>
 </body>

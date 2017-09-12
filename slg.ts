@@ -1,6 +1,18 @@
 import { Variable, Substitution } from "./unify"
 import { VarMap, Json, JsonTerm, JsonTrie, JsonTrieTerm } from "./json-trie"
 
+/*
+// const sub = Substitution.emptyPersistent();
+// let [vs, s] = sub.fresh(30);
+// s = s.bind(vs[0], [1,2]);
+// for(let i = 1; i < vs.length; ++i) {
+//     s = s.bind(vs[i], [vs[i-1],vs[i-1]]);
+// }
+// console.log('slow');
+// groundJsonNoSharing(vs[vs.length - 1], s);
+// console.log('fast');
+// groundJson(vs[vs.length - 1], s);
+
 function groundJsonNoSharing(x: JsonTerm, sub: Substitution<JsonTerm>): JsonTerm {
     if(x instanceof Variable) x = sub.lookupAsVar(x);
     switch(typeof x) {
@@ -22,6 +34,7 @@ function groundJsonNoSharing(x: JsonTerm, sub: Substitution<JsonTerm>): JsonTerm
             return x;
     }
 }
+*/
 
 function groundJson(x: JsonTerm, sub: Substitution<JsonTerm>, mapping: {[id: number]: JsonTerm} = {}): JsonTerm {
     let id: number | null = null;
@@ -205,6 +218,8 @@ type Stack<A> = Array<A>;
 interface GlobalEnvironment {
     generatorCount: number;
     topOfCompletionStack: Generator | null;
+    // DEBUG
+    sdgEdges: Array<[number, number]>;
 }
 
 interface Scheduler {
@@ -215,7 +230,7 @@ interface Scheduler {
 
 class TopLevelScheduler implements Scheduler {
     private processes: Queue<() => void> = [];
-    readonly globalEnv: GlobalEnvironment = {generatorCount: 0, topOfCompletionStack: null};
+    readonly globalEnv: GlobalEnvironment = {generatorCount: 0, topOfCompletionStack: null, sdgEdges: []};
     constructor() { }
     
     push(process: () => void): void {
@@ -284,6 +299,8 @@ class Generator implements Scheduler {
 
     dependOn(v: Generator): void {
         this.directLink = Math.min(this.directLink, v.directLink);
+        // DEBUG
+        this.globalEnv.sdgEdges.push([this.selfId, v.selfId]);
     }
 
     consume(k: (cs: Array<JsonTerm>) => void): void {
@@ -651,6 +668,20 @@ export function toArrayQ(body: (q: Variable) => LPTerm): Array<JsonTerm> {
     runQ(body, a => results.push(a));
     return results;
 }
+
+// DEBUG
+export function debugRunQ(body: (q: Variable) => LPTerm, k: (a: JsonTerm) => void): Array<[number, number]> {
+    const sched = new TopLevelScheduler();
+    runLP(sched, fresh(Q => seq(body(Q), ground(Q))), k);
+    sched.execute();
+    return sched.globalEnv.sdgEdges;
+}
+export function debugToArrayQ(body: (q: Variable) => LPTerm): [Array<[number, number]>, Array<JsonTerm>] {
+    const results: Array<JsonTerm> = [];
+    const sdgEdges = debugRunQ(body, a => results.push(a));
+    return [sdgEdges, results];
+}
+
 
 /*
 // Fluent wrapper

@@ -8,16 +8,16 @@
 <body>
 <div><ul id="result"></ul></div>
 <script type="text/javascript">
-requirejs(['../out/par'], function(par) {
+requirejs(['../out/slg'], function(slg) {
 fetch('https://api.github.com/repos/derekelkins/agda-vim/commits', {headers:{Accept: 'application/vnd.github.v3+json'}}).then(response => response.json().then(commitData => {
 //fetch('https://api.github.com/repos/derekelkins/agda-vim/comments', {headers:{Accept: 'application/vnd.github.v3+json'}}).then(response => response.json().then(commentsData => {
-const commits = new par.EdbPredicate(commitData);
-//const comments = new par.EdbPredicate(commentsData);
+const commits = new slg.EdbPredicate(commitData);
+//const comments = new slg.EdbPredicate(commentsData);
 const ul = document.getElementById('result');
-par.runQ(Q => par.clause((SHA, Msg, CommentBody) => [
+slg.runQ(Q => slg.clause((SHA, Msg, CommentBody) => [
         commits.looseMatch({sha: SHA, commit: {message: Msg}}), 
         //comments.looseMatch({commit_id: SHA, body: CommentBody}),
-        par.unify(Q, {sha: SHA, message: Msg})]),
+        slg.unify(Q, {sha: SHA, message: Msg})]),
     result => {
         const li = document.createElement('li');
         li.innerText = JSON.stringify(result);
