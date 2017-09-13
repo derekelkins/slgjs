@@ -193,6 +193,59 @@
         }
     }
     exports.refreshJson = refreshJson;
+    function looseMatchJson(x, y, sub) {
+        if (x instanceof Variable)
+            x = sub.lookupAsVar(x);
+        if (x instanceof Variable) {
+            return sub.bind(x, y);
+        }
+        else {
+            switch (typeof x) {
+                case 'object':
+                    if (x === null) {
+                        return y === null ? sub : null;
+                    }
+                    else if (x instanceof Array) {
+                        if (y instanceof Array) {
+                            var len = x.length;
+                            if (len !== y.length)
+                                return null;
+                            var s = sub;
+                            for (var i = 0; i < len; ++i) {
+                                s = looseMatchJson(x[i], y[i], s);
+                                if (s === null)
+                                    return null;
+                            }
+                            return s;
+                        }
+                        else {
+                            return null;
+                        }
+                    }
+                    else {
+                        if (y === null || typeof y !== 'object' || y instanceof Array)
+                            return null;
+                        var s = sub;
+                        for (var key in x) {
+                            if (!(key in y))
+                                return null;
+                            s = looseMatchJson(x[key], y[key], s);
+                            if (s === null)
+                                return null;
+                        }
+                        return s;
+                    }
+                case 'undefined':
+                case 'number':
+                case 'string':
+                case 'boolean':
+                    return x === y ? sub : null;
+                default:
+                    return null;
+            }
+        }
+    }
+    exports.looseMatchJson = looseMatchJson;
     function looseUnifyJson(x, y, sub) {
         if (x instanceof Variable)
             x = sub.lookupAsVar(x);
@@ -256,6 +309,65 @@
         }
     }
     exports.looseUnifyJson = looseUnifyJson;
+    function matchJson(x, y, sub) {
+        if (x instanceof Variable)
+            x = sub.lookupAsVar(x);
+        if (x instanceof Variable) {
+            return sub.bind(x, y);
+        }
+        else {
+            switch (typeof x) {
+                case 'object':
+                    if (x === null) {
+                        return y === null ? sub : null;
+                    }
+                    else if (x instanceof Array) {
+                        if (y instanceof Array) {
+                            var len = x.length;
+                            if (len !== y.length)
+                                return null;
+                            var s = sub;
+                            for (var i = 0; i < len; ++i) {
+                                s = matchJson(x[i], y[i], s);
+                                if (s === null)
+                                    return null;
+                            }
+                            return s;
+                        }
+                        else {
+                            return null;
+                        }
+                    }
+                    else {
+                        if (y === null || typeof y !== 'object' || y instanceof Array)
+                            return null;
+                        var xKeys = Object.keys(x).sort();
+                        var yKeys = Object.keys(y).sort();
+                        var len = xKeys.length;
+                        if (len !== yKeys.length)
+                            return null;
+                        var s = sub;
+                        for (var i = 0; i < len; ++i) {
+                            var key = xKeys[i];
+                            if (key !== yKeys[i])
+                                return null;
+                            s = matchJson(x[key], y[key], s);
+                            if (s === null)
+                                return null;
+                        }
+                        return s;
+                    }
+                case 'undefined':
+                case 'number':
+                case 'string':
+                case 'boolean':
+                    return x === y ? sub : null;
+                default:
+                    return null;
+            }
+        }
+    }
+    exports.matchJson = matchJson;
     function unifyJson(x, y, sub) {
         if (x instanceof Variable)
             x = sub.lookupAsVar(x);

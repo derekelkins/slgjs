@@ -280,6 +280,59 @@ export function refreshJson(x: JsonTerm, sub: Substitution<JsonTerm>, mapping: {
 }
 
 /**
+ * Match `x` against `y` except only require that for any objects in `x`, their keys are a subset of the corresponding
+ * keys of `y`. For example, `looseMatch({},{foo:1})` succeeds, but `looseMatch({foo:1},{})` does not.
+ * @param x A [[JsonTerm]] to loosely unify against. This may contain [[Variable]].
+ * @param y A [[Json]], potentially with additional keys, to loosely match against. This contains no [[Variable]]s even
+ * bound ones.
+ * @param sub Bindings for the [[Variable]]s in `x`.
+ * @returns `null` if the match fails, otherwise `sub` extended with bindings such that `x` grounds to a [[JsonTerm]]
+ * that is identical to `y` except that it may have fewer keys in any objects.
+ */
+export function looseMatchJson(x: JsonTerm, y: Json, sub: Substitution<JsonTerm>): Substitution<JsonTerm> | null {
+    if(x instanceof Variable) x = sub.lookupAsVar(x);
+    if(x instanceof Variable) {
+        return sub.bind(x, y);
+    } else {
+        switch(typeof x) {
+            case 'object':
+                if(x === null) {
+                    return y === null ? sub : null;
+                } else if(x instanceof Array) {
+                    if(y instanceof Array) {
+                        const len = x.length;
+                        if(len !== y.length) return null;
+                        let s: Substitution<any> | null = sub;
+                        for(let i = 0; i < len; ++i) {
+                            s = looseMatchJson(x[i], y[i], s);
+                            if(s === null) return null;
+                        }
+                        return s;
+                    } else {
+                        return null;
+                    }
+                } else { // it's an object
+                    if(y === null || typeof y !== 'object' || y instanceof Array) return null;
+                    let s: Substitution<any> | null = sub;
+                    for(const key in x) {
+                        if(!(key in y)) return null;
+                        s = looseMatchJson(x[key], y[key], s);
+                        if(s === null) return null;
+                    }
+                    return s;
+                }
+            case 'undefined':
+            case 'number':
+            case 'string':
+            case 'boolean':
+                return x === y ? sub : null;
+            default:
+                return null; // We were given a function or a symbol or some other nonsense.
+        }
+    }
+}
+
+/**
  * Unify `x` against `y` except only require that for any objects in `x`, their keys are a subset of the corresponding
  * keys of `y`. This makes [[looseUnifyJson]] asymmetric unlike [[unifyJson]]. For example, `looseUnify({},{foo:1})`
  * succeeds, but `looseUnify({foo:1},{})` does not. This does not perform an occurs check.
@@ -340,7 +393,62 @@ export function looseUnifyJson(x: JsonTerm, y: JsonTerm, sub: Substitution<JsonT
 }
 
 /**
- * Unify to [[JsonTerm]]s. That is, calculate the most general unifier if possible. This does not
+ * Match a [[JsonTerm]] to a [[Json]], i.e. `y` has no [[Variable]]s.
+ * @param x A [[JsonTerm]] potentially having unbound [[Variable]]s.
+ * @param y [[Json]] and thus no [[Variable]]s, not even bound ones.
+ * @param sub A [[Substitution]] binding the [[Variable]]s in `x`.
+ * @returns A [[Substitution]] which makes `x` match `y` or `null` if there is no match.
+ */
+export function matchJson(x: JsonTerm, y: Json, sub: Substitution<JsonTerm>): Substitution<JsonTerm> | null {
+    if(x instanceof Variable) x = sub.lookupAsVar(x);
+    if(x instanceof Variable) {
+        return sub.bind(x, y);
+    } else {
+        switch(typeof x) {
+            case 'object':
+                if(x === null) {
+                    return y === null ? sub : null;
+                } else if(x instanceof Array) {
+                    if(y instanceof Array) {
+                        const len = x.length;
+                        if(len !== y.length) return null;
+                        let s: Substitution<any> | null = sub;
+                        for(let i = 0; i < len; ++i) {
+                            s = matchJson(x[i], y[i], s);
+                            if(s === null) return null;
+                        }
+                        return s;
+                    } else {
+                        return null;
+                    }
+                } else { // it's an object
+                    if(y === null || typeof y !== 'object' || y instanceof Array) return null;
+                    const xKeys = Object.keys(x).sort();
+                    const yKeys = Object.keys(y).sort();
+                    const len = xKeys.length;
+                    if(len !== yKeys.length) return null;
+                    let s: Substitution<any> | null = sub;
+                    for(let i = 0; i < len; ++i) {
+                        const key = xKeys[i];
+                        if(key !== yKeys[i]) return null;
+                        s = matchJson(x[key], y[key], s);
+                        if(s === null) return null;
+                    }
+                    return s;
+                }
+            case 'undefined':
+            case 'number':
+            case 'string':
+            case 'boolean':
+                return x === y ? sub : null;
+            default:
+                return null; // We were given a function or a symbol or some other nonsense.
+        }
+    }
+}
+
+/**
+ * Unify two [[JsonTerm]]s. That is, calculate the most general unifier if possible. This does not
  * perform an occurs check.
  * @returns The most general unifier or `null` if there is none.
  */

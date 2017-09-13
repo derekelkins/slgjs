@@ -1,4 +1,5 @@
-import { Json, JsonTerm, Variable, Substitution, groundJson, looseUnifyJson, unifyJson, refreshJson } from "./unify"
+import { Json, JsonTerm, Variable, Substitution, 
+         groundJson, looseUnifyJson, unifyJson, matchJson, looseMatchJson, refreshJson } from "./unify"
 import { VarMap, JsonTrie, JsonTrieTerm } from "./json-trie"
 
 interface GlobalEnvironment {
@@ -360,15 +361,15 @@ export class EdbPredicate implements Predicate {
             const arr = this.table;
             const len = arr.length;
             for(let i = 0; i < len; ++i) {
-                const s2 = unifyJson(row, arr[i], s); // TODO: This could be simplified to a "matchJson" if we assume the table contains only ground terms.
+                const s2 = matchJson(row, arr[i], s);
                 if(s2 !== null) k(s2);
             }
         };
     }
 
     /**
-     * Produces a computation which succeeds for each entry in the extension of the predicate which `row` loosely unifies with.
-     * See [[looseUnifyJson]]. That is, it iterates over the backing array doing `looseUnifyJson(row, entry)`.
+     * Produces a computation which succeeds for each entry in the extension of the predicate which `row` loosely matches with.
+     * See [[looseMatchJson]]. That is, it iterates over the backing array doing `looseMatchJson(row, entry, ...)`.
      * @param row The row to loosely match against.
      * @returns A computation which succeeds for each way of binding the free variables of `row`
      * loosely consistent with the predicate.
@@ -378,7 +379,7 @@ export class EdbPredicate implements Predicate {
             const arr = this.table;
             const len = arr.length;
             for(let i = 0; i < len; ++i) {
-                const s2 = looseUnifyJson(row, arr[i], s); // TODO: This could be simplified to a "looseMatchJson" if we assume the table contains only ground terms.
+                const s2 = looseMatchJson(row, arr[i], s);
                 if(s2 !== null) k(s2);
             }
         };
@@ -397,7 +398,7 @@ export class EdbPredicate implements Predicate {
             const arr = this.table;
             const len = arr.length;
             for(let i = 0; i < len; ++i) {
-                const s2 = unifyJson(arr[i], row, s); // TODO: See above.
+                const s2 = matchJson(row, arr[i], s);
                 if(s2 !== null) return;
             }
             return k(s);

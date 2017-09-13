@@ -293,7 +293,7 @@ var __values = (this && this.__values) || function (o) {
                 var arr = _this.table;
                 var len = arr.length;
                 for (var i = 0; i < len; ++i) {
-                    var s2 = unify_1.unifyJson(row, arr[i], s);
+                    var s2 = unify_1.matchJson(row, arr[i], s);
                     if (s2 !== null)
                         k(s2);
                 }
@@ -305,7 +305,7 @@ var __values = (this && this.__values) || function (o) {
                 var arr = _this.table;
                 var len = arr.length;
                 for (var i = 0; i < len; ++i) {
-                    var s2 = unify_1.looseUnifyJson(row, arr[i], s);
+                    var s2 = unify_1.looseMatchJson(row, arr[i], s);
                     if (s2 !== null)
                         k(s2);
                 }
@@ -317,7 +317,7 @@ var __values = (this && this.__values) || function (o) {
                 var arr = _this.table;
                 var len = arr.length;
                 for (var i = 0; i < len; ++i) {
-                    var s2 = unify_1.unifyJson(arr[i], row, s);
+                    var s2 = unify_1.matchJson(row, arr[i], s);
                     if (s2 !== null)
                         return;
                 }
