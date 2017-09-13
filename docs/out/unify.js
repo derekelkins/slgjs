@@ -51,37 +51,34 @@
         };
         Substitution.prototype.lookup = function (v) {
             var x = this.uf.find(v.id);
-            var val = x.value;
-            return val === void (0) ? x.id : val;
+            return x.isBound ? x.value : x.id;
         };
         Substitution.prototype.lookupVar = function (v) {
             return this.uf.find(v.id);
         };
         Substitution.prototype.lookupAsVar = function (v) {
             var x = this.uf.find(v.id);
-            var val = x.value;
-            return val === void (0) ? new Variable(x.id) : val;
+            return x.isBound ? x.value : new Variable(x.id);
         };
         Substitution.prototype.lookupById = function (id) {
             var x = this.uf.find(id);
-            var val = x.value;
-            return val === void (0) ? new Variable(x.id) : val;
+            return x.isBound ? x.value : new Variable(x.id);
         };
         Substitution.prototype.bind = function (v, value) {
             return new Substitution(this.uf.bindValue(v.id, value), this.nextVariable);
         };
         Substitution.prototype.unifyVar = function (x, y) {
-            var _a = this.uf.find(x.id), xId = _a.id, xVal = _a.value;
-            var _b = this.uf.find(y.id), yId = _b.id, yVal = _b.value;
-            if (xVal === void (0)) {
-                return new Substitution(this.uf.bindVariable(xId, yId), this.nextVariable);
+            var vx = this.uf.find(x.id);
+            var vy = this.uf.find(y.id);
+            if (!vx.isBound) {
+                return new Substitution(this.uf.bindVariable(vx.id, vy.id), this.nextVariable);
             }
             else {
-                if (yVal === void (0)) {
-                    return new Substitution(this.uf.bindVariable(yId, xId), this.nextVariable);
+                if (!vy.isBound) {
+                    return new Substitution(this.uf.bindVariable(vy.id, vx.id), this.nextVariable);
                 }
                 else {
-                    return xVal === yVal ? this : null;
+                    return vx.value === vy.value ? this : null;
                 }
             }
         };
@@ -120,10 +117,9 @@
         if (x instanceof Variable) {
             var v = sub.lookupVar(x);
             id = v.id;
-            var shared = mapping[id];
-            if (shared !== void (0))
-                return shared;
-            x = v.value === void (0) ? new Variable(id) : v.value;
+            if (id in mapping)
+                return mapping[id];
+            x = v.isBound ? v.value : new Variable(id);
         }
         switch (typeof x) {
             case 'object':
@@ -161,14 +157,14 @@
                     return [x, sub];
                 }
                 else if (x instanceof Variable) {
-                    var v = mapping[x.id];
-                    if (v === void (0)) {
-                        var t = sub.freshVar();
-                        mapping[x.id] = t[0];
-                        return t;
+                    var xId = x.id;
+                    if (xId in mapping) {
+                        return [mapping[xId], sub];
                     }
                     else {
-                        return [v, sub];
+                        var t = sub.freshVar();
+                        mapping[xId] = t[0];
+                        return t;
                     }
                 }
                 else if (x instanceof Array) {

@@ -10,20 +10,18 @@
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var Variable = (function () {
-        function Variable(id, value) {
+        function Variable(id, value, isBound) {
+            if (isBound === void 0) { isBound = false; }
             this.id = id;
             this.value = value;
+            this.isBound = isBound;
         }
+        Variable.create = function (id) { return new Variable(id); };
         Variable.prototype.bind = function (v) {
-            if (this.value !== void (0))
+            if (this.isBound)
                 throw new Error('Variable.bind: binding already bound variable.');
-            return new Variable(this.id, v);
+            return new Variable(this.id, v, true);
         };
-        Object.defineProperty(Variable.prototype, "isBound", {
-            get: function () { return this.value !== void (0); },
-            enumerable: true,
-            configurable: true
-        });
         return Variable;
     }());
     exports.Variable = Variable;
@@ -34,7 +32,7 @@
             var ps = this.parents = new Array(initialCapacity);
             for (var i = 0; i < initialCapacity; ++i) {
                 rs[i] = 0;
-                ps[i] = new Variable(i);
+                ps[i] = Variable.create(i);
             }
         }
         EphemeralUnionFind.prototype.grow = function (newSize) {
@@ -46,7 +44,7 @@
             newSize = Math.max(2 * len, newSize);
             for (var i = len; i < newSize; ++i) {
                 rs[i] = 0;
-                ps[i] = new Variable(i);
+                ps[i] = Variable.create(i);
             }
         };
         EphemeralUnionFind.prototype.find = function (id) {
@@ -86,8 +84,7 @@
                 var rx = this.ranks[cx];
                 var ry = this.ranks[cy];
                 if (rx > ry) {
-                    var yVal = vy.value;
-                    this.parents[cy] = yVal === void (0) ? vx : vx.bind(yVal);
+                    this.parents[cy] = vy.isBound ? vx.bind(vy.value) : vx;
                 }
                 else if (rx < ry) {
                     this.parents[cx] = vy;
@@ -251,12 +248,12 @@
         PersistentUnionFind.createPersistent = function (initialCapacity) {
             var ranks = new Array(initialCapacity);
             var reps = new Array(initialCapacity);
-            return new PersistentUnionFind(new ArrayCell(new PersistentImmediateArray(ranks, function () { return 0; })), new ArrayCell(new PersistentImmediateArray(reps, function (i) { return new Variable(i); })));
+            return new PersistentUnionFind(new ArrayCell(new PersistentImmediateArray(ranks, function () { return 0; })), new ArrayCell(new PersistentImmediateArray(reps, Variable.create)));
         };
         PersistentUnionFind.createSemiPersistent = function (initialCapacity) {
             var ranks = new Array(initialCapacity);
             var reps = new Array(initialCapacity);
-            return new PersistentUnionFind(new ArrayCell(new SemiPersistentImmediateArray(ranks, function () { return 0; })), new ArrayCell(new SemiPersistentImmediateArray(reps, function (i) { return new Variable(i); })));
+            return new PersistentUnionFind(new ArrayCell(new SemiPersistentImmediateArray(ranks, function () { return 0; })), new ArrayCell(new SemiPersistentImmediateArray(reps, Variable.create)));
         };
         PersistentUnionFind.prototype.find = function (id) {
             var t = this.findAux(id);
@@ -292,8 +289,7 @@
                 var rx = this.ranks.get(cx);
                 var ry = this.ranks.get(cy);
                 if (rx > ry) {
-                    var yVal = vy.value;
-                    return new PersistentUnionFind(this.ranks, this.parents.set(cy, yVal === void (0) ? vx : vx.bind(yVal)));
+                    return new PersistentUnionFind(this.ranks, this.parents.set(cy, vy.isBound ? vx.bind(vy.value) : vx));
                 }
                 else if (rx < ry) {
                     return new PersistentUnionFind(this.ranks, this.parents.set(cx, vy));

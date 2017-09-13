@@ -5,7 +5,8 @@
  * @param A The type of the optional value.
  */
 export class Variable<A> {
-    constructor(readonly id: number, readonly value?: A) {}
+    static create<A>(id: number): Variable<A> { return new Variable(id); }
+    private constructor(readonly id: number, readonly value?: A, readonly isBound = false) {}
 
     /**
      * Produce a new [[Variable]] with the value bound to `v`. It is an error
@@ -14,17 +15,9 @@ export class Variable<A> {
      * @returns A new, bound [[Variable]].
      */
     bind(v: A): Variable<A> { 
-        if(this.value !== void(0)) throw new Error('Variable.bind: binding already bound variable.'); // ASSERTION
-        return new Variable(this.id, v); 
+        if(this.isBound) throw new Error('Variable.bind: binding already bound variable.'); // ASSERTION
+        return new Variable(this.id, v, true); 
     }
-
-    /**
-     * Test whether the [[Variable]] is bound.
-     * 
-     * This is basically only used for assertion tests.
-     * @returns `true` if the [[Variable]] is bound, `false` otherwise.
-     */
-    get isBound(): boolean { return this.value !== void(0); }
 }
 
 /**
@@ -82,7 +75,7 @@ export class EphemeralUnionFind<A> implements UnionFind<A> {
         const ps = this.parents = new Array<Variable<A>>(initialCapacity);
         for(let i = 0; i < initialCapacity; ++i) {
             rs[i] = 0;
-            ps[i] = new Variable(i);
+            ps[i] = Variable.create(i);
         }
     }
 
@@ -95,7 +88,7 @@ export class EphemeralUnionFind<A> implements UnionFind<A> {
         newSize = Math.max(2*len, newSize);
         for(let i = len; i < newSize; ++i) {
             rs[i] = 0;
-            ps[i] = new Variable(i);
+            ps[i] = Variable.create(i);
         }
     }
 
@@ -135,8 +128,7 @@ export class EphemeralUnionFind<A> implements UnionFind<A> {
             const rx = this.ranks[cx];
             const ry = this.ranks[cy];
             if (rx > ry) {
-                const yVal = vy.value;
-                this.parents[cy] = yVal === void(0) ? vx : vx.bind(yVal);
+                this.parents[cy] = vy.isBound ? vx.bind(<A>vy.value) : vx;
             } else if(rx < ry) {
                 this.parents[cx] = vy;
             } else {
@@ -326,7 +318,7 @@ export default class PersistentUnionFind<A> implements UnionFind<A> {
         const ranks = new Array<number>(initialCapacity);
         const reps = new Array<Variable<A>>(initialCapacity);
         return new PersistentUnionFind(new ArrayCell(new PersistentImmediateArray(ranks, () => 0)), 
-                                       new ArrayCell(new PersistentImmediateArray(reps, i => new Variable<A>(i))));
+                                       new ArrayCell(new PersistentImmediateArray<Variable<A>>(reps, Variable.create)));
     }
 
     /**
@@ -341,7 +333,7 @@ export default class PersistentUnionFind<A> implements UnionFind<A> {
         const ranks = new Array<number>(initialCapacity);
         const reps = new Array<Variable<A>>(initialCapacity);
         return new PersistentUnionFind(new ArrayCell(new SemiPersistentImmediateArray(ranks, () => 0)), 
-                                       new ArrayCell(new SemiPersistentImmediateArray(reps, i => new Variable<A>(i))));
+                                       new ArrayCell(new SemiPersistentImmediateArray<Variable<A>>(reps, Variable.create)));
     }
 
     private constructor(private readonly ranks: PersistentArray<number>, private parents: PersistentArray<Variable<A>>) {}
@@ -380,8 +372,7 @@ export default class PersistentUnionFind<A> implements UnionFind<A> {
             const rx = this.ranks.get(cx);
             const ry = this.ranks.get(cy);
             if (rx > ry) {
-                const yVal = vy.value;
-                return new PersistentUnionFind(this.ranks, this.parents.set(cy, yVal === void(0) ? vx : vx.bind(yVal)));
+                return new PersistentUnionFind(this.ranks, this.parents.set(cy, vy.isBound ? vx.bind(<A>vy.value) : vx));
             } else if(rx < ry) {
                 return new PersistentUnionFind(this.ranks, this.parents.set(cx, vy));
             } else {

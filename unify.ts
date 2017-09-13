@@ -1,4 +1,5 @@
 import PUF from "./puf"
+import { Variable as PUFVariable } from "./puf"
 
 /**
  * This represents a unification variable.
@@ -92,8 +93,7 @@ export class Substitution<A> {
      */
     lookup(v: Variable): A | number {
         const x = this.uf.find(v.id);
-        const val = x.value;
-        return val === void(0) ? x.id : val;
+        return x.isBound ? <A>x.value : x.id;
     }
 
     /**
@@ -101,7 +101,7 @@ export class Substitution<A> {
      * @param v The [[Variable]] whose value or representative you want to look up.
      * @returns The ID of the representative [[Variable]] and its value if bound.
      */
-    lookupVar(v: Variable): {id: number, value?: A} {
+    lookupVar(v: Variable): PUFVariable<A> {
         return this.uf.find(v.id);
     }
 
@@ -112,8 +112,7 @@ export class Substitution<A> {
      */
     lookupAsVar(v: Variable): A | Variable {
         const x = this.uf.find(v.id);
-        const val = x.value;
-        return val === void(0) ? new Variable(x.id) : val;
+        return x.isBound ? <A>x.value : new Variable(x.id) 
     }
 
     /**
@@ -123,8 +122,7 @@ export class Substitution<A> {
      */
     lookupById(id: number): A | Variable {
         const x = this.uf.find(id);
-        const val = x.value;
-        return val === void(0) ? new Variable(x.id) : val;
+        return x.isBound ? <A>x.value : new Variable(x.id);
     }
 
     /**
@@ -143,15 +141,15 @@ export class Substitution<A> {
      * @returns `null` if unification fails, otherwise a [[Substitution]] where the [[Variable]]s are unified.
      */
     unifyVar(x: Variable, y: Variable): Substitution<A> | null {
-        const {id: xId, value: xVal} = this.uf.find(x.id);
-        const {id: yId, value: yVal} = this.uf.find(y.id);
-        if(xVal === void(0)) {
-            return new Substitution(this.uf.bindVariable(xId, yId), this.nextVariable);
+        const vx = this.uf.find(x.id);
+        const vy = this.uf.find(y.id);
+        if(!vx.isBound) {
+            return new Substitution(this.uf.bindVariable(vx.id, vy.id), this.nextVariable);
         } else {
-            if(yVal === void(0)) {
-                return new Substitution(this.uf.bindVariable(yId, xId), this.nextVariable);
+            if(!vy.isBound) {
+                return new Substitution(this.uf.bindVariable(vy.id, vx.id), this.nextVariable);
             } else {
-                return xVal === yVal ? this : null;
+                return vx.value === vy.value ? this : null;
             }
         }
     }
@@ -210,9 +208,8 @@ export function groundJson(x: JsonTerm, sub: Substitution<JsonTerm>, mapping: {[
     if(x instanceof Variable) { 
         const v = sub.lookupVar(x);
         id = v.id;
-        const shared = mapping[id];
-        if(shared !== void(0)) return shared;
-        x = v.value === void(0) ? new Variable(id) : v.value;
+        if(id in mapping) return mapping[id]
+        x = v.isBound ? v.value : new Variable(id);
     }
     switch(typeof x) {
         case 'object':
@@ -249,13 +246,13 @@ export function refreshJson(x: JsonTerm, sub: Substitution<JsonTerm>, mapping: {
             if(x === null) {
                 return [x, sub];
             } else if(x instanceof Variable) {
-                const v = mapping[x.id];
-                if(v === void(0)) {
-                    const t = sub.freshVar();
-                    mapping[x.id] = t[0];
-                    return t;
+                const xId = x.id;
+                if(xId in mapping) {
+                    return [mapping[xId], sub];
                 } else {
-                    return [v, sub];
+                    const t = sub.freshVar();
+                    mapping[xId] = t[0];
+                    return t;
                 }
             } else if(x instanceof Array) {
                 let s = sub;
@@ -285,7 +282,7 @@ export function refreshJson(x: JsonTerm, sub: Substitution<JsonTerm>, mapping: {
 /**
  * Unify `x` against `y` except only require that for any objects in `x`, their keys are a subset of the corresponding
  * keys of `y`. This makes [[looseUnifyJson]] asymmetric unlike [[unifyJson]]. For example, `looseUnify({},{foo:1})`
- * succeeds, but `looseUnify({foo:1},{})` does not.
+ * succeeds, but `looseUnify({foo:1},{})` does not. This does not perform an occurs check.
  * @param x A [[JsonTerm]] to loosely unify against.
  * @param y A [[JsonTerm]] potentially with additional keys to loosely unify against.
  * @param sub Bindings for the [[Variable]]s in `x` and `y`.
@@ -343,7 +340,8 @@ export function looseUnifyJson(x: JsonTerm, y: JsonTerm, sub: Substitution<JsonT
 }
 
 /**
- * Unify to [[JsonTerm]]s. That is, calculate the most general unifier if possible.
+ * Unify to [[JsonTerm]]s. That is, calculate the most general unifier if possible. This does not
+ * perform an occurs check.
  * @returns The most general unifier or `null` if there is none.
  */
 export function unifyJson(x: JsonTerm, y: JsonTerm, sub: Substitution<JsonTerm>): Substitution<JsonTerm> | null {
@@ -400,3 +398,7 @@ export function unifyJson(x: JsonTerm, y: JsonTerm, sub: Substitution<JsonTerm>)
         }
     }
 }
+
+//const [X, sub] = Substitution.emptyPersistent<string>().freshVar();
+//console.log(sub.lookup(X));
+//debugger;
