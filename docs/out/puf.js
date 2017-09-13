@@ -1,19 +1,3 @@
-var __read = (this && this.__read) || function (o, n) {
-    var m = typeof Symbol === "function" && o[Symbol.iterator];
-    if (!m) return o;
-    var i = m.call(o), r, ar = [], e;
-    try {
-        while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
-    }
-    catch (error) { e = { error: error }; }
-    finally {
-        try {
-            if (r && !r.done && (m = i["return"])) m.call(i);
-        }
-        finally { if (e) throw e.error; }
-    }
-    return ar;
-};
 (function (factory) {
     if (typeof module === "object" && typeof module.exports === "object") {
         var v = factory(require, exports);
@@ -275,9 +259,9 @@ var __read = (this && this.__read) || function (o, n) {
             return new PersistentUnionFind(new ArrayCell(new SemiPersistentImmediateArray(ranks, function () { return 0; })), new ArrayCell(new SemiPersistentImmediateArray(reps, function (i) { return new Variable(i); })));
         };
         PersistentUnionFind.prototype.find = function (id) {
-            var _a = __read(this.findAux(id), 2), f = _a[0], cx = _a[1];
-            this.parents = f;
-            return cx;
+            var t = this.findAux(id);
+            this.parents = t[0];
+            return t[1];
         };
         PersistentUnionFind.prototype.findAux = function (i) {
             var v2 = this.parents.get(i);

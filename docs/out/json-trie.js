@@ -35,22 +35,6 @@ var __values = (this && this.__values) || function (o) {
         }
     };
 };
-var __read = (this && this.__read) || function (o, n) {
-    var m = typeof Symbol === "function" && o[Symbol.iterator];
-    if (!m) return o;
-    var i = m.call(o), r, ar = [], e;
-    try {
-        while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
-    }
-    catch (error) { e = { error: error }; }
-    finally {
-        try {
-            if (r && !r.done && (m = i["return"])) m.call(i);
-        }
-        finally { if (e) throw e.error; }
-    }
-    return ar;
-};
 (function (factory) {
     if (typeof module === "object" && typeof module.exports === "object") {
         var v = factory(require, exports);
@@ -102,31 +86,31 @@ var __read = (this && this.__read) || function (o, n) {
             return JsonTrie.lookupRec(key, this.trie);
         };
         JsonTrie.prototype.keys = function () {
-            var _a, _b, _c, k, _1, e_1_1, e_1, _d;
-            return __generator(this, function (_e) {
-                switch (_e.label) {
+            var _a, _b, t, e_1_1, e_1, _c;
+            return __generator(this, function (_d) {
+                switch (_d.label) {
                     case 0:
-                        _e.trys.push([0, 5, 6, 7]);
+                        _d.trys.push([0, 5, 6, 7]);
                         _a = __values(JsonTrie.rowRec(this.trie)), _b = _a.next();
-                        _e.label = 1;
+                        _d.label = 1;
                     case 1:
                         if (!!_b.done) return [3, 4];
-                        _c = __read(_b.value, 2), k = _c[0], _1 = _c[1];
-                        return [4, k];
+                        t = _b.value;
+                        return [4, t[0]];
                     case 2:
-                        _e.sent();
-                        _e.label = 3;
+                        _d.sent();
+                        _d.label = 3;
                     case 3:
                         _b = _a.next();
                         return [3, 1];
                     case 4: return [3, 7];
                     case 5:
-                        e_1_1 = _e.sent();
+                        e_1_1 = _d.sent();
                         e_1 = { error: e_1_1 };
                         return [3, 7];
                     case 6:
                         try {
-                            if (_b && !_b.done && (_d = _a.return)) _d.call(_a);
+                            if (_b && !_b.done && (_c = _a.return)) _c.call(_a);
                         }
                         finally { if (e_1) throw e_1.error; }
                         return [7];
@@ -135,31 +119,31 @@ var __read = (this && this.__read) || function (o, n) {
             });
         };
         JsonTrie.prototype.values = function () {
-            var _a, _b, _c, _2, v, e_2_1, e_2, _d;
-            return __generator(this, function (_e) {
-                switch (_e.label) {
+            var _a, _b, t, e_2_1, e_2, _c;
+            return __generator(this, function (_d) {
+                switch (_d.label) {
                     case 0:
-                        _e.trys.push([0, 5, 6, 7]);
+                        _d.trys.push([0, 5, 6, 7]);
                         _a = __values(JsonTrie.rowRec(this.trie)), _b = _a.next();
-                        _e.label = 1;
+                        _d.label = 1;
                     case 1:
                         if (!!_b.done) return [3, 4];
-                        _c = __read(_b.value, 2), _2 = _c[0], v = _c[1];
-                        return [4, v];
+                        t = _b.value;
+                        return [4, t[1]];
                     case 2:
-                        _e.sent();
-                        _e.label = 3;
+                        _d.sent();
+                        _d.label = 3;
                     case 3:
                         _b = _a.next();
                         return [3, 1];
                     case 4: return [3, 7];
                     case 5:
-                        e_2_1 = _e.sent();
+                        e_2_1 = _d.sent();
                         e_2 = { error: e_2_1 };
                         return [3, 7];
                     case 6:
                         try {
-                            if (_b && !_b.done && (_d = _a.return)) _d.call(_a);
+                            if (_b && !_b.done && (_c = _a.return)) _c.call(_a);
                         }
                         finally { if (e_2) throw e_2.error; }
                         return [7];
@@ -171,31 +155,31 @@ var __read = (this && this.__read) || function (o, n) {
             return JsonTrie.rowRec(this.trie);
         };
         JsonTrie.prototype.match = function (key, sub) {
-            var _a, _b, _c, _3, s, e_3_1, e_3, _d;
-            return __generator(this, function (_e) {
-                switch (_e.label) {
+            var _a, _b, t, e_3_1, e_3, _c;
+            return __generator(this, function (_d) {
+                switch (_d.label) {
                     case 0:
-                        _e.trys.push([0, 5, 6, 7]);
+                        _d.trys.push([0, 5, 6, 7]);
                         _a = __values(JsonTrie.matchRec(key, sub, this.trie)), _b = _a.next();
-                        _e.label = 1;
+                        _d.label = 1;
                     case 1:
                         if (!!_b.done) return [3, 4];
-                        _c = __read(_b.value, 2), _3 = _c[0], s = _c[1];
-                        return [4, s];
+                        t = _b.value;
+                        return [4, t[1]];
                     case 2:
-                        _e.sent();
-                        _e.label = 3;
+                        _d.sent();
+                        _d.label = 3;
                     case 3:
                         _b = _a.next();
                         return [3, 1];
                     case 4: return [3, 7];
                     case 5:
-                        e_3_1 = _e.sent();
+                        e_3_1 = _d.sent();
                         e_3 = { error: e_3_1 };
                         return [3, 7];
                     case 6:
                         try {
-                            if (_b && !_b.done && (_d = _a.return)) _d.call(_a);
+                            if (_b && !_b.done && (_c = _a.return)) _c.call(_a);
                         }
                         finally { if (e_3) throw e_3.error; }
                         return [7];
@@ -207,34 +191,34 @@ var __read = (this && this.__read) || function (o, n) {
             return JsonTrie.matchRec(key, sub, this.trie);
         };
         JsonTrie.matchRecArray = function (key, i, sub, curr) {
-            var _a, _b, _c, node, s, e_4_1, e_4, _d;
-            return __generator(this, function (_e) {
-                switch (_e.label) {
+            var _a, _b, t, e_4_1, e_4, _c;
+            return __generator(this, function (_d) {
+                switch (_d.label) {
                     case 0:
                         if (!(i < key.length)) return [3, 9];
-                        _e.label = 1;
+                        _d.label = 1;
                     case 1:
-                        _e.trys.push([1, 6, 7, 8]);
+                        _d.trys.push([1, 6, 7, 8]);
                         _a = __values(JsonTrie.matchRec(key[i], sub, curr)), _b = _a.next();
-                        _e.label = 2;
+                        _d.label = 2;
                     case 2:
                         if (!!_b.done) return [3, 5];
-                        _c = __read(_b.value, 2), node = _c[0], s = _c[1];
-                        return [5, __values(JsonTrie.matchRecArray(key, i + 1, s, node))];
+                        t = _b.value;
+                        return [5, __values(JsonTrie.matchRecArray(key, i + 1, t[1], t[0]))];
                     case 3:
-                        _e.sent();
-                        _e.label = 4;
+                        _d.sent();
+                        _d.label = 4;
                     case 4:
                         _b = _a.next();
                         return [3, 2];
                     case 5: return [3, 8];
                     case 6:
-                        e_4_1 = _e.sent();
+                        e_4_1 = _d.sent();
                         e_4 = { error: e_4_1 };
                         return [3, 8];
                     case 7:
                         try {
-                            if (_b && !_b.done && (_d = _a.return)) _d.call(_a);
+                            if (_b && !_b.done && (_c = _a.return)) _c.call(_a);
                         }
                         finally { if (e_4) throw e_4.error; }
                         return [7];
@@ -243,16 +227,16 @@ var __read = (this && this.__read) || function (o, n) {
                         if (!('empty' in curr)) return [3, 11];
                         return [4, [curr.empty, sub]];
                     case 10:
-                        _e.sent();
-                        _e.label = 11;
+                        _d.sent();
+                        _d.label = 11;
                     case 11: return [2];
                 }
             });
         };
         JsonTrie.matchRecObject = function (key, keys, i, sub, curr) {
-            var node, k, _a, _b, _c, node2, s, e_5_1, e_5, _d;
-            return __generator(this, function (_e) {
-                switch (_e.label) {
+            var node, k, _a, _b, t, e_5_1, e_5, _c;
+            return __generator(this, function (_d) {
+                switch (_d.label) {
                     case 0:
                         if (!(i < keys.length)) return [3, 9];
                         node = curr.more;
@@ -262,29 +246,29 @@ var __read = (this && this.__read) || function (o, n) {
                         node = node[k];
                         if (node === void (0))
                             return [2];
-                        _e.label = 1;
+                        _d.label = 1;
                     case 1:
-                        _e.trys.push([1, 6, 7, 8]);
+                        _d.trys.push([1, 6, 7, 8]);
                         _a = __values(JsonTrie.matchRec(key[k], sub, node)), _b = _a.next();
-                        _e.label = 2;
+                        _d.label = 2;
                     case 2:
                         if (!!_b.done) return [3, 5];
-                        _c = __read(_b.value, 2), node2 = _c[0], s = _c[1];
-                        return [5, __values(JsonTrie.matchRecObject(key, keys, i + 1, s, node2))];
+                        t = _b.value;
+                        return [5, __values(JsonTrie.matchRecObject(key, keys, i + 1, t[1], t[0]))];
                     case 3:
-                        _e.sent();
-                        _e.label = 4;
+                        _d.sent();
+                        _d.label = 4;
                     case 4:
                         _b = _a.next();
                         return [3, 2];
                     case 5: return [3, 8];
                     case 6:
-                        e_5_1 = _e.sent();
+                        e_5_1 = _d.sent();
                         e_5 = { error: e_5_1 };
                         return [3, 8];
                     case 7:
                         try {
-                            if (_b && !_b.done && (_d = _a.return)) _d.call(_a);
+                            if (_b && !_b.done && (_c = _a.return)) _c.call(_a);
                         }
                         finally { if (e_5) throw e_5.error; }
                         return [7];
@@ -293,16 +277,16 @@ var __read = (this && this.__read) || function (o, n) {
                         if (!('empty' in curr)) return [3, 11];
                         return [4, [curr.empty, sub]];
                     case 10:
-                        _e.sent();
-                        _e.label = 11;
+                        _d.sent();
+                        _d.label = 11;
                     case 11: return [2];
                 }
             });
         };
         JsonTrie.matchRec = function (key, sub, curr) {
-            var type, v, _a, _b, _c, val, node, e_6_1, node, node, keys, node, e_6, _d;
-            return __generator(this, function (_e) {
-                switch (_e.label) {
+            var type, v, _a, _b, t, e_6_1, node, node, keys, node, e_6, _c;
+            return __generator(this, function (_d) {
+                switch (_d.label) {
                     case 0:
                         type = typeof key;
                         if (!(type === 'object')) return [3, 21];
@@ -310,44 +294,44 @@ var __read = (this && this.__read) || function (o, n) {
                         if (!('null' in curr)) return [3, 2];
                         return [4, [curr.null, sub]];
                     case 1:
-                        _e.sent();
-                        _e.label = 2;
+                        _d.sent();
+                        _d.label = 2;
                     case 2: return [3, 20];
                     case 3:
                         if (!(key instanceof unify_1.Variable)) return [3, 15];
                         v = sub.lookupAsVar(key);
                         if (!(v instanceof unify_1.Variable)) return [3, 12];
-                        _e.label = 4;
+                        _d.label = 4;
                     case 4:
-                        _e.trys.push([4, 9, 10, 11]);
+                        _d.trys.push([4, 9, 10, 11]);
                         _a = __values(JsonTrie.rowRec(curr)), _b = _a.next();
-                        _e.label = 5;
+                        _d.label = 5;
                     case 5:
                         if (!!_b.done) return [3, 8];
-                        _c = __read(_b.value, 2), val = _c[0], node = _c[1];
-                        return [4, [node, sub.bind(v, val)]];
+                        t = _b.value;
+                        return [4, [t[1], sub.bind(v, t[0])]];
                     case 6:
-                        _e.sent();
-                        _e.label = 7;
+                        _d.sent();
+                        _d.label = 7;
                     case 7:
                         _b = _a.next();
                         return [3, 5];
                     case 8: return [3, 11];
                     case 9:
-                        e_6_1 = _e.sent();
+                        e_6_1 = _d.sent();
                         e_6 = { error: e_6_1 };
                         return [3, 11];
                     case 10:
                         try {
-                            if (_b && !_b.done && (_d = _a.return)) _d.call(_a);
+                            if (_b && !_b.done && (_c = _a.return)) _c.call(_a);
                         }
                         finally { if (e_6) throw e_6.error; }
                         return [7];
                     case 11: return [3, 14];
                     case 12: return [5, __values(JsonTrie.matchRec(v, sub, curr))];
                     case 13:
-                        _e.sent();
-                        _e.label = 14;
+                        _d.sent();
+                        _d.label = 14;
                     case 14: return [3, 20];
                     case 15:
                         if (!(key instanceof Array)) return [3, 18];
@@ -355,8 +339,8 @@ var __read = (this && this.__read) || function (o, n) {
                         if (!(node !== void (0))) return [3, 17];
                         return [5, __values(JsonTrie.matchRecArray(key, 0, sub, node))];
                     case 16:
-                        _e.sent();
-                        _e.label = 17;
+                        _d.sent();
+                        _d.label = 17;
                     case 17: return [3, 20];
                     case 18:
                         node = curr.object;
@@ -364,16 +348,16 @@ var __read = (this && this.__read) || function (o, n) {
                         keys = Object.keys(key).sort();
                         return [5, __values(JsonTrie.matchRecObject(key, keys, 0, sub, node))];
                     case 19:
-                        _e.sent();
-                        _e.label = 20;
+                        _d.sent();
+                        _d.label = 20;
                     case 20: return [3, 26];
                     case 21:
                         if (!(type === 'undefined')) return [3, 24];
                         if (!('undefined' in curr)) return [3, 23];
                         return [4, [curr.undefined, sub]];
                     case 22:
-                        _e.sent();
-                        _e.label = 23;
+                        _d.sent();
+                        _d.label = 23;
                     case 23: return [3, 26];
                     case 24:
                         node = curr[type];
@@ -381,59 +365,59 @@ var __read = (this && this.__read) || function (o, n) {
                         if (!(key in node)) return [3, 26];
                         return [4, [node[key], sub]];
                     case 25:
-                        _e.sent();
-                        _e.label = 26;
+                        _d.sent();
+                        _d.label = 26;
                     case 26: return [2];
                 }
             });
         };
         JsonTrie.rowRecObject = function (curr, result) {
-            var obj, result_1, result_1_1, _a, k, v, moreNode, _b, _c, _i, k, node, _d, _e, _f, type, _g, _h, _j, _k, key, rest, e_7_1, _l, _m, _o, key, rest, e_8_1, valNode, _p, _q, _r, k2, e_9, _s, e_7, _t, e_8, _u;
-            return __generator(this, function (_v) {
-                switch (_v.label) {
+            var obj, result_1, result_1_1, t, moreNode, _a, _b, _i, k, node, _c, _d, _e, type, _f, _g, _h, t, e_7_1, _j, _k, t, e_8_1, valNode, _l, _m, _o, k2, e_9, _p, e_7, _q, e_8, _r;
+            return __generator(this, function (_s) {
+                switch (_s.label) {
                     case 0:
                         if (!('empty' in curr)) return [3, 2];
                         obj = {};
                         try {
                             for (result_1 = __values(result), result_1_1 = result_1.next(); !result_1_1.done; result_1_1 = result_1.next()) {
-                                _a = __read(result_1_1.value, 2), k = _a[0], v = _a[1];
-                                obj[k] = v;
+                                t = result_1_1.value;
+                                obj[t[0]] = t[1];
                             }
                         }
                         catch (e_9_1) { e_9 = { error: e_9_1 }; }
                         finally {
                             try {
-                                if (result_1_1 && !result_1_1.done && (_s = result_1.return)) _s.call(result_1);
+                                if (result_1_1 && !result_1_1.done && (_p = result_1.return)) _p.call(result_1);
                             }
                             finally { if (e_9) throw e_9.error; }
                         }
                         return [4, [obj, curr.empty]];
                     case 1:
-                        _v.sent();
-                        _v.label = 2;
+                        _s.sent();
+                        _s.label = 2;
                     case 2:
                         moreNode = curr.more;
                         if (moreNode === void (0))
                             return [2];
-                        _b = [];
-                        for (_c in moreNode)
-                            _b.push(_c);
+                        _a = [];
+                        for (_b in moreNode)
+                            _a.push(_b);
                         _i = 0;
-                        _v.label = 3;
+                        _s.label = 3;
                     case 3:
-                        if (!(_i < _b.length)) return [3, 31];
-                        k = _b[_i];
+                        if (!(_i < _a.length)) return [3, 31];
+                        k = _a[_i];
                         node = moreNode[k];
-                        _d = [];
-                        for (_e in node)
-                            _d.push(_e);
-                        _f = 0;
-                        _v.label = 4;
+                        _c = [];
+                        for (_d in node)
+                            _c.push(_d);
+                        _e = 0;
+                        _s.label = 4;
                     case 4:
-                        if (!(_f < _d.length)) return [3, 30];
-                        type = _d[_f];
-                        _g = type;
-                        switch (_g) {
+                        if (!(_e < _c.length)) return [3, 30];
+                        type = _c[_e];
+                        _f = type;
+                        switch (_f) {
                             case 'array': return [3, 5];
                             case 'object': return [3, 13];
                             case 'null': return [3, 21];
@@ -444,57 +428,57 @@ var __read = (this && this.__read) || function (o, n) {
                         }
                         return [3, 29];
                     case 5:
-                        _v.trys.push([5, 10, 11, 12]);
-                        _h = __values(JsonTrie.rowRecArray(node.array, [])), _j = _h.next();
-                        _v.label = 6;
+                        _s.trys.push([5, 10, 11, 12]);
+                        _g = __values(JsonTrie.rowRecArray(node.array, [])), _h = _g.next();
+                        _s.label = 6;
                     case 6:
-                        if (!!_j.done) return [3, 9];
-                        _k = __read(_j.value, 2), key = _k[0], rest = _k[1];
-                        result.push([k, key]);
-                        return [5, __values(JsonTrie.rowRecObject(rest, result))];
+                        if (!!_h.done) return [3, 9];
+                        t = _h.value;
+                        result.push([k, t[0]]);
+                        return [5, __values(JsonTrie.rowRecObject(t[1], result))];
                     case 7:
-                        _v.sent();
+                        _s.sent();
                         result.pop();
-                        _v.label = 8;
+                        _s.label = 8;
                     case 8:
-                        _j = _h.next();
+                        _h = _g.next();
                         return [3, 6];
                     case 9: return [3, 12];
                     case 10:
-                        e_7_1 = _v.sent();
+                        e_7_1 = _s.sent();
                         e_7 = { error: e_7_1 };
                         return [3, 12];
                     case 11:
                         try {
-                            if (_j && !_j.done && (_t = _h.return)) _t.call(_h);
+                            if (_h && !_h.done && (_q = _g.return)) _q.call(_g);
                         }
                         finally { if (e_7) throw e_7.error; }
                         return [7];
                     case 12: return [3, 29];
                     case 13:
-                        _v.trys.push([13, 18, 19, 20]);
-                        _l = __values(JsonTrie.rowRecObject(node.object, [])), _m = _l.next();
-                        _v.label = 14;
+                        _s.trys.push([13, 18, 19, 20]);
+                        _j = __values(JsonTrie.rowRecObject(node.object, [])), _k = _j.next();
+                        _s.label = 14;
                     case 14:
-                        if (!!_m.done) return [3, 17];
-                        _o = __read(_m.value, 2), key = _o[0], rest = _o[1];
-                        result.push([k, key]);
-                        return [5, __values(JsonTrie.rowRecObject(rest, result))];
+                        if (!!_k.done) return [3, 17];
+                        t = _k.value;
+                        result.push([k, t[0]]);
+                        return [5, __values(JsonTrie.rowRecObject(t[1], result))];
                     case 15:
-                        _v.sent();
+                        _s.sent();
                         result.pop();
-                        _v.label = 16;
+                        _s.label = 16;
                     case 16:
-                        _m = _l.next();
+                        _k = _j.next();
                         return [3, 14];
                     case 17: return [3, 20];
                     case 18:
-                        e_8_1 = _v.sent();
+                        e_8_1 = _s.sent();
                         e_8 = { error: e_8_1 };
                         return [3, 20];
                     case 19:
                         try {
-                            if (_m && !_m.done && (_u = _l.return)) _u.call(_l);
+                            if (_k && !_k.done && (_r = _j.return)) _r.call(_j);
                         }
                         finally { if (e_8) throw e_8.error; }
                         return [7];
@@ -503,37 +487,37 @@ var __read = (this && this.__read) || function (o, n) {
                         result.push([k, null]);
                         return [5, __values(JsonTrie.rowRecObject(node.null, result))];
                     case 22:
-                        _v.sent();
+                        _s.sent();
                         result.pop();
                         return [3, 29];
                     case 23:
                         result.push([k, void (0)]);
                         return [5, __values(JsonTrie.rowRecObject(node.undefined, result))];
                     case 24:
-                        _v.sent();
+                        _s.sent();
                         result.pop();
                         return [3, 29];
                     case 25:
                         valNode = node[type];
-                        _p = [];
-                        for (_q in valNode)
-                            _p.push(_q);
-                        _r = 0;
-                        _v.label = 26;
+                        _l = [];
+                        for (_m in valNode)
+                            _l.push(_m);
+                        _o = 0;
+                        _s.label = 26;
                     case 26:
-                        if (!(_r < _p.length)) return [3, 29];
-                        k2 = _p[_r];
+                        if (!(_o < _l.length)) return [3, 29];
+                        k2 = _l[_o];
                         result.push([k, convert(type, k2)]);
                         return [5, __values(JsonTrie.rowRecObject(valNode[k2], result))];
                     case 27:
-                        _v.sent();
+                        _s.sent();
                         result.pop();
-                        _v.label = 28;
+                        _s.label = 28;
                     case 28:
-                        _r++;
+                        _o++;
                         return [3, 26];
                     case 29:
-                        _f++;
+                        _e++;
                         return [3, 4];
                     case 30:
                         _i++;
@@ -543,15 +527,15 @@ var __read = (this && this.__read) || function (o, n) {
             });
         };
         JsonTrie.rowRecArray = function (curr, result) {
-            var _a, _b, _i, type, _c, _d, _e, _f, key, rest, e_10_1, _g, _h, _j, key, rest, e_11_1, valNode, _k, _l, _m, k, e_10, _o, e_11, _p;
-            return __generator(this, function (_q) {
-                switch (_q.label) {
+            var _a, _b, _i, type, _c, _d, _e, t, e_10_1, _f, _g, t, e_11_1, valNode, _h, _j, _k, k, e_10, _l, e_11, _m;
+            return __generator(this, function (_o) {
+                switch (_o.label) {
                     case 0:
                         _a = [];
                         for (_b in curr)
                             _a.push(_b);
                         _i = 0;
-                        _q.label = 1;
+                        _o.label = 1;
                     case 1:
                         if (!(_i < _a.length)) return [3, 29];
                         type = _a[_i];
@@ -569,60 +553,60 @@ var __read = (this && this.__read) || function (o, n) {
                         return [3, 28];
                     case 2: return [4, [result.slice(), curr.empty]];
                     case 3:
-                        _q.sent();
+                        _o.sent();
                         return [3, 28];
                     case 4:
-                        _q.trys.push([4, 9, 10, 11]);
+                        _o.trys.push([4, 9, 10, 11]);
                         _d = __values(JsonTrie.rowRecArray(curr.array, [])), _e = _d.next();
-                        _q.label = 5;
+                        _o.label = 5;
                     case 5:
                         if (!!_e.done) return [3, 8];
-                        _f = __read(_e.value, 2), key = _f[0], rest = _f[1];
-                        result.push(key);
-                        return [5, __values(JsonTrie.rowRecArray(rest, result))];
+                        t = _e.value;
+                        result.push(t[0]);
+                        return [5, __values(JsonTrie.rowRecArray(t[1], result))];
                     case 6:
-                        _q.sent();
+                        _o.sent();
                         result.pop();
-                        _q.label = 7;
+                        _o.label = 7;
                     case 7:
                         _e = _d.next();
                         return [3, 5];
                     case 8: return [3, 11];
                     case 9:
-                        e_10_1 = _q.sent();
+                        e_10_1 = _o.sent();
                         e_10 = { error: e_10_1 };
                         return [3, 11];
                     case 10:
                         try {
-                            if (_e && !_e.done && (_o = _d.return)) _o.call(_d);
+                            if (_e && !_e.done && (_l = _d.return)) _l.call(_d);
                         }
                         finally { if (e_10) throw e_10.error; }
                         return [7];
                     case 11: return [3, 28];
                     case 12:
-                        _q.trys.push([12, 17, 18, 19]);
-                        _g = __values(JsonTrie.rowRecObject(curr.object, [])), _h = _g.next();
-                        _q.label = 13;
+                        _o.trys.push([12, 17, 18, 19]);
+                        _f = __values(JsonTrie.rowRecObject(curr.object, [])), _g = _f.next();
+                        _o.label = 13;
                     case 13:
-                        if (!!_h.done) return [3, 16];
-                        _j = __read(_h.value, 2), key = _j[0], rest = _j[1];
-                        result.push(key);
-                        return [5, __values(JsonTrie.rowRecArray(rest, result))];
+                        if (!!_g.done) return [3, 16];
+                        t = _g.value;
+                        result.push(t[0]);
+                        return [5, __values(JsonTrie.rowRecArray(t[1], result))];
                     case 14:
-                        _q.sent();
+                        _o.sent();
                         result.pop();
-                        _q.label = 15;
+                        _o.label = 15;
                     case 15:
-                        _h = _g.next();
+                        _g = _f.next();
                         return [3, 13];
                     case 16: return [3, 19];
                     case 17:
-                        e_11_1 = _q.sent();
+                        e_11_1 = _o.sent();
                         e_11 = { error: e_11_1 };
                         return [3, 19];
                     case 18:
                         try {
-                            if (_h && !_h.done && (_p = _g.return)) _p.call(_g);
+                            if (_g && !_g.done && (_m = _f.return)) _m.call(_f);
                         }
                         finally { if (e_11) throw e_11.error; }
                         return [7];
@@ -631,34 +615,34 @@ var __read = (this && this.__read) || function (o, n) {
                         result.push(null);
                         return [5, __values(JsonTrie.rowRecArray(curr.null, result))];
                     case 21:
-                        _q.sent();
+                        _o.sent();
                         result.pop();
                         return [3, 28];
                     case 22:
                         result.push(void (0));
                         return [5, __values(JsonTrie.rowRecArray(curr.undefined, result))];
                     case 23:
-                        _q.sent();
+                        _o.sent();
                         result.pop();
                         return [3, 28];
                     case 24:
                         valNode = curr[type];
-                        _k = [];
-                        for (_l in valNode)
-                            _k.push(_l);
-                        _m = 0;
-                        _q.label = 25;
+                        _h = [];
+                        for (_j in valNode)
+                            _h.push(_j);
+                        _k = 0;
+                        _o.label = 25;
                     case 25:
-                        if (!(_m < _k.length)) return [3, 28];
-                        k = _k[_m];
+                        if (!(_k < _h.length)) return [3, 28];
+                        k = _h[_k];
                         result.push(convert(type, k));
                         return [5, __values(JsonTrie.rowRecArray(valNode[k], result))];
                     case 26:
-                        _q.sent();
+                        _o.sent();
                         result.pop();
-                        _q.label = 27;
+                        _o.label = 27;
                     case 27:
-                        _m++;
+                        _k++;
                         return [3, 25];
                     case 28:
                         _i++;
@@ -982,31 +966,31 @@ var __read = (this && this.__read) || function (o, n) {
             return JsonTrieTerm.lookupRec(key, this.trie, { count: 0 });
         };
         JsonTrieTerm.prototype.keys = function () {
-            var _a, _b, _c, k, _4, e_12_1, e_12, _d;
-            return __generator(this, function (_e) {
-                switch (_e.label) {
+            var _a, _b, t, e_12_1, e_12, _c;
+            return __generator(this, function (_d) {
+                switch (_d.label) {
                     case 0:
-                        _e.trys.push([0, 5, 6, 7]);
+                        _d.trys.push([0, 5, 6, 7]);
                         _a = __values(JsonTrieTerm.rowRec(this.trie)), _b = _a.next();
-                        _e.label = 1;
+                        _d.label = 1;
                     case 1:
                         if (!!_b.done) return [3, 4];
-                        _c = __read(_b.value, 2), k = _c[0], _4 = _c[1];
-                        return [4, k];
+                        t = _b.value;
+                        return [4, t[0]];
                     case 2:
-                        _e.sent();
-                        _e.label = 3;
+                        _d.sent();
+                        _d.label = 3;
                     case 3:
                         _b = _a.next();
                         return [3, 1];
                     case 4: return [3, 7];
                     case 5:
-                        e_12_1 = _e.sent();
+                        e_12_1 = _d.sent();
                         e_12 = { error: e_12_1 };
                         return [3, 7];
                     case 6:
                         try {
-                            if (_b && !_b.done && (_d = _a.return)) _d.call(_a);
+                            if (_b && !_b.done && (_c = _a.return)) _c.call(_a);
                         }
                         finally { if (e_12) throw e_12.error; }
                         return [7];
@@ -1015,31 +999,31 @@ var __read = (this && this.__read) || function (o, n) {
             });
         };
         JsonTrieTerm.prototype.values = function () {
-            var _a, _b, _c, _5, v, e_13_1, e_13, _d;
-            return __generator(this, function (_e) {
-                switch (_e.label) {
+            var _a, _b, t, e_13_1, e_13, _c;
+            return __generator(this, function (_d) {
+                switch (_d.label) {
                     case 0:
-                        _e.trys.push([0, 5, 6, 7]);
+                        _d.trys.push([0, 5, 6, 7]);
                         _a = __values(JsonTrieTerm.rowRec(this.trie)), _b = _a.next();
-                        _e.label = 1;
+                        _d.label = 1;
                     case 1:
                         if (!!_b.done) return [3, 4];
-                        _c = __read(_b.value, 2), _5 = _c[0], v = _c[1];
-                        return [4, v];
+                        t = _b.value;
+                        return [4, t[1]];
                     case 2:
-                        _e.sent();
-                        _e.label = 3;
+                        _d.sent();
+                        _d.label = 3;
                     case 3:
                         _b = _a.next();
                         return [3, 1];
                     case 4: return [3, 7];
                     case 5:
-                        e_13_1 = _e.sent();
+                        e_13_1 = _d.sent();
                         e_13 = { error: e_13_1 };
                         return [3, 7];
                     case 6:
                         try {
-                            if (_b && !_b.done && (_d = _a.return)) _d.call(_a);
+                            if (_b && !_b.done && (_c = _a.return)) _c.call(_a);
                         }
                         finally { if (e_13) throw e_13.error; }
                         return [7];
@@ -1051,52 +1035,52 @@ var __read = (this && this.__read) || function (o, n) {
             return JsonTrieTerm.rowRec(this.trie);
         };
         JsonTrieTerm.rowRecObject = function (curr, result) {
-            var obj, result_2, result_2_1, _a, k, v, moreNode, _b, _c, _i, k, node, _d, _e, _f, type, _g, _h, _j, _k, key, rest, e_14_1, _l, _m, _o, key, rest, e_15_1, valNode, _p, _q, _r, k2, e_16, _s, e_14, _t, e_15, _u;
-            return __generator(this, function (_v) {
-                switch (_v.label) {
+            var obj, result_2, result_2_1, t, moreNode, _a, _b, _i, k, node, _c, _d, _e, type, _f, _g, _h, t, e_14_1, _j, _k, t, e_15_1, valNode, _l, _m, _o, k2, e_16, _p, e_14, _q, e_15, _r;
+            return __generator(this, function (_s) {
+                switch (_s.label) {
                     case 0:
                         if (!('empty' in curr)) return [3, 2];
                         obj = {};
                         try {
                             for (result_2 = __values(result), result_2_1 = result_2.next(); !result_2_1.done; result_2_1 = result_2.next()) {
-                                _a = __read(result_2_1.value, 2), k = _a[0], v = _a[1];
-                                obj[k] = v;
+                                t = result_2_1.value;
+                                obj[t[0]] = t[1];
                             }
                         }
                         catch (e_16_1) { e_16 = { error: e_16_1 }; }
                         finally {
                             try {
-                                if (result_2_1 && !result_2_1.done && (_s = result_2.return)) _s.call(result_2);
+                                if (result_2_1 && !result_2_1.done && (_p = result_2.return)) _p.call(result_2);
                             }
                             finally { if (e_16) throw e_16.error; }
                         }
                         return [4, [obj, curr.empty]];
                     case 1:
-                        _v.sent();
-                        _v.label = 2;
+                        _s.sent();
+                        _s.label = 2;
                     case 2:
                         moreNode = curr.more;
                         if (moreNode === void (0))
                             return [2];
-                        _b = [];
-                        for (_c in moreNode)
-                            _b.push(_c);
+                        _a = [];
+                        for (_b in moreNode)
+                            _a.push(_b);
                         _i = 0;
-                        _v.label = 3;
+                        _s.label = 3;
                     case 3:
-                        if (!(_i < _b.length)) return [3, 32];
-                        k = _b[_i];
+                        if (!(_i < _a.length)) return [3, 32];
+                        k = _a[_i];
                         node = moreNode[k];
-                        _d = [];
-                        for (_e in node)
-                            _d.push(_e);
-                        _f = 0;
-                        _v.label = 4;
+                        _c = [];
+                        for (_d in node)
+                            _c.push(_d);
+                        _e = 0;
+                        _s.label = 4;
                     case 4:
-                        if (!(_f < _d.length)) return [3, 31];
-                        type = _d[_f];
-                        _g = type;
-                        switch (_g) {
+                        if (!(_e < _c.length)) return [3, 31];
+                        type = _c[_e];
+                        _f = type;
+                        switch (_f) {
                             case 'array': return [3, 5];
                             case 'object': return [3, 13];
                             case 'null': return [3, 21];
@@ -1108,57 +1092,57 @@ var __read = (this && this.__read) || function (o, n) {
                         }
                         return [3, 30];
                     case 5:
-                        _v.trys.push([5, 10, 11, 12]);
-                        _h = __values(JsonTrieTerm.rowRecArray(node.array, [])), _j = _h.next();
-                        _v.label = 6;
+                        _s.trys.push([5, 10, 11, 12]);
+                        _g = __values(JsonTrieTerm.rowRecArray(node.array, [])), _h = _g.next();
+                        _s.label = 6;
                     case 6:
-                        if (!!_j.done) return [3, 9];
-                        _k = __read(_j.value, 2), key = _k[0], rest = _k[1];
-                        result.push([k, key]);
-                        return [5, __values(JsonTrieTerm.rowRecObject(rest, result))];
+                        if (!!_h.done) return [3, 9];
+                        t = _h.value;
+                        result.push([k, t[0]]);
+                        return [5, __values(JsonTrieTerm.rowRecObject(t[1], result))];
                     case 7:
-                        _v.sent();
+                        _s.sent();
                         result.pop();
-                        _v.label = 8;
+                        _s.label = 8;
                     case 8:
-                        _j = _h.next();
+                        _h = _g.next();
                         return [3, 6];
                     case 9: return [3, 12];
                     case 10:
-                        e_14_1 = _v.sent();
+                        e_14_1 = _s.sent();
                         e_14 = { error: e_14_1 };
                         return [3, 12];
                     case 11:
                         try {
-                            if (_j && !_j.done && (_t = _h.return)) _t.call(_h);
+                            if (_h && !_h.done && (_q = _g.return)) _q.call(_g);
                         }
                         finally { if (e_14) throw e_14.error; }
                         return [7];
                     case 12: return [3, 30];
                     case 13:
-                        _v.trys.push([13, 18, 19, 20]);
-                        _l = __values(JsonTrieTerm.rowRecObject(node.object, [])), _m = _l.next();
-                        _v.label = 14;
+                        _s.trys.push([13, 18, 19, 20]);
+                        _j = __values(JsonTrieTerm.rowRecObject(node.object, [])), _k = _j.next();
+                        _s.label = 14;
                     case 14:
-                        if (!!_m.done) return [3, 17];
-                        _o = __read(_m.value, 2), key = _o[0], rest = _o[1];
-                        result.push([k, key]);
-                        return [5, __values(JsonTrieTerm.rowRecObject(rest, result))];
+                        if (!!_k.done) return [3, 17];
+                        t = _k.value;
+                        result.push([k, t[0]]);
+                        return [5, __values(JsonTrieTerm.rowRecObject(t[1], result))];
                     case 15:
-                        _v.sent();
+                        _s.sent();
                         result.pop();
-                        _v.label = 16;
+                        _s.label = 16;
                     case 16:
-                        _m = _l.next();
+                        _k = _j.next();
                         return [3, 14];
                     case 17: return [3, 20];
                     case 18:
-                        e_15_1 = _v.sent();
+                        e_15_1 = _s.sent();
                         e_15 = { error: e_15_1 };
                         return [3, 20];
                     case 19:
                         try {
-                            if (_m && !_m.done && (_u = _l.return)) _u.call(_l);
+                            if (_k && !_k.done && (_r = _j.return)) _r.call(_j);
                         }
                         finally { if (e_15) throw e_15.error; }
                         return [7];
@@ -1167,38 +1151,38 @@ var __read = (this && this.__read) || function (o, n) {
                         result.push([k, null]);
                         return [5, __values(JsonTrieTerm.rowRecObject(node.null, result))];
                     case 22:
-                        _v.sent();
+                        _s.sent();
                         result.pop();
                         return [3, 30];
                     case 23:
                         result.push([k, void (0)]);
                         return [5, __values(JsonTrieTerm.rowRecObject(node.undefined, result))];
                     case 24:
-                        _v.sent();
+                        _s.sent();
                         result.pop();
                         return [3, 30];
                     case 25:
                         valNode = node[type];
-                        _p = [];
-                        for (_q in valNode)
-                            _p.push(_q);
-                        _r = 0;
-                        _v.label = 26;
+                        _l = [];
+                        for (_m in valNode)
+                            _l.push(_m);
+                        _o = 0;
+                        _s.label = 26;
                     case 26:
-                        if (!(_r < _p.length)) return [3, 29];
-                        k2 = _p[_r];
+                        if (!(_o < _l.length)) return [3, 29];
+                        k2 = _l[_o];
                         result.push([k, JsonTrieTerm.convert(type, k2)]);
                         return [5, __values(JsonTrieTerm.rowRecObject(valNode[k2], result))];
                     case 27:
-                        _v.sent();
+                        _s.sent();
                         result.pop();
-                        _v.label = 28;
+                        _s.label = 28;
                     case 28:
-                        _r++;
+                        _o++;
                         return [3, 26];
                     case 29: return [3, 30];
                     case 30:
-                        _f++;
+                        _e++;
                         return [3, 4];
                     case 31:
                         _i++;
@@ -1208,15 +1192,15 @@ var __read = (this && this.__read) || function (o, n) {
             });
         };
         JsonTrieTerm.rowRecArray = function (curr, result) {
-            var _a, _b, _i, type, _c, _d, _e, _f, key, rest, e_17_1, _g, _h, _j, key, rest, e_18_1, valNode, _k, _l, _m, k, e_17, _o, e_18, _p;
-            return __generator(this, function (_q) {
-                switch (_q.label) {
+            var _a, _b, _i, type, _c, _d, _e, t, e_17_1, _f, _g, t, e_18_1, valNode, _h, _j, _k, k, e_17, _l, e_18, _m;
+            return __generator(this, function (_o) {
+                switch (_o.label) {
                     case 0:
                         _a = [];
                         for (_b in curr)
                             _a.push(_b);
                         _i = 0;
-                        _q.label = 1;
+                        _o.label = 1;
                     case 1:
                         if (!(_i < _a.length)) return [3, 30];
                         type = _a[_i];
@@ -1235,60 +1219,60 @@ var __read = (this && this.__read) || function (o, n) {
                         return [3, 29];
                     case 2: return [4, [result.slice(), curr.empty]];
                     case 3:
-                        _q.sent();
+                        _o.sent();
                         return [3, 29];
                     case 4:
-                        _q.trys.push([4, 9, 10, 11]);
+                        _o.trys.push([4, 9, 10, 11]);
                         _d = __values(JsonTrieTerm.rowRecArray(curr.array, [])), _e = _d.next();
-                        _q.label = 5;
+                        _o.label = 5;
                     case 5:
                         if (!!_e.done) return [3, 8];
-                        _f = __read(_e.value, 2), key = _f[0], rest = _f[1];
-                        result.push(key);
-                        return [5, __values(JsonTrieTerm.rowRecArray(rest, result))];
+                        t = _e.value;
+                        result.push(t[0]);
+                        return [5, __values(JsonTrieTerm.rowRecArray(t[1], result))];
                     case 6:
-                        _q.sent();
+                        _o.sent();
                         result.pop();
-                        _q.label = 7;
+                        _o.label = 7;
                     case 7:
                         _e = _d.next();
                         return [3, 5];
                     case 8: return [3, 11];
                     case 9:
-                        e_17_1 = _q.sent();
+                        e_17_1 = _o.sent();
                         e_17 = { error: e_17_1 };
                         return [3, 11];
                     case 10:
                         try {
-                            if (_e && !_e.done && (_o = _d.return)) _o.call(_d);
+                            if (_e && !_e.done && (_l = _d.return)) _l.call(_d);
                         }
                         finally { if (e_17) throw e_17.error; }
                         return [7];
                     case 11: return [3, 29];
                     case 12:
-                        _q.trys.push([12, 17, 18, 19]);
-                        _g = __values(JsonTrieTerm.rowRecObject(curr.object, [])), _h = _g.next();
-                        _q.label = 13;
+                        _o.trys.push([12, 17, 18, 19]);
+                        _f = __values(JsonTrieTerm.rowRecObject(curr.object, [])), _g = _f.next();
+                        _o.label = 13;
                     case 13:
-                        if (!!_h.done) return [3, 16];
-                        _j = __read(_h.value, 2), key = _j[0], rest = _j[1];
-                        result.push(key);
-                        return [5, __values(JsonTrieTerm.rowRecArray(rest, result))];
+                        if (!!_g.done) return [3, 16];
+                        t = _g.value;
+                        result.push(t[0]);
+                        return [5, __values(JsonTrieTerm.rowRecArray(t[1], result))];
                     case 14:
-                        _q.sent();
+                        _o.sent();
                         result.pop();
-                        _q.label = 15;
+                        _o.label = 15;
                     case 15:
-                        _h = _g.next();
+                        _g = _f.next();
                         return [3, 13];
                     case 16: return [3, 19];
                     case 17:
-                        e_18_1 = _q.sent();
+                        e_18_1 = _o.sent();
                         e_18 = { error: e_18_1 };
                         return [3, 19];
                     case 18:
                         try {
-                            if (_h && !_h.done && (_p = _g.return)) _p.call(_g);
+                            if (_g && !_g.done && (_m = _f.return)) _m.call(_f);
                         }
                         finally { if (e_18) throw e_18.error; }
                         return [7];
@@ -1297,34 +1281,34 @@ var __read = (this && this.__read) || function (o, n) {
                         result.push(null);
                         return [5, __values(JsonTrieTerm.rowRecArray(curr.null, result))];
                     case 21:
-                        _q.sent();
+                        _o.sent();
                         result.pop();
                         return [3, 29];
                     case 22:
                         result.push(void (0));
                         return [5, __values(JsonTrieTerm.rowRecArray(curr.undefined, result))];
                     case 23:
-                        _q.sent();
+                        _o.sent();
                         result.pop();
                         return [3, 29];
                     case 24:
                         valNode = curr[type];
-                        _k = [];
-                        for (_l in valNode)
-                            _k.push(_l);
-                        _m = 0;
-                        _q.label = 25;
+                        _h = [];
+                        for (_j in valNode)
+                            _h.push(_j);
+                        _k = 0;
+                        _o.label = 25;
                     case 25:
-                        if (!(_m < _k.length)) return [3, 28];
-                        k = _k[_m];
+                        if (!(_k < _h.length)) return [3, 28];
+                        k = _h[_k];
                         result.push(JsonTrieTerm.convert(type, k));
                         return [5, __values(JsonTrieTerm.rowRecArray(valNode[k], result))];
                     case 26:
-                        _q.sent();
+                        _o.sent();
                         result.pop();
-                        _q.label = 27;
+                        _o.label = 27;
                     case 27:
-                        _m++;
+                        _k++;
                         return [3, 25];
                     case 28: return [3, 29];
                     case 29:

@@ -75,4 +75,4 @@ var __read = (this && this.__read) || function (o, n) {
         expect(s.lookup(Y)).toBe('bar');
     });
 });
-//# sourceMappingURL=unify.test.js.map
+//# sourceMappingURL=unify.spec.js.map

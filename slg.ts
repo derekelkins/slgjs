@@ -1,8 +1,6 @@
 import { Json, JsonTerm, Variable, Substitution, groundJson, looseUnifyJson, unifyJson, refreshJson } from "./unify"
 import { VarMap, JsonTrie, JsonTrieTerm } from "./json-trie"
 
-type Stack<A> = Array<A>;
-
 interface GlobalEnvironment {
     generatorCount: number;
     topOfCompletionStack: Generator | null;
@@ -38,7 +36,6 @@ class TopLevelScheduler implements Scheduler {
  * A `void`-valued continuation monad.
  */
 type CPS<A> = (k: (value: A) => void) => void;
-
 
 /**
  * A monad for logic programming given `V`-valued [[Substitution]]s and returning `A`s.
@@ -82,10 +79,11 @@ class Generator implements Scheduler {
     // completed goals need to be woken, however, an exact SCC calculation needs to be performed to
     // correctly support even LRD-stratified negation.
 
-    private /*readonly*/ processes: Queue<() => void> | null = [];
+    private processes: Queue<() => void> | null = [];
     // We check for completion whenever this queue is empty.
     
-    private /*readonly*/ consumers: Array<[number, (cs: Array<JsonTerm>) => void]> | null = [];
+    private consumers: Array<[number, (cs: Array<JsonTerm>) => void]> | null = [];
+    private negativeConsumers: Array<() => void> | null = [];
 
     private readonly table: Array<Array<JsonTerm>> = [];
     // NOTE: We could have the answerSet store nodes of a linked list which could be traversed
@@ -95,7 +93,7 @@ class Generator implements Scheduler {
     // the nodes, then it would be worth it. In the "Efficient Access Mechanisms for Tabled Logic
     // Programs" paper, they have parent pointers in the answer trie (but not the subgoal trie)
     // that allow this.
-    private /*readonly*/ answerSet: JsonTrieTerm<boolean> | null = JsonTrieTerm.create();
+    private answerSet: JsonTrieTerm<boolean> | null = JsonTrieTerm.create();
 
     constructor(scheduler: Scheduler) {
         const gEnv = this.globalEnv = scheduler.globalEnv;
@@ -121,7 +119,15 @@ class Generator implements Scheduler {
         } else {
             const cs = <Array<[number, (cs: Array<JsonTerm>) => void]>>this.consumers;
             cs.push([0, k]);
-            if(cs.length === 1) this.execute();
+        }
+    }
+
+    consumeNegatively(k: () => void): void {
+        if(this.isComplete) {
+            if(this.table.length === 0) k();
+        } else {
+            const cs = <Array<() => void>>this.negativeConsumers;
+            cs.push(k);
         }
     }
 
@@ -142,7 +148,8 @@ class Generator implements Scheduler {
     }
 
     private isLeader(): Array<Generator> | undefined {
-        const prev = this.prevGenerator;
+        let prev = this.prevGenerator;
+        while(prev !== null && prev.isComplete) { prev = prev.prevGenerator; }
         const result: Array<Generator> = [];
         let tos = <Generator>this.globalEnv.topOfCompletionStack;
         let minLink = this.directLink;
@@ -188,31 +195,55 @@ class Generator implements Scheduler {
             const cStack = this.isLeader();
             if(cStack === void(0)) return;
             const len = cStack.length;
-            for(let i = len - 1; i >= 0; --i) {
-                if(cStack[i].scheduleResumes()) { continue completionLoop; }
-            }
-            const prev = this.prevGenerator;
-            for(let i = len - 1; i >= 0; --i) {
+            let anyNegativeConsumers = false;
+            for(let i = len - 1; i >= 0; --i) { // this loop corresponds to fixpoint_check.
                 const gen = cStack[i];
-                gen.complete();
-                gen.prevGenerator = null;
+                if(gen.scheduleResumes()) { continue completionLoop; }
+                if((<Array<() => void>>gen.negativeConsumers).length !== 0) anyNegativeConsumers = true;
             }
-            this.globalEnv.topOfCompletionStack = prev;
-            return;
+            if(anyNegativeConsumers) {
+                // TODO: Do any exact SCC check and complete those. Unlink them if it is easy.
+                // The program is not LRD-stratified if any generators in the exact SCC negatively
+                // depend on any others in the SCC.
+            } else {
+                const prev = this.prevGenerator;
+                for(let i = len - 1; i >= 0; --i) {
+                    const gen = cStack[i];
+                    gen.complete();
+                    gen.negativeConsumers = null; // It was empty anyway.
+                    gen.prevGenerator = null;
+                }
+                this.globalEnv.topOfCompletionStack = prev;
+                return;
+            }
         }
     }
 
-    private execute(): void {
-        const waiters = <Array<() => void>>this.processes;
-        let waiter = waiters.pop();
-        while(waiter !== void(0)) { waiter(); waiter = waiters.pop(); }
+    execute(): void {
+        let waiter = (<Array<() => void>>this.processes).pop();
+        while(waiter !== void(0)) { 
+            waiter(); 
+            if(this.processes === null) return; // We're already complete.
+            waiter = this.processes.pop(); 
+        }
         this.checkCompletion();
     }
 
     private complete(): void {
         this.processes = null;
-        this.consumers = null; // TODO: I need to notify negative consumers here.
+        this.consumers = null;
         this.answerSet = null;
+    }
+
+    private scheduleNegativeResumes(): void {
+        if(this.table.length === 0) {
+            const ncs = (<Array<() => void>>this.negativeConsumers);
+            const len = ncs.length;
+            for(let i = 0; i < len; ++i) {
+                ncs[i]();
+            }
+        }
+        this.negativeConsumers = null;
     }
 
     get isComplete(): boolean { return this.answerSet === null; }
@@ -229,6 +260,7 @@ class Generator implements Scheduler {
                 this.table.push([]);
                 this.scheduleResumes(); // TODO: Is this correct? We do need to notify consumers due to the early completion.
                 this.complete();
+                this.scheduleNegativeResumes();
             } // else, do nothing, we've already completed
         } else {
             // TODO: Early completion. Early completion occurs when an answer is a variant of the goal. Checking this just means
@@ -404,24 +436,29 @@ export class TabledPredicate implements Predicate {
     private readonly generators: JsonTrieTerm<Generator> = JsonTrieTerm.create();
     constructor(private readonly body: (row: JsonTerm) => LPTerm) { }
 
-    private getGenerator(row: JsonTerm, sched: Scheduler): [Generator, Array<Variable>] {
+    private getGenerator(row: JsonTerm, sched: Scheduler): [Generator, Array<Variable>, boolean] {
         let vs: any = null;
+        let isNew = false;
         const g = this.generators.modifyWithVars(row, (gen, varMap: VarMap) => {
             vs = varMap.vars;
             if(gen === void(0)) {
-                const [r, s] = refreshJson(row, Substitution.emptyPersistent());
-                return Generator.create(this.body(r), sched, vs.length, s);
+                const t = refreshJson(row, Substitution.emptyPersistent()); 
+                isNew = true;
+                return Generator.create(this.body(t[0]), sched, vs.length, t[1]);
             } else {
                 return gen;
             }
         });
-        return [g, vs];
+        return [g, vs, isNew];
     }
 
     match(row: JsonTerm): LPTerm {
         return gen => s => k => {
             // TODO: Can I add back the groundingModifyWithVars to eliminate this groundJson?
-            const [generator, vs] = this.getGenerator(groundJson(row, s), gen);
+            const t = this.getGenerator(groundJson(row, s), gen);
+            const generator = t[0];
+            const vs = t[1];
+            const isNew = t[2];
             gen.dependOn(generator);
             const len = vs.length;
             generator.consume(cs => {
@@ -430,17 +467,34 @@ export class TabledPredicate implements Predicate {
                 // k(s3);
                 let s2 = s;
                 for(let i = 0; i < len; ++i) {
-                    const [c, s3] = refreshJson(cs[i], s2, vs);
-                    s2 = s3; 
-                    cs[i] = c;
+                    const t = refreshJson(cs[i], s2, vs); 
+                    s2 = t[1]; 
+                    cs[i] = t[0];
                 }
                 for(let i = 0; i < len; ++i) {
                     s2 = <Substitution<JsonTerm>>unifyJson(vs[i], cs[i], s2);
                 }
                 k(s2);
             });
+            if(isNew) generator.execute();
         };
     }
+
+    /*
+    notMatch(row: JsonTerm): LPTerm {
+        return gen => s => k => {
+            // TODO: Can I add back the groundingModifyWithVars to eliminate this groundJson?
+            const t = this.getGenerator(groundJson(row, s), gen);
+            const generator = t[0];
+            const vs = t[1];
+            const isNew = t[2];
+            gen.dependNegativelyOn(generator);
+            if(vs.length !== 0) throw new Error('TabledPredicate.notMatch: negation of non-ground atom');
+            generator.consumeNegatively(() => k(s));
+            if(isNew) generator.execute();
+        };
+    }
+    */
 }
 
 /**
@@ -496,8 +550,8 @@ export function disj<V>(...ds: Array<LPSub<V>>): LPSub<V> {
  */
 export function freshN<V, A>(count: number, body: (...vs: Array<Variable>) => LP<V, A>): LP<V, A> {
     return gen => s => k => {
-        const [vs, s2] = s.fresh(count);
-        return body.apply(null, vs)(gen)(s2)(k);
+        const t = s.fresh(count);
+        return body.apply(null, t[0])(gen)(t[1])(k);
     };
 }
 
@@ -515,8 +569,8 @@ export function fresh<V, A>(body: (...vs: Array<Variable>) => LP<V, A>): LP<V, A
  */
 export function clauseN<V>(count: number, body: (...vs: Array<Variable>) => Array<LPSub<V>>): LPSub<V> {
     return gen => s => k => {
-        const [vs, s2] = s.fresh(count);
-        return conj.apply(null, body.apply(null, vs))(gen)(s2)(k);
+        const t = s.fresh(count);
+        return conj.apply(null, body.apply(null, t[0]))(gen)(t[1])(k);
     };
 }
 

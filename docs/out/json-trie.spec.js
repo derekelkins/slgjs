@@ -248,4 +248,4 @@ var __read = (this && this.__read) || function (o, n) {
         });
     });
 });
-//# sourceMappingURL=json-trie.test.js.map
+//# sourceMappingURL=json-trie.spec.js.map

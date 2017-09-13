@@ -93,8 +93,8 @@ export class JsonTrie<A> {
      * @returns An iterable over the keys.
      */
     *keys(): Iterable<Json> {
-        for(const [k, _] of JsonTrie.rowRec(this.trie)) {
-            yield k;
+        for(const t of JsonTrie.rowRec(this.trie)) {
+            yield t[0];
         }
     }
 
@@ -106,8 +106,8 @@ export class JsonTrie<A> {
      * @returns An iterable over the values.
      */
     *values(): Iterable<A> {
-        for(const [_, v] of JsonTrie.rowRec(this.trie)) {
-            yield v;
+        for(const t of JsonTrie.rowRec(this.trie)) {
+            yield t[1];
         }
     }
 
@@ -132,8 +132,8 @@ export class JsonTrie<A> {
      * @returns An iterable of extended [[Substitution]]s, one for each matching key.
      */
     *match(key: JsonTerm, sub: Substitution<JsonTerm>): Iterable<Substitution<JsonTerm>> {
-        for(let [_, s] of JsonTrie.matchRec(key, sub, this.trie)) {
-            yield s;
+        for(const t of JsonTrie.matchRec(key, sub, this.trie)) {
+            yield t[1];
         }
     }
 
@@ -152,8 +152,8 @@ export class JsonTrie<A> {
 
     private static *matchRecArray(key: Array<JsonTerm>, i: number, sub: Substitution<JsonTerm>, curr: any): Iterable<[any, Substitution<JsonTerm>]> {
         if(i < key.length) {
-            for(const [node, s] of JsonTrie.matchRec(key[i], sub, curr)) {
-                yield* JsonTrie.matchRecArray(key, i+1, s, node);
+            for(const t of JsonTrie.matchRec(key[i], sub, curr)) {
+                yield* JsonTrie.matchRecArray(key, i+1, t[1], t[0]);
             }
         } else {
             if('empty' in curr) yield [curr.empty, sub];
@@ -167,8 +167,8 @@ export class JsonTrie<A> {
             const k = keys[i];
             node = node[k];
             if(node === void(0)) return;
-            for(const [node2, s] of JsonTrie.matchRec(key[k], sub, node)) {
-                yield* JsonTrie.matchRecObject(key, keys, i+1, s, node2);
+            for(const t of JsonTrie.matchRec(key[k], sub, node)) {
+                yield* JsonTrie.matchRecObject(key, keys, i+1, t[1], t[0]);
             }
         } else {
             if('empty' in curr) yield [curr.empty, sub];
@@ -183,8 +183,8 @@ export class JsonTrie<A> {
             } else if(key instanceof Variable) {
                 const v = sub.lookupAsVar(key);
                 if(v instanceof Variable) { // it's unbound
-                    for(let [val, node] of JsonTrie.rowRec(curr)) {
-                        yield [node, sub.bind(v, val)];
+                    for(const t of JsonTrie.rowRec(curr)) {
+                        yield [t[1], sub.bind(v, t[0])];
                     }
                 } else {
                     yield* JsonTrie.matchRec(v, sub, curr);
@@ -214,8 +214,8 @@ export class JsonTrie<A> {
     private static *rowRecObject(curr: any, result: Array<[string, Json]>): Iterable<[Json, any]> {
         if('empty' in curr) {
             const obj: Json = {};
-            for(const [k, v] of result) {
-                obj[k] = v;
+            for(const t of result) {
+                obj[t[0]] = t[1];
             }
             yield [obj, curr.empty];
         }
@@ -226,16 +226,16 @@ export class JsonTrie<A> {
             for(const type in node) {
                 switch(type) {
                     case 'array':
-                        for(const [key, rest] of JsonTrie.rowRecArray(node.array, []) ){
-                            result.push([k, key]);
-                            yield* JsonTrie.rowRecObject(rest, result);
+                        for(const t of JsonTrie.rowRecArray(node.array, []) ){
+                            result.push([k, t[0]]);
+                            yield* JsonTrie.rowRecObject(t[1], result);
                             result.pop();
                         }
                         break;
                     case 'object':
-                        for(const [key, rest] of JsonTrie.rowRecObject(node.object, []) ){
-                            result.push([k, key]);
-                            yield* JsonTrie.rowRecObject(rest, result);
+                        for(const t of JsonTrie.rowRecObject(node.object, []) ){
+                            result.push([k, t[0]]);
+                            yield* JsonTrie.rowRecObject(t[1], result);
                             result.pop();
                         }
                         break;
@@ -270,16 +270,16 @@ export class JsonTrie<A> {
                     yield [result.slice(), curr.empty];
                     break;
                 case 'array':
-                    for(const [key, rest] of JsonTrie.rowRecArray(curr.array, []) ){
-                        result.push(key);
-                        yield* JsonTrie.rowRecArray(rest, result);
+                    for(const t of JsonTrie.rowRecArray(curr.array, []) ){
+                        result.push(t[0]);
+                        yield* JsonTrie.rowRecArray(t[1], result);
                         result.pop();
                     }
                     break;
                 case 'object':
-                    for(const [key, rest] of JsonTrie.rowRecObject(curr.object, []) ){
-                        result.push(key);
-                        yield* JsonTrie.rowRecArray(rest, result);
+                    for(const t of JsonTrie.rowRecObject(curr.object, []) ){
+                        result.push(t[0]);
+                        yield* JsonTrie.rowRecArray(t[1], result);
                         result.pop();
                     }
                     break;
@@ -621,8 +621,8 @@ export class JsonTrieTerm<A> {
      * @returns An iterable over the keys.
      */
     *keys(): Iterable<JsonTerm> {
-        for(const [k, _] of JsonTrieTerm.rowRec(this.trie)) {
-            yield k;
+        for(const t of JsonTrieTerm.rowRec(this.trie)) {
+            yield t[0];
         }
     }
 
@@ -634,8 +634,8 @@ export class JsonTrieTerm<A> {
      * @returns An iterable over the values.
      */
     *values(): Iterable<A> {
-        for(const [_, v] of JsonTrieTerm.rowRec(this.trie)) {
-            yield v;
+        for(const t of JsonTrieTerm.rowRec(this.trie)) {
+            yield t[1];
         }
     }
 
@@ -650,8 +650,8 @@ export class JsonTrieTerm<A> {
     private static *rowRecObject(curr: any, result: Array<[string, JsonTerm]>): Iterable<[JsonTerm, any]> {
         if('empty' in curr) {
             const obj: JsonTerm = {};
-            for(const [k, v] of result) {
-                obj[k] = v;
+            for(const t of result) {
+                obj[t[0]] = t[1];
             }
             yield [obj, curr.empty];
         }
@@ -662,16 +662,16 @@ export class JsonTrieTerm<A> {
             for(const type in node) {
                 switch(type) {
                     case 'array':
-                        for(const [key, rest] of JsonTrieTerm.rowRecArray(node.array, []) ){
-                            result.push([k, key]);
-                            yield* JsonTrieTerm.rowRecObject(rest, result);
+                        for(const t of JsonTrieTerm.rowRecArray(node.array, []) ){
+                            result.push([k, t[0]]);
+                            yield* JsonTrieTerm.rowRecObject(t[1], result);
                             result.pop();
                         }
                         break;
                     case 'object':
-                        for(const [key, rest] of JsonTrieTerm.rowRecObject(node.object, []) ){
-                            result.push([k, key]);
-                            yield* JsonTrieTerm.rowRecObject(rest, result);
+                        for(const t of JsonTrieTerm.rowRecObject(node.object, []) ){
+                            result.push([k, t[0]]);
+                            yield* JsonTrieTerm.rowRecObject(t[1], result);
                             result.pop();
                         }
                         break;
@@ -709,16 +709,16 @@ export class JsonTrieTerm<A> {
                     yield [result.slice(), curr.empty];
                     break;
                 case 'array':
-                    for(const [key, rest] of JsonTrieTerm.rowRecArray(curr.array, []) ){
-                        result.push(key);
-                        yield* JsonTrieTerm.rowRecArray(rest, result);
+                    for(const t of JsonTrieTerm.rowRecArray(curr.array, []) ){
+                        result.push(t[0]);
+                        yield* JsonTrieTerm.rowRecArray(t[1], result);
                         result.pop();
                     }
                     break;
                 case 'object':
-                    for(const [key, rest] of JsonTrieTerm.rowRecObject(curr.object, []) ){
-                        result.push(key);
-                        yield* JsonTrieTerm.rowRecArray(rest, result);
+                    for(const t of JsonTrieTerm.rowRecObject(curr.object, []) ){
+                        result.push(t[0]);
+                        yield* JsonTrieTerm.rowRecArray(t[1], result);
                         result.pop();
                     }
                     break;

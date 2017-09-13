@@ -8,22 +8,6 @@ var __values = (this && this.__values) || function (o) {
         }
     };
 };
-var __read = (this && this.__read) || function (o, n) {
-    var m = typeof Symbol === "function" && o[Symbol.iterator];
-    if (!m) return o;
-    var i = m.call(o), r, ar = [], e;
-    try {
-        while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
-    }
-    catch (error) { e = { error: error }; }
-    finally {
-        try {
-            if (r && !r.done && (m = i["return"])) m.call(i);
-        }
-        finally { if (e) throw e.error; }
-    }
-    return ar;
-};
 (function (factory) {
     if (typeof module === "object" && typeof module.exports === "object") {
         var v = factory(require, exports);
@@ -60,6 +44,7 @@ var __read = (this && this.__read) || function (o, n) {
         function Generator(scheduler) {
             this.processes = [];
             this.consumers = [];
+            this.negativeConsumers = [];
             this.table = [];
             this.answerSet = json_trie_1.JsonTrieTerm.create();
             var gEnv = this.globalEnv = scheduler.globalEnv;
@@ -83,8 +68,16 @@ var __read = (this && this.__read) || function (o, n) {
             else {
                 var cs = this.consumers;
                 cs.push([0, k]);
-                if (cs.length === 1)
-                    this.execute();
+            }
+        };
+        Generator.prototype.consumeNegatively = function (k) {
+            if (this.isComplete) {
+                if (this.table.length === 0)
+                    k();
+            }
+            else {
+                var cs = this.negativeConsumers;
+                cs.push(k);
             }
         };
         Generator.prototype.scheduleAnswers = function (consumer) {
@@ -103,6 +96,9 @@ var __read = (this && this.__read) || function (o, n) {
         };
         Generator.prototype.isLeader = function () {
             var prev = this.prevGenerator;
+            while (prev !== null && prev.isComplete) {
+                prev = prev.prevGenerator;
+            }
             var result = [];
             var tos = this.globalEnv.topOfCompletionStack;
             var minLink = this.directLink;
@@ -149,27 +145,37 @@ var __read = (this && this.__read) || function (o, n) {
                 if (cStack === void (0))
                     return;
                 var len = cStack.length;
-                for (var i = len - 1; i >= 0; --i) {
-                    if (cStack[i].scheduleResumes()) {
-                        continue completionLoop;
-                    }
-                }
-                var prev = this.prevGenerator;
+                var anyNegativeConsumers = false;
                 for (var i = len - 1; i >= 0; --i) {
                     var gen = cStack[i];
-                    gen.complete();
-                    gen.prevGenerator = null;
+                    if (gen.scheduleResumes()) {
+                        continue completionLoop;
+                    }
+                    if (gen.negativeConsumers.length !== 0)
+                        anyNegativeConsumers = true;
                 }
-                this.globalEnv.topOfCompletionStack = prev;
-                return;
+                if (anyNegativeConsumers) {
+                }
+                else {
+                    var prev = this.prevGenerator;
+                    for (var i = len - 1; i >= 0; --i) {
+                        var gen = cStack[i];
+                        gen.complete();
+                        gen.negativeConsumers = null;
+                        gen.prevGenerator = null;
+                    }
+                    this.globalEnv.topOfCompletionStack = prev;
+                    return;
+                }
             }
         };
         Generator.prototype.execute = function () {
-            var waiters = this.processes;
-            var waiter = waiters.pop();
+            var waiter = this.processes.pop();
             while (waiter !== void (0)) {
                 waiter();
-                waiter = waiters.pop();
+                if (this.processes === null)
+                    return;
+                waiter = this.processes.pop();
             }
             this.checkCompletion();
         };
@@ -177,6 +183,16 @@ var __read = (this && this.__read) || function (o, n) {
             this.processes = null;
             this.consumers = null;
             this.answerSet = null;
+        };
+        Generator.prototype.scheduleNegativeResumes = function () {
+            if (this.table.length === 0) {
+                var ncs = this.negativeConsumers;
+                var len = ncs.length;
+                for (var i = 0; i < len; ++i) {
+                    ncs[i]();
+                }
+            }
+            this.negativeConsumers = null;
         };
         Object.defineProperty(Generator.prototype, "isComplete", {
             get: function () { return this.answerSet === null; },
@@ -195,6 +211,7 @@ var __read = (this && this.__read) || function (o, n) {
                     this.table.push([]);
                     this.scheduleResumes();
                     this.complete();
+                    this.scheduleNegativeResumes();
                 }
             }
             else {
@@ -328,29 +345,37 @@ var __read = (this && this.__read) || function (o, n) {
         TabledPredicate.prototype.getGenerator = function (row, sched) {
             var _this = this;
             var vs = null;
+            var isNew = false;
             var g = this.generators.modifyWithVars(row, function (gen, varMap) {
                 vs = varMap.vars;
                 if (gen === void (0)) {
-                    var _a = __read(unify_1.refreshJson(row, unify_1.Substitution.emptyPersistent()), 2), r = _a[0], s = _a[1];
+                    var tmp = unify_1.refreshJson(row, unify_1.Substitution.emptyPersistent());
+                    var r = tmp[0];
+                    var s = tmp[0];
+                    isNew = true;
                     return Generator.create(_this.body(r), sched, vs.length, s);
                 }
                 else {
                     return gen;
                 }
             });
-            return [g, vs];
+            return [g, vs, isNew];
         };
         TabledPredicate.prototype.match = function (row) {
             var _this = this;
             return function (gen) { return function (s) { return function (k) {
-                var _a = __read(_this.getGenerator(unify_1.groundJson(row, s), gen), 2), generator = _a[0], vs = _a[1];
+                var t = _this.getGenerator(unify_1.groundJson(row, s), gen);
+                var generator = t[0];
+                var vs = t[1];
+                var isNew = t[2];
                 gen.dependOn(generator);
                 var len = vs.length;
                 generator.consume(function (cs) {
                     var s2 = s;
                     for (var i = 0; i < len; ++i) {
-                        var _a = __read(unify_1.refreshJson(cs[i], s2, vs), 2), c = _a[0], s3 = _a[1];
-                        s2 = s3;
+                        var tmp = unify_1.refreshJson(cs[i], s2, vs);
+                        var c = tmp[0];
+                        s2 = tmp[1];
                         cs[i] = c;
                     }
                     for (var i = 0; i < len; ++i) {
@@ -358,6 +383,8 @@ var __read = (this && this.__read) || function (o, n) {
                     }
                     k(s2);
                 });
+                if (isNew)
+                    generator.execute();
             }; }; };
         };
         return TabledPredicate;
@@ -414,8 +441,8 @@ var __read = (this && this.__read) || function (o, n) {
     exports.disj = disj;
     function freshN(count, body) {
         return function (gen) { return function (s) { return function (k) {
-            var _a = __read(s.fresh(count), 2), vs = _a[0], s2 = _a[1];
-            return body.apply(null, vs)(gen)(s2)(k);
+            var t = s.fresh(count);
+            return body.apply(null, t[0])(gen)(t[1])(k);
         }; }; };
     }
     exports.freshN = freshN;
@@ -425,8 +452,8 @@ var __read = (this && this.__read) || function (o, n) {
     exports.fresh = fresh;
     function clauseN(count, body) {
         return function (gen) { return function (s) { return function (k) {
-            var _a = __read(s.fresh(count), 2), vs = _a[0], s2 = _a[1];
-            return conj.apply(null, body.apply(null, vs))(gen)(s2)(k);
+            var t = s.fresh(count);
+            return conj.apply(null, body.apply(null, t[0]))(gen)(t[1])(k);
         }; }; };
     }
     exports.clauseN = clauseN;

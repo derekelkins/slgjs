@@ -347,9 +347,9 @@ export default class PersistentUnionFind<A> implements UnionFind<A> {
     private constructor(private readonly ranks: PersistentArray<number>, private parents: PersistentArray<Variable<A>>) {}
 
     find(id: number): Variable<A> {
-        const [f, cx] = this.findAux(id);
-        this.parents = f;
-        return cx;
+        const t = this.findAux(id);
+        this.parents = t[0];
+        return t[1];
     }
 
     private findAux(i: number): [PersistentArray<Variable<A>>, Variable<A>] {

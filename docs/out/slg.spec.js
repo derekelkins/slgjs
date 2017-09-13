@@ -1291,4 +1291,4 @@ var __read = (this && this.__read) || function (o, n) {
         });
     });
 });
-//# sourceMappingURL=slg.test.js.map
+//# sourceMappingURL=slg.spec.js.map
