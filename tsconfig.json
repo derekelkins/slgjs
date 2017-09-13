@@ -19,11 +19,11 @@
     "files": [
         "puf.ts",
         "unify.ts",
-        "unify.test.ts",
+        "unify.spec.ts",
         "slg.ts",
-        "slg.test.ts",
+        "slg.spec.ts",
         "json-trie.ts",
-        "json-trie.test.ts",
+        "json-trie.spec.ts",
         "scc.ts"
     ]
 }
