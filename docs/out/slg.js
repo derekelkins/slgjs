@@ -349,11 +349,9 @@ var __values = (this && this.__values) || function (o) {
             var g = this.generators.modifyWithVars(row, function (gen, varMap) {
                 vs = varMap.vars;
                 if (gen === void (0)) {
-                    var tmp = unify_1.refreshJson(row, unify_1.Substitution.emptyPersistent());
-                    var r = tmp[0];
-                    var s = tmp[0];
+                    var t = unify_1.refreshJson(row, unify_1.Substitution.emptyPersistent());
                     isNew = true;
-                    return Generator.create(_this.body(r), sched, vs.length, s);
+                    return Generator.create(_this.body(t[0]), sched, vs.length, t[1]);
                 }
                 else {
                     return gen;
@@ -373,10 +371,9 @@ var __values = (this && this.__values) || function (o) {
                 generator.consume(function (cs) {
                     var s2 = s;
                     for (var i = 0; i < len; ++i) {
-                        var tmp = unify_1.refreshJson(cs[i], s2, vs);
-                        var c = tmp[0];
-                        s2 = tmp[1];
-                        cs[i] = c;
+                        var t_1 = unify_1.refreshJson(cs[i], s2, vs);
+                        s2 = t_1[1];
+                        cs[i] = t_1[0];
                     }
                     for (var i = 0; i < len; ++i) {
                         s2 = unify_1.unifyJson(vs[i], cs[i], s2);
