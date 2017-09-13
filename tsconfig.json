@@ -8,7 +8,7 @@
         "downlevelIteration": true,
         "noUnusedLocals": false,
         "target": "es5",
-        "outDir": "out",
+        "outDir": "docs/out",
         "lib": [
             "es2015.generator",
             "es2015.iterable",
