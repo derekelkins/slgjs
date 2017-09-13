@@ -18,7 +18,6 @@
     },
     "files": [
         "puf.ts",
-        "jsqc.ts",
         "unify.ts",
         "unify.test.ts",
         "slg.ts",
