@@ -1,1 +1,5 @@
+title: SLG JS
+description: An embedding of tabled logic programming in TypeScript/JavaScript.
+show_downloads: false
+google_analytics:
 theme: jekyll-theme-minimal
