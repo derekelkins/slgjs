@@ -28,6 +28,32 @@ var __read = (this && this.__read) || function (o, n) {
     require("jest");
     var unify_1 = require("./unify");
     var slg_1 = require("./slg");
+    describe('LRD-stratified negation', function () {
+        test('LRD-stratified example', function () {
+            var p = new slg_1.TabledPredicate(function (X) { return slg_1.rule(function () { return [q.match(X), r.notMatch(X), s.notMatch(X)]; }); });
+            var q = new slg_1.TabledPredicate(function (X) { return slg_1.rule(function () { return [r.match(X), p.notMatch(X)]; }); });
+            var r = new slg_1.TabledPredicate(function (X) { return slg_1.rule(function () { return [p.match(X), q.notMatch(X)]; }); });
+            var s = new slg_1.TabledPredicate(function (X) { return slg_1.rule(function () { return [p.notMatch(X), q.notMatch(X), r.notMatch(X)]; }); });
+            var results = slg_1.toArrayQ(function (Q) { return slg_1.conj(s.match(null), slg_1.unify(Q, true)); });
+            expect(results).toEqual([true]);
+        });
+        test('non-LRD-stratified example', function () {
+            var p = new slg_1.TabledPredicate(function (X) { return slg_1.rule(function () { return [s.notMatch(X), r.notMatch(X), q.match(X)]; }); });
+            var q = new slg_1.TabledPredicate(function (X) { return slg_1.rule(function () { return [r.match(X), p.notMatch(X)]; }); });
+            var r = new slg_1.TabledPredicate(function (X) { return slg_1.rule(function () { return [p.match(X), q.notMatch(X)]; }); });
+            var s = new slg_1.TabledPredicate(function (X) { return slg_1.rule(function () { return [p.notMatch(X), q.notMatch(X), r.notMatch(X)]; }); });
+            expect(function () { return slg_1.toArrayQ(function (Q) { return slg_1.conj(s.match(null), slg_1.unify(Q, true)); }); }).toThrow();
+        });
+        test('floundering', function () {
+            var p = new slg_1.TabledPredicate(function (X) { return slg_1.rule(function () { return []; }); });
+            expect(function () { return slg_1.toArrayQ(function (Q) { return slg_1.conj(p.notMatch(Q), slg_1.unify(Q, true)); }); }).toThrow('TabledPredicate.notMatch: negation of non-ground atom (floundering)');
+        });
+        test('non-trivial LRD-stratified example', function () {
+            var p = new slg_1.TabledPredicate(function (X) { return slg_1.rule(function () { return [slg_1.unify(X, 'a'), p.match('b'), p.notMatch('d')]; }, function () { return [slg_1.unify(X, 'b'), p.match('c')]; }, function () { return [slg_1.unify(X, 'b'), p.notMatch('d')]; }, function () { return [slg_1.unify(X, 'b')]; }, function () { return [slg_1.unify(X, 'b'), p.notMatch('a')]; }, function () { return [slg_1.unify(X, 'c'), p.match('b'), p.match('e')]; }, function () { return [slg_1.unify(X, 'd'), p.notMatch('c'), p.match('d')]; }, function () { return [slg_1.unify(X, 'e'), p.match('c')]; }, function () { return [slg_1.unify(X, 'e'), p.notMatch('b'), p.notMatch('e')]; }); });
+            var results = slg_1.toArrayQ(function (Q) { return slg_1.conj(p.match('a'), slg_1.unify(Q, true)); });
+            expect(results).toEqual([true]);
+        });
+    });
     describe('traditional Prolog append example', function () {
         test('untabled (which is preferable for this)', function () {
             var append = new slg_1.UntabledPredicate(function (_a) {
@@ -206,6 +232,18 @@ var __read = (this && this.__read) || function (o, n) {
         ]);
         var result = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (X) { return [objects.match(X), slg_1.looseUnify({ foo: Q }, X)]; }); });
         expect(result).toEqual([1, 3]);
+    });
+    test('trapped subgoal', function () {
+        var p = new slg_1.TabledPredicate(function (_a) {
+            var _b = __read(_a, 2), X = _b[0], Y = _b[1];
+            return slg_1.rule(function () { return [q.match(X), r.match(Y)]; }, function () { return [slg_1.unify([X, Y], ['c', 'a'])]; });
+        });
+        var q = new slg_1.TabledPredicate(function (X) { return slg_1.rule(function () { return [slg_1.unify(X, 'a')]; }, function () { return [slg_1.unify(X, 'b')]; }); });
+        var r = new slg_1.TabledPredicate(function (X) { return slg_1.rule(function () { return [slg_1.unify(X, 'c')]; }, function (Y) { return [p.match([X, Y])]; }); });
+        var result = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (X, Y) { return [p.match([X, Y]), slg_1.unify(Q, [X, Y])]; }); });
+        expect(result).toEqual([
+            ['c', 'a'], ['a', 'c'], ['b', 'c'], ['a', 'a'], ['a', 'b'], ['b', 'a'], ['b', 'b']
+        ]);
     });
     describe('tests for independence of variables between consumers and generators', function () {
         test('', function () {

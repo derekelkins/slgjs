@@ -939,9 +939,6 @@ img { max-width: 100%; }
 				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-static">
 					<a href="_slg_.trieedbpredicate.html#fromarray" class="tsd-kind-icon">from<wbr>Array</a>
 				</li>
-				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-static">
-					<a href="_slg_.trieedbpredicate.html#fromjsontrie" class="tsd-kind-icon">from<wbr>Json<wbr>Trie</a>
-				</li>
 			</ul>
 		</li>
 		<li class=" tsd-kind-class tsd-parent-kind-external-module">
@@ -1073,7 +1070,6 @@ img { max-width: 100%; }
 							<li class="tsd-kind-method tsd-parent-kind-class"><a href="_slg_.trieedbpredicate.html#match" class="tsd-kind-icon">match</a></li>
 							<li class="tsd-kind-method tsd-parent-kind-class"><a href="_slg_.trieedbpredicate.html#notmatch" class="tsd-kind-icon">not<wbr>Match</a></li>
 							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_slg_.trieedbpredicate.html#fromarray" class="tsd-kind-icon">from<wbr>Array</a></li>
-							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_slg_.trieedbpredicate.html#fromjsontrie" class="tsd-kind-icon">from<wbr>Json<wbr>Trie</a></li>
 						</ul>
 					</section>
 				</div>
@@ -1091,13 +1087,23 @@ img { max-width: 100%; }
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/518a905/slg.ts#L324">slg.ts:324</a></li>
+								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/e3e50f0/slg.ts#L422">slg.ts:422</a></li>
 							</ul>
 						</aside>
+						<div class="tsd-comment tsd-typography">
+							<div class="lead">
+								<p>Uses <code>trie</code> as the backing store without copying.</p>
+							</div>
+						</div>
 						<h4 class="tsd-parameters-title">Parameters</h4>
 						<ul class="tsd-parameters">
 							<li>
 								<h5>trie: <a href="_json_trie_.jsontrie.html" class="tsd-signature-type">JsonTrie</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h5>
+								<div class="tsd-comment tsd-typography">
+									<div class="lead">
+										<p>The backing store.</p>
+									</div>
+								</div>
 							</li>
 						</ul>
 						<h4 class="tsd-returns-title">Returns <a href="_slg_.trieedbpredicate.html" class="tsd-signature-type">TrieEdbPredicate</a></h4>
@@ -1113,9 +1119,14 @@ img { max-width: 100%; }
 				<div class="tsd-signature tsd-kind-icon">trie<span class="tsd-signature-symbol">:</span> <a href="_json_trie_.jsontrie.html" class="tsd-signature-type">JsonTrie</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/518a905/slg.ts#L326">slg.ts:326</a></li>
+						<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/e3e50f0/slg.ts#L428">slg.ts:428</a></li>
 					</ul>
 				</aside>
+				<div class="tsd-comment tsd-typography">
+					<div class="lead">
+						<p>The backing store.</p>
+					</div>
+				</div>
 			</section>
 		</section>
 		<section class="tsd-panel-group tsd-member-group ">
@@ -1131,7 +1142,7 @@ img { max-width: 100%; }
 						<aside class="tsd-sources">
 							<p>Implementation of <a href="../interfaces/_slg_.predicate.html">Predicate</a>.<a href="../interfaces/_slg_.predicate.html#match">match</a></p>
 							<ul>
-								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/518a905/slg.ts#L328">slg.ts:328</a></li>
+								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/e3e50f0/slg.ts#L430">slg.ts:430</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-parameters-title">Parameters</h4>
@@ -1154,7 +1165,7 @@ img { max-width: 100%; }
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/518a905/slg.ts#L343">slg.ts:343</a></li>
+								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/e3e50f0/slg.ts#L445">slg.ts:445</a></li>
 							</ul>
 						</aside>
 						<div class="tsd-comment tsd-typography">
@@ -1188,7 +1199,7 @@ img { max-width: 100%; }
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/518a905/slg.ts#L308">slg.ts:308</a></li>
+								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/e3e50f0/slg.ts#L415">slg.ts:415</a></li>
 							</ul>
 						</aside>
 						<div class="tsd-comment tsd-typography">
@@ -1208,38 +1219,6 @@ img { max-width: 100%; }
 						</ul>
 						<h4 class="tsd-returns-title">Returns <a href="_slg_.trieedbpredicate.html" class="tsd-signature-type">TrieEdbPredicate</a></h4>
 						<p>A <a href="../interfaces/_slg_.predicate.html">Predicate</a> backed by a <a href="_json_trie_.jsontrie.html">JsonTrie</a> representing the data in <code>row</code>.</p>
-					</li>
-				</ul>
-			</section>
-			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
-				<a name="fromjsontrie" class="tsd-anchor"></a>
-				<h3><span class="tsd-flag ts-flagStatic">Static</span> from<wbr>Json<wbr>Trie</h3>
-				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
-					<li class="tsd-signature tsd-kind-icon">from<wbr>Json<wbr>Trie<span class="tsd-signature-symbol">(</span>trie<span class="tsd-signature-symbol">: </span><a href="_json_trie_.jsontrie.html" class="tsd-signature-type">JsonTrie</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_slg_.trieedbpredicate.html" class="tsd-signature-type">TrieEdbPredicate</a></li>
-				</ul>
-				<ul class="tsd-descriptions">
-					<li class="tsd-description">
-						<aside class="tsd-sources">
-							<ul>
-								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/518a905/slg.ts#L322">slg.ts:322</a></li>
-							</ul>
-						</aside>
-						<div class="tsd-comment tsd-typography">
-							<div class="lead">
-								<p>Uses <code>trie</code> as the backing store without copying.</p>
-							</div>
-						</div>
-						<h4 class="tsd-parameters-title">Parameters</h4>
-						<ul class="tsd-parameters">
-							<li>
-								<h5>trie: <a href="_json_trie_.jsontrie.html" class="tsd-signature-type">JsonTrie</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h5>
-								<div class="tsd-comment tsd-typography">
-									<p>The backing store.</p>
-								</div>
-							</li>
-						</ul>
-						<h4 class="tsd-returns-title">Returns <a href="_slg_.trieedbpredicate.html" class="tsd-signature-type">TrieEdbPredicate</a></h4>
-						<p>A <a href="../interfaces/_slg_.predicate.html">Predicate</a> backed by <code>trie</code>.</p>
 					</li>
 				</ul>
 			</section>

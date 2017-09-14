@@ -38,6 +38,7 @@ var __values = (this && this.__values) || function (o) {
             }
         };
         TopLevelScheduler.prototype.dependOn = function (gen) { };
+        TopLevelScheduler.prototype.dependNegativelyOn = function (gen) { };
         return TopLevelScheduler;
     }());
     var Generator = (function () {
@@ -45,6 +46,11 @@ var __values = (this && this.__values) || function (o) {
             this.processes = [];
             this.consumers = [];
             this.negativeConsumers = [];
+            this.successors = {};
+            this.negativeSuccessors = {};
+            this.sccIndex = -1;
+            this.sccLowLink = -1;
+            this.onSccStack = false;
             this.table = [];
             this.answerSet = json_trie_1.JsonTrieTerm.create();
             var gEnv = this.globalEnv = scheduler.globalEnv;
@@ -54,7 +60,17 @@ var __values = (this && this.__values) || function (o) {
             gEnv.topOfCompletionStack = this;
         }
         Generator.prototype.dependOn = function (v) {
+            if (this.isComplete)
+                return;
             this.directLink = Math.min(this.directLink, v.directLink);
+            this.successors[v.selfId] = v;
+            this.globalEnv.sdgEdges.push([this.selfId, v.selfId]);
+        };
+        Generator.prototype.dependNegativelyOn = function (v) {
+            if (this.isComplete)
+                return;
+            this.directLink = Math.min(this.directLink, v.directLink);
+            this.negativeSuccessors[v.selfId] = v;
             this.globalEnv.sdgEdges.push([this.selfId, v.selfId]);
         };
         Generator.prototype.consume = function (k) {
@@ -66,8 +82,7 @@ var __values = (this && this.__values) || function (o) {
                 }
             }
             else {
-                var cs = this.consumers;
-                cs.push([0, k]);
+                this.consumers.push([0, k]);
             }
         };
         Generator.prototype.consumeNegatively = function (k) {
@@ -76,8 +91,7 @@ var __values = (this && this.__values) || function (o) {
                     k();
             }
             else {
-                var cs = this.negativeConsumers;
-                cs.push(k);
+                this.negativeConsumers.push(k);
             }
         };
         Generator.prototype.scheduleAnswers = function (consumer) {
@@ -97,8 +111,11 @@ var __values = (this && this.__values) || function (o) {
         Generator.prototype.isLeader = function () {
             var prev = this.prevGenerator;
             while (prev !== null && prev.isComplete) {
-                prev = prev.prevGenerator;
+                var p = prev.prevGenerator;
+                prev.prevGenerator = null;
+                prev = p;
             }
+            this.prevGenerator = prev;
             var result = [];
             var tos = this.globalEnv.topOfCompletionStack;
             var minLink = this.directLink;
@@ -124,7 +141,7 @@ var __values = (this && this.__values) || function (o) {
                 tos = p;
             }
             result.push(this);
-            return prev === null || prev.selfId < Math.min(this.directLink, minLink) ? result : void (0);
+            return prev === null || prev.selfId < Math.min(this.directLink, minLink) ? result : null;
         };
         Generator.prototype.scheduleResumes = function () {
             var cs = this.consumers;
@@ -137,12 +154,60 @@ var __values = (this && this.__values) || function (o) {
             }
             return wereUnconsumed;
         };
+        Generator.completeScc = function (gen) {
+            var index = 0;
+            var stack = [];
+            var scc = function (g) {
+                g.sccIndex = g.sccLowLink = index++;
+                stack.push(g);
+                g.onSccStack = true;
+                var negSuccs = g.negativeSuccessors;
+                for (var k in negSuccs) {
+                    var w = negSuccs[k];
+                    if (w.sccIndex === -1 && !w.isComplete) {
+                        scc(w);
+                        g.sccLowLink = Math.min(g.sccLowLink, w.sccLowLink);
+                    }
+                    else if (w.onSccStack) {
+                        g.sccLowLink = Math.min(g.sccLowLink, w.sccIndex);
+                    }
+                }
+                var succs = g.successors;
+                for (var k in succs) {
+                    var w = succs[k];
+                    if (w.sccIndex === -1 && !w.isComplete) {
+                        scc(w);
+                        g.sccLowLink = Math.min(g.sccLowLink, w.sccLowLink);
+                    }
+                    else if (w.onSccStack) {
+                        g.sccLowLink = Math.min(g.sccLowLink, w.sccIndex);
+                    }
+                }
+                if (g.sccLowLink === g.sccIndex) {
+                    var sccLen = stack.length;
+                    var i = sccLen - 1;
+                    for (var gen_1 = stack[i]; gen_1 !== g; gen_1 = stack[--i]) {
+                        gen_1.onSccStack = false;
+                        gen_1.complete();
+                        gen_1.prevGenerator = null;
+                    }
+                    g.onSccStack = false;
+                    g.complete();
+                    g.prevGenerator = null;
+                    for (var j = i; j < sccLen; ++j) {
+                        stack[j].scheduleNegativeResumes();
+                    }
+                    stack.length = i;
+                }
+            };
+            scc(gen);
+        };
         Generator.prototype.checkCompletion = function () {
             if (this.isComplete)
                 return;
             completionLoop: while (true) {
                 var cStack = this.isLeader();
-                if (cStack === void (0))
+                if (cStack === null)
                     return;
                 var len = cStack.length;
                 var anyNegativeConsumers = false;
@@ -155,6 +220,10 @@ var __values = (this && this.__values) || function (o) {
                         anyNegativeConsumers = true;
                 }
                 if (anyNegativeConsumers) {
+                    var prev = this.prevGenerator;
+                    Generator.completeScc(this);
+                    this.globalEnv.topOfCompletionStack = prev;
+                    return;
                 }
                 else {
                     var prev = this.prevGenerator;
@@ -183,6 +252,8 @@ var __values = (this && this.__values) || function (o) {
             this.processes = null;
             this.consumers = null;
             this.answerSet = null;
+            this.successors = null;
+            this.negativeSuccessors = null;
         };
         Generator.prototype.scheduleNegativeResumes = function () {
             if (this.table.length === 0) {
@@ -236,9 +307,6 @@ var __values = (this && this.__values) || function (o) {
             for (var i = 0; i < len; ++i) {
                 trie.insert(rows[i], null);
             }
-            return new TrieEdbPredicate(trie);
-        };
-        TrieEdbPredicate.fromJsonTrie = function (trie) {
             return new TrieEdbPredicate(trie);
         };
         TrieEdbPredicate.prototype.match = function (row) {
@@ -380,6 +448,21 @@ var __values = (this && this.__values) || function (o) {
                     }
                     k(s2);
                 });
+                if (isNew)
+                    generator.execute();
+            }; }; };
+        };
+        TabledPredicate.prototype.notMatch = function (row) {
+            var _this = this;
+            return function (gen) { return function (s) { return function (k) {
+                var t = _this.getGenerator(unify_1.groundJson(row, s), gen);
+                var generator = t[0];
+                var vs = t[1];
+                var isNew = t[2];
+                gen.dependNegativelyOn(generator);
+                if (vs.length !== 0)
+                    throw new Error('TabledPredicate.notMatch: negation of non-ground atom (floundering)');
+                generator.consumeNegatively(function () { return k(s); });
                 if (isNew)
                     generator.execute();
             }; }; };

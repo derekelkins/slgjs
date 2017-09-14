@@ -928,6 +928,9 @@ img { max-width: 100%; }
 					<a href="_slg_.toplevelscheduler.html#processes" class="tsd-kind-icon">processes</a>
 				</li>
 				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-not-exported">
+					<a href="_slg_.toplevelscheduler.html#dependnegativelyon" class="tsd-kind-icon">depend<wbr>Negatively<wbr>On</a>
+				</li>
+				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-not-exported">
 					<a href="_slg_.toplevelscheduler.html#dependon" class="tsd-kind-icon">depend<wbr>On</a>
 				</li>
 				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-not-exported">
@@ -1062,6 +1065,7 @@ img { max-width: 100%; }
 					<section class="tsd-index-section tsd-is-not-exported">
 						<h3>Methods</h3>
 						<ul class="tsd-index-list">
+							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-not-exported"><a href="_slg_.toplevelscheduler.html#dependnegativelyon" class="tsd-kind-icon">depend<wbr>Negatively<wbr>On</a></li>
 							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-not-exported"><a href="_slg_.toplevelscheduler.html#dependon" class="tsd-kind-icon">depend<wbr>On</a></li>
 							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-not-exported"><a href="_slg_.toplevelscheduler.html#execute" class="tsd-kind-icon">execute</a></li>
 							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-not-exported"><a href="_slg_.toplevelscheduler.html#push" class="tsd-kind-icon">push</a></li>
@@ -1088,7 +1092,7 @@ img { max-width: 100%; }
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/518a905/slg.ts#L20">slg.ts:20</a></li>
+								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/e3e50f0/slg.ts#L21">slg.ts:21</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-returns-title">Returns <a href="_slg_.toplevelscheduler.html" class="tsd-signature-type">TopLevelScheduler</a></h4>
@@ -1104,13 +1108,37 @@ img { max-width: 100%; }
 				<div class="tsd-signature tsd-kind-icon">processes<span class="tsd-signature-symbol">:</span> <a href="../modules/_slg_.html#queue" class="tsd-signature-type">Queue</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">function</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> =&nbsp;[]</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/518a905/slg.ts#L19">slg.ts:19</a></li>
+						<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/e3e50f0/slg.ts#L20">slg.ts:20</a></li>
 					</ul>
 				</aside>
 			</section>
 		</section>
 		<section class="tsd-panel-group tsd-member-group tsd-is-not-exported">
 			<h2>Methods</h2>
+			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-not-exported">
+				<a name="dependnegativelyon" class="tsd-anchor"></a>
+				<h3>depend<wbr>Negatively<wbr>On</h3>
+				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-not-exported">
+					<li class="tsd-signature tsd-kind-icon">depend<wbr>Negatively<wbr>On<span class="tsd-signature-symbol">(</span>gen<span class="tsd-signature-symbol">: </span><a href="_slg_.generator.html" class="tsd-signature-type">Generator</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+				</ul>
+				<ul class="tsd-descriptions">
+					<li class="tsd-description">
+						<aside class="tsd-sources">
+							<p>Implementation of <a href="../interfaces/_slg_.scheduler.html">Scheduler</a>.<a href="../interfaces/_slg_.scheduler.html#dependnegativelyon">dependNegativelyOn</a></p>
+							<ul>
+								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/e3e50f0/slg.ts#L36">slg.ts:36</a></li>
+							</ul>
+						</aside>
+						<h4 class="tsd-parameters-title">Parameters</h4>
+						<ul class="tsd-parameters">
+							<li>
+								<h5>gen: <a href="_slg_.generator.html" class="tsd-signature-type">Generator</a></h5>
+							</li>
+						</ul>
+						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+					</li>
+				</ul>
+			</section>
 			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-not-exported">
 				<a name="dependon" class="tsd-anchor"></a>
 				<h3>depend<wbr>On</h3>
@@ -1122,7 +1150,7 @@ img { max-width: 100%; }
 						<aside class="tsd-sources">
 							<p>Implementation of <a href="../interfaces/_slg_.scheduler.html">Scheduler</a>.<a href="../interfaces/_slg_.scheduler.html#dependon">dependOn</a></p>
 							<ul>
-								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/518a905/slg.ts#L33">slg.ts:33</a></li>
+								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/e3e50f0/slg.ts#L34">slg.ts:34</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-parameters-title">Parameters</h4>
@@ -1145,7 +1173,7 @@ img { max-width: 100%; }
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/518a905/slg.ts#L27">slg.ts:27</a></li>
+								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/e3e50f0/slg.ts#L28">slg.ts:28</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
@@ -1162,7 +1190,7 @@ img { max-width: 100%; }
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/518a905/slg.ts#L23">slg.ts:23</a></li>
+								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/e3e50f0/slg.ts#L24">slg.ts:24</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-parameters-title">Parameters</h4>
@@ -1197,7 +1225,7 @@ img { max-width: 100%; }
 				<aside class="tsd-sources">
 					<p>Implementation of <a href="../interfaces/_slg_.scheduler.html">Scheduler</a>.<a href="../interfaces/_slg_.scheduler.html#globalenv">globalEnv</a></p>
 					<ul>
-						<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/518a905/slg.ts#L20">slg.ts:20</a></li>
+						<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/e3e50f0/slg.ts#L21">slg.ts:21</a></li>
 					</ul>
 				</aside>
 				<section class="tsd-panel tsd-member tsd-kind-variable tsd-parent-kind-object-literal tsd-is-not-exported">
@@ -1206,7 +1234,7 @@ img { max-width: 100%; }
 					<div class="tsd-signature tsd-kind-icon">generator<wbr>Count<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> =&nbsp;0</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/518a905/slg.ts#L20">slg.ts:20</a></li>
+							<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/e3e50f0/slg.ts#L21">slg.ts:21</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -1216,7 +1244,7 @@ img { max-width: 100%; }
 					<div class="tsd-signature tsd-kind-icon">sdg<wbr>Edges<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">never</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol"> =&nbsp;[]</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/518a905/slg.ts#L20">slg.ts:20</a></li>
+							<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/e3e50f0/slg.ts#L21">slg.ts:21</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -1226,7 +1254,7 @@ img { max-width: 100%; }
 					<div class="tsd-signature tsd-kind-icon">top<wbr>OfCompletion<wbr>Stack<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">null</span><span class="tsd-signature-symbol"> =&nbsp;null</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/518a905/slg.ts#L20">slg.ts:20</a></li>
+							<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/e3e50f0/slg.ts#L21">slg.ts:21</a></li>
 						</ul>
 					</aside>
 				</section>

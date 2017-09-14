@@ -12,6 +12,7 @@ interface GlobalEnvironment {
 interface Scheduler {
     push(process: () => void): void;
     dependOn(gen: Generator): void;
+    dependNegativelyOn(gen: Generator): void;
     readonly globalEnv: GlobalEnvironment;
 }
 
@@ -31,6 +32,8 @@ class TopLevelScheduler implements Scheduler {
     }
 
     dependOn(gen: Generator): void { } // Don't need to do anything.
+
+    dependNegativelyOn(gen: Generator): void { } // Don't need to do anything.
 }
 
 /**
@@ -85,6 +88,13 @@ class Generator implements Scheduler {
     
     private consumers: Array<[number, (cs: Array<JsonTerm>) => void]> | null = [];
     private negativeConsumers: Array<() => void> | null = [];
+    private successors: {[index: number]: Generator} | null = {};
+    private negativeSuccessors: {[index: number]: Generator} | null = {};
+
+    // These are for Tarjan's algorithm.
+    private sccIndex: number = -1;
+    private sccLowLink: number = -1;
+    private onSccStack: boolean = false;
 
     private readonly table: Array<Array<JsonTerm>> = [];
     // NOTE: We could have the answerSet store nodes of a linked list which could be traversed
@@ -105,7 +115,17 @@ class Generator implements Scheduler {
     }
 
     dependOn(v: Generator): void {
+        if(this.isComplete) return;
         this.directLink = Math.min(this.directLink, v.directLink);
+        (<{[index: number]: Generator}>this.successors)[v.selfId] = v;
+        // DEBUG
+        this.globalEnv.sdgEdges.push([this.selfId, v.selfId]);
+    }
+
+    dependNegativelyOn(v: Generator): void {
+        if(this.isComplete) return;
+        this.directLink = Math.min(this.directLink, v.directLink);
+        (<{[index: number]: Generator}>this.negativeSuccessors)[v.selfId] = v;
         // DEBUG
         this.globalEnv.sdgEdges.push([this.selfId, v.selfId]);
     }
@@ -118,8 +138,7 @@ class Generator implements Scheduler {
                 k(answers[i]);
             }
         } else {
-            const cs = <Array<[number, (cs: Array<JsonTerm>) => void]>>this.consumers;
-            cs.push([0, k]);
+            (<Array<[number, (cs: Array<JsonTerm>) => void]>>this.consumers).push([0, k]);
         }
     }
 
@@ -127,8 +146,7 @@ class Generator implements Scheduler {
         if(this.isComplete) {
             if(this.table.length === 0) k();
         } else {
-            const cs = <Array<() => void>>this.negativeConsumers;
-            cs.push(k);
+            (<Array<() => void>>this.negativeConsumers).push(k);
         }
     }
 
@@ -150,7 +168,12 @@ class Generator implements Scheduler {
 
     private isLeader(): Array<Generator> | null {
         let prev = this.prevGenerator;
-        while(prev !== null && prev.isComplete) { prev = prev.prevGenerator; }
+        while(prev !== null && prev.isComplete) { 
+            const p = prev.prevGenerator;
+            prev.prevGenerator = null;
+            prev = p;
+        }
+        this.prevGenerator = prev;
         const result: Array<Generator> = [];
         let tos = <Generator>this.globalEnv.topOfCompletionStack;
         let minLink = this.directLink;
@@ -188,6 +211,84 @@ class Generator implements Scheduler {
         }
         return wereUnconsumed;
     }
+    
+    // The following is LRD-stratified, but if p is changed to 
+    //      p :- not s, not r, q. 
+    // it ceases to be, though it's still dynamically stratified:
+    //
+    // p :- q, not r, not s.
+    // q :- r, not p.
+    // r :- p, not q.
+    // s :- not p, not q, not r.
+    //
+    // ?- s. succeeds, but in the non-LRD-stratified version, we'd
+    // get s blocked on not s  in p which, if we completed without
+    // considering the literals following not s would incorrectly
+    // determine s to be false.
+
+    // This iterates through the SCCs in reverse topological order.
+    // As each SCC is found, all the generators are completed and then
+    // all their negative consumers are notified as appropriate. **If**
+    // the program isn't LRD-stratified, when the the negative consumers
+    // are woken up, some will proceed to wake up subgoals that we just
+    // completed, and possibly produce answers even though we just failed
+    // them.
+    private static completeScc(gen: Generator): void {
+        let index = 0;
+        const stack: Array<Generator> = [];
+
+        const scc = (g: Generator) => {
+            g.sccIndex = g.sccLowLink = index++;
+            stack.push(g);
+            g.onSccStack = true;
+
+            const negSuccs = <{[index: number]: Generator}>g.negativeSuccessors;
+            for(const k in negSuccs) {
+                const w = negSuccs[k];
+                if(w.sccIndex === -1 && !w.isComplete) {
+                    scc(w);
+                    g.sccLowLink = Math.min(g.sccLowLink, w.sccLowLink);
+                } else if(w.onSccStack) {
+                    g.sccLowLink = Math.min(g.sccLowLink, w.sccIndex);
+                } // else already visited and assigned to a different SCC
+            }
+            const succs = <{[index: number]: Generator}>g.successors;
+            for(const k in succs) {
+                const w = succs[k];
+                if(w.sccIndex === -1 && !w.isComplete) {
+                    scc(w);
+                    g.sccLowLink = Math.min(g.sccLowLink, w.sccLowLink);
+                } else if(w.onSccStack) {
+                    g.sccLowLink = Math.min(g.sccLowLink, w.sccIndex);
+                } // else already visited and assigned to a different SCC
+            }
+
+            if(g.sccLowLink === g.sccIndex) {
+                const sccLen = stack.length;
+                let i = sccLen - 1;
+                for(let gen = stack[i]; gen !== g; gen = stack[--i]) {
+                    gen.onSccStack = false;
+                    gen.complete();
+                    gen.prevGenerator = null;
+                }
+                g.onSccStack = false;
+                g.complete();
+                g.prevGenerator = null;
+                // TODO: Can we combine these loops? I think it's fine for
+                // LRD-stratified programs, but it may make it harder to 
+                // detect violations of LRD-stratification. If we can
+                // combine these loops, we can just move the body of
+                // scheduleNegativeResumes into complete (at a slight
+                // cost to cases that don't involve negation).
+                for(let j = i; j < sccLen; ++j) {
+                    stack[j].scheduleNegativeResumes();
+                }
+
+                stack.length = i;
+            }
+        };
+        scc(gen);
+    }
 
     private checkCompletion(): void {
         if(this.isComplete) return;
@@ -206,6 +307,10 @@ class Generator implements Scheduler {
                 // TODO: Do any exact SCC check and complete those. Unlink them if it is easy.
                 // The program is not LRD-stratified if any generators in the exact SCC negatively
                 // depend on any others in the SCC.
+                const prev = this.prevGenerator;
+                Generator.completeScc(this);
+                this.globalEnv.topOfCompletionStack = prev;
+                return;
             } else {
                 const prev = this.prevGenerator;
                 for(let i = len - 1; i >= 0; --i) {
@@ -234,6 +339,8 @@ class Generator implements Scheduler {
         this.processes = null;
         this.consumers = null;
         this.answerSet = null;
+        this.successors = null;
+        this.negativeSuccessors = null;
     }
 
     private scheduleNegativeResumes(): void {
@@ -317,12 +424,7 @@ export class TrieEdbPredicate implements Predicate {
     /**
      * Uses `trie` as the backing store without copying.
      * @param trie The backing store.
-     * @returns A [[Predicate]] backed by `trie`.
      */
-    static fromJsonTrie(trie: JsonTrie<any>): TrieEdbPredicate {
-        return new TrieEdbPredicate(trie);
-    }
-
     constructor(private readonly trie: JsonTrie<any>) {}
 
     match(row: JsonTerm): LPTerm {
@@ -418,6 +520,12 @@ export class UntabledPredicate implements Predicate {
     match(row: JsonTerm): LPTerm {
         return this.body(row);
     }
+
+    /*
+    negationAsFailure(row: JsonTerm): LPTerm {
+
+    }
+    */
 }
 
 /**
@@ -481,7 +589,24 @@ export class TabledPredicate implements Predicate {
         };
     }
 
-    /*
+    // TODO: Update these docs when I understand the behavior of non-LRD-stratified programs better.
+    /**
+     * Tabled negation. It succeeds when the tabled predicate is guaranteed to never produce a result.
+     * Currently, it only supports LRD-stratified negation. LRD-stratified negation is dynamically
+     * stratified negation assuming a left-to-right selection of literals (i.e. evaluation of
+     * conjuction). A program is dynamically stratified if no call ever depends negatively on itself
+     * during execution. Any statically stratified program, i.e. any program where the body rule doesn't
+     * directly or indirectly call itself through negation, is LRD-dynamically stratified.
+     *
+     * This form of negation can only be used on terms that have no unbound variables at the time it
+     * is executed. An attempt to negate a non-groundable term will throw a floundering exception.
+     *
+     * If the program isn't LRD-stratified, I don't know what it will do. It will probably produce a
+     * field lookup on `null` exception, but it may just produce incorrect results. I intend to have
+     * it produce better error messages for this.
+     * @param row A [[JsonTerm]] **that contains no unbound variables** to match against.
+     * @returns A computation that succeeds only if the predicate doesn't match `row`.
+     */
     notMatch(row: JsonTerm): LPTerm {
         return gen => s => k => {
             // TODO: Can I add back the groundingModifyWithVars to eliminate this groundJson?
@@ -490,12 +615,11 @@ export class TabledPredicate implements Predicate {
             const vs = t[1];
             const isNew = t[2];
             gen.dependNegativelyOn(generator);
-            if(vs.length !== 0) throw new Error('TabledPredicate.notMatch: negation of non-ground atom');
+            if(vs.length !== 0) throw new Error('TabledPredicate.notMatch: negation of non-ground atom (floundering)');
             generator.consumeNegatively(() => k(s));
             if(isNew) generator.execute();
         };
     }
-    */
 }
 
 /**

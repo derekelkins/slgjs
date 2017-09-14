@@ -2,7 +2,81 @@ import "jest"
 
 import { Variable, JsonTerm } from "./unify"
 import { Predicate, UntabledPredicate, TabledPredicate, EdbPredicate, TrieEdbPredicate,
-         rule, clause, unify, looseUnify, toArrayQ } from "./slg"
+         rule, clause, unify, conj, looseUnify, toArrayQ } from "./slg"
+
+describe('LRD-stratified negation', () => {
+    test('LRD-stratified example', () => {
+        // p :- q, not r, not s.
+        // q :- r, not p.
+        // r :- p, not q.
+        // s :- not p, not q, not r.
+        //
+        // ?- s. succeeds
+        const p: TabledPredicate = new TabledPredicate(X => rule(
+            () => [q.match(X), r.notMatch(X), s.notMatch(X)]));
+        const q: TabledPredicate = new TabledPredicate(X => rule(
+            () => [r.match(X), p.notMatch(X)]));
+        const r: TabledPredicate = new TabledPredicate(X => rule(
+            () => [p.match(X), q.notMatch(X)]));
+        const s: TabledPredicate = new TabledPredicate(X => rule(
+            () => [p.notMatch(X), q.notMatch(X), r.notMatch(X)]));
+        const results = toArrayQ(Q => conj(s.match(null), unify(Q, true)));
+        expect(results).toEqual([true]);
+    });
+
+    test('non-LRD-stratified example', () => {
+        // p :- not s, not r, q. 
+        // q :- r, not p.
+        // r :- p, not q.
+        // s :- not p, not q, not r.
+        //
+        // ?- s. fails under LRD-stratification but should succeed unrestricted
+        // dynamic stratification.
+        const p: TabledPredicate = new TabledPredicate(X => rule(
+            () => [s.notMatch(X), r.notMatch(X), q.match(X)]));
+        const q: TabledPredicate = new TabledPredicate(X => rule(
+            () => [r.match(X), p.notMatch(X)]));
+        const r: TabledPredicate = new TabledPredicate(X => rule(
+            () => [p.match(X), q.notMatch(X)]));
+        const s: TabledPredicate = new TabledPredicate(X => rule(
+            () => [p.notMatch(X), q.notMatch(X), r.notMatch(X)]));
+        expect(() => toArrayQ(Q => conj(s.match(null), unify(Q, true)))).toThrow();
+    });
+
+    test('floundering', () => {
+        const p: TabledPredicate = new TabledPredicate(X => rule(
+            () => []));
+        expect(() => toArrayQ(Q => conj(p.notMatch(Q), unify(Q, true)))).toThrow('TabledPredicate.notMatch: negation of non-ground atom (floundering)');
+    });
+
+    test('non-trivial LRD-stratified example', () => {
+        // p(a) :- p(b), not p(d).
+        //
+        // p(b) :- p(c).
+        // p(b) :- not p(d).
+        // p(b).
+        // p(b) :- not p(a).
+        //
+        // p(c) :- p(b), p(e).
+        //
+        // p(d) :- not p(c), p(d).
+        //
+        // p(e) :- p(c).
+        // p(e) :- not p(b), not p(e).
+        const p: TabledPredicate = new TabledPredicate(X => rule(
+            () => [unify(X, 'a'), p.match('b'), p.notMatch('d')],
+            () => [unify(X, 'b'), p.match('c')],
+            () => [unify(X, 'b'), p.notMatch('d')],
+            () => [unify(X, 'b')],
+            () => [unify(X, 'b'), p.notMatch('a')],
+            () => [unify(X, 'c'), p.match('b'), p.match('e')],
+            () => [unify(X, 'd'), p.notMatch('c'), p.match('d')],
+            () => [unify(X, 'e'), p.match('c')],
+            () => [unify(X, 'e'), p.notMatch('b'), p.notMatch('e')]));
+        const results = toArrayQ(Q => conj(p.match('a'), unify(Q, true)));
+        expect(results).toEqual([true]);
+    });
+});
 
 describe('traditional Prolog append example', () => {
     test('untabled (which is preferable for this)', () => {
@@ -210,6 +284,29 @@ test('looseUnify success', () => {
         {foo: 3, bar: 4}]);
     const result = toArrayQ(Q => clause(X => [objects.match(X), looseUnify({foo: Q}, X)]));
     expect(result).toEqual([1,3]);
+});
+
+test('trapped subgoal', () => {
+    // p(X, Y) :- q(X), r(Y).
+    // p(c, a).
+    // q(a).
+    // q(b).
+    // r(c).
+    // r(X) :- p(X, Y).
+    // ?- p(X, Y).
+    const p: Predicate = new TabledPredicate(([X, Y]) => rule(
+        () => [q.match(X), r.match(Y)],
+        () => [unify([X, Y], ['c', 'a'])]));
+    const q: Predicate = new TabledPredicate(X => rule(
+        () => [unify(X, 'a')],
+        () => [unify(X, 'b')]));
+    const r: Predicate = new TabledPredicate(X => rule(
+        () => [unify(X, 'c')],
+        Y  => [p.match([X, Y])]));
+    const result = toArrayQ(Q => clause((X, Y) => [p.match([X, Y]), unify(Q, [X, Y])]));
+    expect(result).toEqual([
+        ['c', 'a'], ['a', 'c'], ['b', 'c'], ['a', 'a'], ['a', 'b'], ['b', 'a'], ['b', 'b']
+    ]);
 });
 
 describe('tests for independence of variables between consumers and generators', () => {
