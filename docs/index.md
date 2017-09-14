@@ -31,5 +31,5 @@ that was more made as a test of the underlying system for unification. It
 implements (non-tabled) logic programming using a different approach to the
 main library.
 
-[Tests](https://github.com/derekelkins/slgjs/blob/master/slg.test.ts) - The
+[Tests](https://github.com/derekelkins/slgjs/blob/master/slg.spec.ts) - The
 tests have some other standard examples like append.
