@@ -26,13 +26,6 @@ Subgoal Dependency Graph:
 <div id="sdgGraph" class="graphBox"></div>
 <script id="code" type="text/javascript">
 requirejs(['../out/slg'], function(slg) {
-const nodes = new vis.DataSet([
-     {id: 1, label: '1'}
-    ,{id: 2, label: '2'}
-    ,{id: 3, label: '3'}
-    //,{id: 4, label: '4'}
-]);
-
 const edge = new slg.EdbPredicate([
     [1, 2],
     [2, 3],
@@ -44,6 +37,15 @@ const path = new slg.TabledPredicate(([X, Z]) => slg.rule(
 
 const edgeEdges = slg.toArrayQ(Q => slg.clause((S, E) => [edge.match([S, E]), slg.unify(Q, {from: S, to: E})]));
 const [sdgEdges, pathEdges] = slg.debugToArrayQ(Q => slg.clause((S, E) => [path.match([S, E]), slg.unify(Q, {from: S, to: E})]));
+
+// Graph rendering stuff.
+
+const nodes = new vis.DataSet([
+     {id: 1, label: '1'}
+    ,{id: 2, label: '2'}
+    ,{id: 3, label: '3'}
+    //,{id: 4, label: '4'}
+]);
 
 const dedup = {};
 for(const edge of sdgEdges) {
