@@ -1,0 +1,11 @@
+---
+---
+
+@import "{{ site.theme }}";
+
+a:hover, a:focus {
+ text-decoration-color: #069;
+ text-decoration-line: underline;
+ text-decoration-style: dotted;
+ font-weight: inherit;
+}
