@@ -517,7 +517,7 @@ describe('same generation', () => {
             () => [unify(X, Y)],
             Z  => [cyl.match([X, Z]), sg.match([Z, Z]), cyl.match([Y, Z])]));
         const result = toArrayQ(Q => clause((S, E) => [sg.match([S, E]), unify(Q, [S, E])]));
-        expect(result).toEqual([ // TODO: I have no idea if this is right. Also its order sensitive.
+        expect(result).toEqual([ // TODO: I have no idea if this is right. Also it's order sensitive.
             [new Variable(2), new Variable(2)], // TODO: The exact variable IDs are not guaranteed.
             [1,1], [1,3], [1,8], [1,4], [1,9], [2,2], [2,21], [2,12], [3,1],
             [3,3], [3,8], [3,17], [3,22], [4,1], [4,4], [4,9], [4,5], [5,5],
@@ -945,7 +945,7 @@ describe('same generation', () => {
             () => [unify(X, Y)],
             Z  => [cyl.match([X, Z]), sg.match([Z, Z]), cyl.match([Y, Z])]));
         const result = toArrayQ(Q => clause((S, E) => [sg.match([S, E]), unify(Q, [S, E])]));
-        expect(result).toEqual([ // TODO: I have no idea if this is right. Also its order sensitive.
+        expect(result).toEqual([ // TODO: I have no idea if this is right. Also it's order sensitive.
             [new Variable(2), new Variable(2)], // TODO: The exact variable IDs are not guaranteed.
             [1,1], [1,3], [1,8], [1,4], [1,9], [2,2],
             [2,12], [2,21], [3,1], [3,3], [3,8], [3,17], [3,22], [4,4], [4,5],
