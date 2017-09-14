@@ -148,7 +148,7 @@ class Generator implements Scheduler {
         (<Array<() => void>>this.processes).push(process);
     }
 
-    private isLeader(): Array<Generator> | undefined {
+    private isLeader(): Array<Generator> | null {
         let prev = this.prevGenerator;
         while(prev !== null && prev.isComplete) { prev = prev.prevGenerator; }
         const result: Array<Generator> = [];
@@ -174,7 +174,7 @@ class Generator implements Scheduler {
             tos = p;
         }
         result.push(this);
-        return prev === null || prev.selfId < Math.min(this.directLink, minLink) ? result : void(0);
+        return prev === null || prev.selfId < Math.min(this.directLink, minLink) ? result : null;
     }
 
     private scheduleResumes(): boolean {
@@ -194,7 +194,7 @@ class Generator implements Scheduler {
         completionLoop:
         while(true) {
             const cStack = this.isLeader();
-            if(cStack === void(0)) return;
+            if(cStack === null) return;
             const len = cStack.length;
             let anyNegativeConsumers = false;
             for(let i = len - 1; i >= 0; --i) { // this loop corresponds to fixpoint_check.

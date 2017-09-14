@@ -2,7 +2,9 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Example</title>
+    <title>Transitive Closure Example</title>
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.20.1/vis.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.20.1/vis.min.css" rel="stylesheet" type="text/css" />
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.5/require.min.js"></script>
@@ -15,11 +17,14 @@
     </style>
 </head>
 <body>
+<pre><code id="codeBox" class="js"></code></pre>
+Input:
 <div id="edgeGraph" class="graphBox"></div>
-Shake it loose:
+Output (shake it loose):
 <div id="pathGraph" class="graphBox"></div>
+Subgoal Dependency Graph:
 <div id="sdgGraph" class="graphBox"></div>
-<script type="text/javascript">
+<script id="code" type="text/javascript">
 requirejs(['../out/slg'], function(slg) {
 const nodes = new vis.DataSet([
      {id: 1, label: '1'}
@@ -33,18 +38,15 @@ const edge = new slg.EdbPredicate([
     [2, 3],
     [3, 1]]);
     //[3, 4]]);
-//const path = new slg.TabledPredicate(row => slg.rule(
-//    () => [edge.match(row)],
-//    Y  => [path.match([row[0], Y]), edge.match([Y, row[1]])]));
-const path = new slg.TabledPredicate(row => slg.rule(
-    () => [edge.match(row)],
-    Y  => [edge.match([row[0], Y]), path.match([Y, row[1]])]));
+const path = new slg.TabledPredicate(([X, Z]) => slg.rule(
+    () => [edge.match([X, Z])],
+    Y  => [edge.match([X, Y]), path.match([Y, Z])]));
 
 const edgeEdges = slg.toArrayQ(Q => slg.clause((S, E) => [edge.match([S, E]), slg.unify(Q, {from: S, to: E})]));
 const [sdgEdges, pathEdges] = slg.debugToArrayQ(Q => slg.clause((S, E) => [path.match([S, E]), slg.unify(Q, {from: S, to: E})]));
 
 const dedup = {};
-for(let edge of sdgEdges) {
+for(const edge of sdgEdges) {
     dedup[edge[0]] = edge[0];
     dedup[edge[1]] = edge[1];
 }
@@ -68,6 +70,10 @@ new vis.Network(document.getElementById('edgeGraph'), edgeData, options);
 new vis.Network(document.getElementById('pathGraph'), pathData, options);
 new vis.Network(document.getElementById('sdgGraph'), sdgData, options);
 });
+</script>
+<script type="text/javascript">
+document.getElementById('codeBox').innerHTML = document.getElementById('code').innerText;
+hljs.initHighlightingOnLoad();
 </script>
 </body>
 </html>
