@@ -144,6 +144,7 @@ export class EphemeralUnionFind<A> implements UnionFind<A> {
 // especially with the adaptation to semi-persistence, and rather poorly when accessing old copies as in linear in the depth of updates.
 interface PersistentArray<A> {
     get(index: number): A;
+    getUnsafe(index: number): A;
     set(index: number, value: A): PersistentArray<A>;
 }
 
@@ -153,6 +154,7 @@ interface PersistentArray<A> {
 // implementations which differ only in how the rerootAux function works in the ImmediateArray case.
 interface InternalPersistentArray<A> {
     get(cell: ArrayCell<A>, index: number): A;
+    getUnsafe(cell: ArrayCell<A>, index: number): A;
     set(cell: ArrayCell<A>, index: number, value: A): PersistentArray<A>;
     reroot(cell: ArrayCell<A>): void;
     rerootAux(i: number, v: A, t: ArrayCell<A>, t2: ArrayCell<A>): void;
@@ -162,6 +164,8 @@ class ArrayCell<A> implements PersistentArray<A> {
     constructor(public contents: InternalPersistentArray<A>) {}
 
     get(index: number): A { return this.contents.get(this, index); }
+
+    getUnsafe(index: number): A { return this.contents.getUnsafe(this, index); }
 
     set(index: number, value: A): PersistentArray<A> { 
         this.contents.reroot(this); return this.contents.set(this, index, value); 
@@ -188,13 +192,17 @@ class PersistentImmediateArray<A> implements InternalPersistentArray<A> {
 
     get(cell: ArrayCell<A>, index: number): A {
         const arr = this.baseArray;
-        if(index >= arr.length) { return this.init(index); }
+        if(index >= arr.length) { this.grow(index + 1); }
         return arr[index];
+    }
+    
+    getUnsafe(cell: ArrayCell<A>, index: number): A {
+        return this.baseArray[index];
     }
     
     set(cell: ArrayCell<A>, index: number, value: A): PersistentArray<A> {
         const arr = this.baseArray;
-        if(index >= arr.length) { this.grow(index+1); }
+        //if(index >= arr.length) { this.grow(index+1); } // NOTE: We never call set if we haven't called get first.
         const old = arr[index];
         arr[index] = value;
         const res = new ArrayCell<A>(this);
@@ -233,13 +241,17 @@ class SemiPersistentImmediateArray<A> implements InternalPersistentArray<A> {
 
     get(cell: ArrayCell<A>, index: number): A {
         const arr = this.baseArray;
-        if(index >= arr.length) { return this.init(index); }
+        if(index >= arr.length) { this.grow(index + 1); }
         return arr[index];
+    }
+    
+    getUnsafe(cell: ArrayCell<A>, index: number): A {
+        return this.baseArray[index];
     }
     
     set(cell: ArrayCell<A>, index: number, value: A): PersistentArray<A> {
         const arr = this.baseArray;
-        if(index >= arr.length) { this.grow(index+1); }
+        //if(index >= arr.length) { this.grow(index+1); } // NOTE: We never call set if we haven't called get first.
         const old = arr[index];
         arr[index] = value;
         const res = new ArrayCell<A>(this);
@@ -265,6 +277,11 @@ class DiffArray<A> implements InternalPersistentArray<A> {
         return t.get(index);
     }
 
+    getUnsafe(t: ArrayCell<A>, index: number): A {
+        this.reroot(t);
+        return t.getUnsafe(index);
+    }
+
     set(cell: ArrayCell<A>, index: number, value: A): PersistentArray<A> {
         throw new Error('DiffArray.set: we should never get here.'); // ASSERTION
     }
@@ -285,6 +302,10 @@ class InvalidArray<A> implements InternalPersistentArray<A> {
     private constructor() {}
 
     get(t: ArrayCell<A>, index: number): A {
+        throw new Error('Attempt to access Invalid semi-persistent array.');
+    }
+
+    getUnsafe(t: ArrayCell<A>, index: number): A {
         throw new Error('Attempt to access Invalid semi-persistent array.');
     }
 
@@ -350,7 +371,19 @@ export default class PersistentUnionFind<A> implements UnionFind<A> {
         if(fi === i) {
             return [this.parents, v2];
         } else {
-            const t = this.findAux(fi);
+            const t = this.findAuxUnsafe(fi);
+            t[0] = t[0].set(i, t[1]);
+            return t;
+        }
+    }
+
+    private findAuxUnsafe(i: number): [PersistentArray<Variable<A>>, Variable<A>] {
+        const v2 = this.parents.getUnsafe(i);
+        const fi = v2.id;
+        if(fi === i) {
+            return [this.parents, v2];
+        } else {
+            const t = this.findAuxUnsafe(fi);
             t[0] = t[0].set(i, t[1]);
             return t;
         }
@@ -366,11 +399,16 @@ export default class PersistentUnionFind<A> implements UnionFind<A> {
         const vx = this.find(x);
         if(vx.isBound) throw new Error('PersistentUnionFind.bindVariable: binding to variable that is already bound.'); // ASSERTION
         const vy = this.find(y);
+        return this.bindVariableUnsafe(vx, vy);
+    }
+
+    // Assumes `vx` is unbound and both have IDs that are in range.
+    bindVariableUnsafe(vx: Variable<A>, vy: Variable<A>): PersistentUnionFind<A> {
         const cx = vx.id;
         const cy = vy.id;
         if (cx !== cy) {
-            const rx = this.ranks.get(cx);
-            const ry = this.ranks.get(cy);
+            const rx = this.ranks.getUnsafe(cx);
+            const ry = this.ranks.getUnsafe(cy);
             if (rx > ry) {
                 return new PersistentUnionFind(this.ranks, this.parents.set(cy, vy.isBound ? vx.bind(<A>vy.value) : vx));
             } else if(rx < ry) {

@@ -71,11 +71,11 @@
             var vx = this.uf.find(x.id);
             var vy = this.uf.find(y.id);
             if (!vx.isBound) {
-                return new Substitution(this.uf.bindVariable(vx.id, vy.id), this.nextVariable);
+                return new Substitution(this.uf.bindVariableUnsafe(vx, vy), this.nextVariable);
             }
             else {
                 if (!vy.isBound) {
-                    return new Substitution(this.uf.bindVariable(vy.id, vx.id), this.nextVariable);
+                    return new Substitution(this.uf.bindVariableUnsafe(vy, vx), this.nextVariable);
                 }
                 else {
                     return vx.value === vy.value ? this : null;
@@ -97,7 +97,12 @@
                     return x;
                 }
                 else if (x instanceof Array) {
-                    return x.map(function (y) { return groundJsonNoSharing(y, sub); });
+                    var len = x.length;
+                    var result = new Array(len);
+                    for (var i = 0; i < len; ++i) {
+                        result[i] = groundJsonNoSharing(x[i], sub);
+                    }
+                    return result;
                 }
                 else {
                     var result = {};
@@ -130,7 +135,11 @@
                     return x;
                 }
                 else if (x instanceof Array) {
-                    var result = x.map(function (y) { return groundJson(y, sub, mapping); });
+                    var len = x.length;
+                    var result = new Array(len);
+                    for (var i = 0; i < len; ++i) {
+                        result[i] = groundJson(x[i], sub, mapping);
+                    }
                     if (id !== null)
                         mapping[id] = result;
                     return result;

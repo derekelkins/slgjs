@@ -400,9 +400,12 @@ var __values = (this && this.__values) || function (o) {
             cs[_i] = arguments[_i];
         }
         return function (gen) {
-            var cs2 = cs.map(function (c) { return c(gen); });
+            var len = cs.length;
+            var cs2 = new Array(len);
+            for (var i = 0; i < len; ++i) {
+                cs2[i] = cs[i](gen);
+            }
             return function (s) { return function (k) {
-                var len = cs2.length;
                 var loop = function (i) { return function (s2) {
                     if (i < len) {
                         cs2[i](s2)(loop(i + 1));
@@ -424,12 +427,11 @@ var __values = (this && this.__values) || function (o) {
         return function (gen) {
             var ds2 = ds.map(function (d) { return d(gen); });
             return function (s) { return function (k) {
-                var len = ds2.length;
                 var _loop_1 = function (i) {
                     var d = ds2[i];
                     gen.push(function () { return d(s)(k); });
                 };
-                for (var i = len - 1; i >= 0; --i) {
+                for (var i = ds2.length - 1; i >= 0; --i) {
                     _loop_1(i);
                 }
             }; };

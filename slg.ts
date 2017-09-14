@@ -24,7 +24,7 @@ class TopLevelScheduler implements Scheduler {
         this.processes.push(process);
     }
 
-    execute(): void {
+    execute(): void { // TODO: Maybe don't use pop here.
         const waiters = <Array<() => void>>this.processes;
         let waiter = waiters.pop();
         while(waiter !== void(0)) { waiter(); waiter = waiters.pop(); }
@@ -220,7 +220,7 @@ class Generator implements Scheduler {
         }
     }
 
-    execute(): void {
+    execute(): void { // TODO: Maybe don't use pop on this.
         let waiter = (<Array<() => void>>this.processes).pop();
         while(waiter !== void(0)) { 
             waiter(); 
@@ -515,9 +515,12 @@ function ground(val: JsonTerm): LP<JsonTerm, JsonTerm> {
  */
 export function conj<V>(...cs: Array<LPSub<V>>): LPSub<V> {
     return gen => {
-        const cs2 = cs.map(c => c(gen));
+        const len = cs.length;
+        const cs2 = new Array<(sub: Substitution<V>) => CPS<Substitution<V>>>(len);
+        for(let i = 0; i < len; ++i) {
+            cs2[i] = cs[i](gen);
+        }
         return s => k => {
-            const len = cs2.length;
             const loop = (i: number) => (s2: Substitution<V>) => {
                 if(i < len) {
                     cs2[i](s2)(loop(i+1));
@@ -535,10 +538,16 @@ export function conj<V>(...cs: Array<LPSub<V>>): LPSub<V> {
  */
 export function disj<V>(...ds: Array<LPSub<V>>): LPSub<V> {
     return gen => {
+        /*
+        const len = ds.length;
+        const ds2 = new Array<(sub: Substitution<V>) => CPS<Substitution<V>>>(len);
+        for(let i = 0; i < len; ++i) {
+            ds2[i] = ds[i](gen);
+        }
+        */
         const ds2 = ds.map(d => d(gen));
         return s => k => {
-            const len = ds2.length;
-            for(let i = len - 1; i >= 0; --i) {
+            for(let i = ds2.length - 1; i >= 0; --i) {
                 const d = ds2[i];
                 gen.push(() => d(s)(k));
             }
@@ -626,6 +635,15 @@ export function looseUnify(x: JsonTerm, y: JsonTerm): LPTerm {
  * ```
  */
 export function rule<V>(...alternatives: Array<(...vs: Array<Variable>) => Array<LPSub<V>>>): LPSub<V> {
+    /*
+    const len = alternatives.length;
+    const alts = new Array<LPSub<V>>(len);
+    for(let i = 0; i < len; ++i) {
+        const cs = alternatives[i];
+        alts[i] = clauseN(cs.length, cs);
+    }
+    return disj.apply(null, alts);
+    */
     return disj.apply(null, alternatives.map(cs => clauseN(cs.length, (...vs) => cs.apply(null, vs))));
 }
 

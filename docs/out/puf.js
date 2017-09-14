@@ -104,6 +104,7 @@
             this.contents = contents;
         }
         ArrayCell.prototype.get = function (index) { return this.contents.get(this, index); };
+        ArrayCell.prototype.getUnsafe = function (index) { return this.contents.getUnsafe(this, index); };
         ArrayCell.prototype.set = function (index, value) {
             this.contents.reroot(this);
             return this.contents.set(this, index, value);
@@ -131,15 +132,15 @@
         PersistentImmediateArray.prototype.get = function (cell, index) {
             var arr = this.baseArray;
             if (index >= arr.length) {
-                return this.init(index);
+                this.grow(index + 1);
             }
             return arr[index];
         };
+        PersistentImmediateArray.prototype.getUnsafe = function (cell, index) {
+            return this.baseArray[index];
+        };
         PersistentImmediateArray.prototype.set = function (cell, index, value) {
             var arr = this.baseArray;
-            if (index >= arr.length) {
-                this.grow(index + 1);
-            }
             var old = arr[index];
             arr[index] = value;
             var res = new ArrayCell(this);
@@ -176,15 +177,15 @@
         SemiPersistentImmediateArray.prototype.get = function (cell, index) {
             var arr = this.baseArray;
             if (index >= arr.length) {
-                return this.init(index);
+                this.grow(index + 1);
             }
             return arr[index];
         };
+        SemiPersistentImmediateArray.prototype.getUnsafe = function (cell, index) {
+            return this.baseArray[index];
+        };
         SemiPersistentImmediateArray.prototype.set = function (cell, index, value) {
             var arr = this.baseArray;
-            if (index >= arr.length) {
-                this.grow(index + 1);
-            }
             var old = arr[index];
             arr[index] = value;
             var res = new ArrayCell(this);
@@ -209,6 +210,10 @@
             this.reroot(t);
             return t.get(index);
         };
+        DiffArray.prototype.getUnsafe = function (t, index) {
+            this.reroot(t);
+            return t.getUnsafe(index);
+        };
         DiffArray.prototype.set = function (cell, index, value) {
             throw new Error('DiffArray.set: we should never get here.');
         };
@@ -226,6 +231,9 @@
         function InvalidArray() {
         }
         InvalidArray.prototype.get = function (t, index) {
+            throw new Error('Attempt to access Invalid semi-persistent array.');
+        };
+        InvalidArray.prototype.getUnsafe = function (t, index) {
             throw new Error('Attempt to access Invalid semi-persistent array.');
         };
         InvalidArray.prototype.set = function (cell, index, value) {
@@ -267,7 +275,19 @@
                 return [this.parents, v2];
             }
             else {
-                var t = this.findAux(fi);
+                var t = this.findAuxUnsafe(fi);
+                t[0] = t[0].set(i, t[1]);
+                return t;
+            }
+        };
+        PersistentUnionFind.prototype.findAuxUnsafe = function (i) {
+            var v2 = this.parents.getUnsafe(i);
+            var fi = v2.id;
+            if (fi === i) {
+                return [this.parents, v2];
+            }
+            else {
+                var t = this.findAuxUnsafe(fi);
                 t[0] = t[0].set(i, t[1]);
                 return t;
             }
@@ -283,11 +303,14 @@
             if (vx.isBound)
                 throw new Error('PersistentUnionFind.bindVariable: binding to variable that is already bound.');
             var vy = this.find(y);
+            return this.bindVariableUnsafe(vx, vy);
+        };
+        PersistentUnionFind.prototype.bindVariableUnsafe = function (vx, vy) {
             var cx = vx.id;
             var cy = vy.id;
             if (cx !== cy) {
-                var rx = this.ranks.get(cx);
-                var ry = this.ranks.get(cy);
+                var rx = this.ranks.getUnsafe(cx);
+                var ry = this.ranks.getUnsafe(cy);
                 if (rx > ry) {
                     return new PersistentUnionFind(this.ranks, this.parents.set(cy, vy.isBound ? vx.bind(vy.value) : vx));
                 }

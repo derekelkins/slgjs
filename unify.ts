@@ -144,10 +144,10 @@ export class Substitution<A> {
         const vx = this.uf.find(x.id);
         const vy = this.uf.find(y.id);
         if(!vx.isBound) {
-            return new Substitution(this.uf.bindVariable(vx.id, vy.id), this.nextVariable);
+            return new Substitution(this.uf.bindVariableUnsafe(vx, vy), this.nextVariable);
         } else {
             if(!vy.isBound) {
-                return new Substitution(this.uf.bindVariable(vy.id, vx.id), this.nextVariable);
+                return new Substitution(this.uf.bindVariableUnsafe(vy, vx), this.nextVariable);
             } else {
                 return vx.value === vy.value ? this : null;
             }
@@ -183,7 +183,12 @@ export function groundJsonNoSharing(x: JsonTerm, sub: Substitution<JsonTerm>): J
             } else if(x instanceof Variable) {
                 return x;
             } else if(x instanceof Array) {
-                return x.map(y => groundJsonNoSharing(y, sub));
+                const len = x.length;
+                const result = new Array<JsonTerm>(len);
+                for(let i = 0; i < len; ++i) {
+                    result[i] = groundJsonNoSharing(x[i], sub);
+                }
+                return result;
             } else { // it's an object
                 const result: JsonTerm = {};
                 for(const key in x) {
@@ -218,7 +223,11 @@ export function groundJson(x: JsonTerm, sub: Substitution<JsonTerm>, mapping: {[
             } else if(x instanceof Variable) {
                 return x;
             } else if(x instanceof Array) {
-                const result = x.map(y => groundJson(y, sub, mapping));
+                const len = x.length;
+                const result = new Array<JsonTerm>(len);
+                for(let i = 0; i < len; ++i) {
+                    result[i] = groundJson(x[i], sub, mapping);
+                }
                 if(id !== null) mapping[id] = result;
                 return result;
             } else { // it's an object
@@ -506,7 +515,3 @@ export function unifyJson(x: JsonTerm, y: JsonTerm, sub: Substitution<JsonTerm>)
         }
     }
 }
-
-//const [X, sub] = Substitution.emptyPersistent<string>().freshVar();
-//console.log(sub.lookup(X));
-//debugger;
