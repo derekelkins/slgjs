@@ -931,6 +931,9 @@ img { max-width: 100%; }
 					<a href="_puf_.invalidarray.html#get" class="tsd-kind-icon">get</a>
 				</li>
 				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-not-exported">
+					<a href="_puf_.invalidarray.html#getunsafe" class="tsd-kind-icon">get<wbr>Unsafe</a>
+				</li>
+				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-not-exported">
 					<a href="_puf_.invalidarray.html#reroot" class="tsd-kind-icon">reroot</a>
 				</li>
 				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-not-exported">
@@ -1008,6 +1011,7 @@ img { max-width: 100%; }
 						<h3>Methods</h3>
 						<ul class="tsd-index-list">
 							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-not-exported"><a href="_puf_.invalidarray.html#get" class="tsd-kind-icon">get</a></li>
+							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-not-exported"><a href="_puf_.invalidarray.html#getunsafe" class="tsd-kind-icon">get<wbr>Unsafe</a></li>
 							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-not-exported"><a href="_puf_.invalidarray.html#reroot" class="tsd-kind-icon">reroot</a></li>
 							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-not-exported"><a href="_puf_.invalidarray.html#rerootaux" class="tsd-kind-icon">reroot<wbr>Aux</a></li>
 							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-not-exported"><a href="_puf_.invalidarray.html#set" class="tsd-kind-icon">set</a></li>
@@ -1028,7 +1032,7 @@ img { max-width: 100%; }
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/f592cef/puf.ts#L284">puf.ts:284</a></li>
+								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/518a905/puf.ts#L301">puf.ts:301</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-returns-title">Returns <a href="_puf_.invalidarray.html" class="tsd-signature-type">InvalidArray</a></h4>
@@ -1044,7 +1048,7 @@ img { max-width: 100%; }
 				<div class="tsd-signature tsd-kind-icon">IT<span class="tsd-signature-symbol">:</span> <a href="_puf_.invalidarray.html" class="tsd-signature-type">InvalidArray</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> =&nbsp;new InvalidArray()</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/f592cef/puf.ts#L284">puf.ts:284</a></li>
+						<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/518a905/puf.ts#L301">puf.ts:301</a></li>
 					</ul>
 				</aside>
 			</section>
@@ -1062,7 +1066,34 @@ img { max-width: 100%; }
 						<aside class="tsd-sources">
 							<p>Implementation of <a href="../interfaces/_puf_.internalpersistentarray.html">InternalPersistentArray</a>.<a href="../interfaces/_puf_.internalpersistentarray.html#get">get</a></p>
 							<ul>
-								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/f592cef/puf.ts#L287">puf.ts:287</a></li>
+								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/518a905/puf.ts#L304">puf.ts:304</a></li>
+							</ul>
+						</aside>
+						<h4 class="tsd-parameters-title">Parameters</h4>
+						<ul class="tsd-parameters">
+							<li>
+								<h5>t: <a href="_puf_.arraycell.html" class="tsd-signature-type">ArrayCell</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">A</span><span class="tsd-signature-symbol">&gt;</span></h5>
+							</li>
+							<li>
+								<h5>index: <span class="tsd-signature-type">number</span></h5>
+							</li>
+						</ul>
+						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">A</span></h4>
+					</li>
+				</ul>
+			</section>
+			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-not-exported">
+				<a name="getunsafe" class="tsd-anchor"></a>
+				<h3>get<wbr>Unsafe</h3>
+				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-not-exported">
+					<li class="tsd-signature tsd-kind-icon">get<wbr>Unsafe<span class="tsd-signature-symbol">(</span>t<span class="tsd-signature-symbol">: </span><a href="_puf_.arraycell.html" class="tsd-signature-type">ArrayCell</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">A</span><span class="tsd-signature-symbol">&gt;</span>, index<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">A</span></li>
+				</ul>
+				<ul class="tsd-descriptions">
+					<li class="tsd-description">
+						<aside class="tsd-sources">
+							<p>Implementation of <a href="../interfaces/_puf_.internalpersistentarray.html">InternalPersistentArray</a>.<a href="../interfaces/_puf_.internalpersistentarray.html#getunsafe">getUnsafe</a></p>
+							<ul>
+								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/518a905/puf.ts#L308">puf.ts:308</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-parameters-title">Parameters</h4>
@@ -1089,7 +1120,7 @@ img { max-width: 100%; }
 						<aside class="tsd-sources">
 							<p>Implementation of <a href="../interfaces/_puf_.internalpersistentarray.html">InternalPersistentArray</a>.<a href="../interfaces/_puf_.internalpersistentarray.html#reroot">reroot</a></p>
 							<ul>
-								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/f592cef/puf.ts#L295">puf.ts:295</a></li>
+								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/518a905/puf.ts#L316">puf.ts:316</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-parameters-title">Parameters</h4>
@@ -1113,7 +1144,7 @@ img { max-width: 100%; }
 						<aside class="tsd-sources">
 							<p>Implementation of <a href="../interfaces/_puf_.internalpersistentarray.html">InternalPersistentArray</a>.<a href="../interfaces/_puf_.internalpersistentarray.html#rerootaux">rerootAux</a></p>
 							<ul>
-								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/f592cef/puf.ts#L299">puf.ts:299</a></li>
+								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/518a905/puf.ts#L320">puf.ts:320</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-parameters-title">Parameters</h4>
@@ -1146,7 +1177,7 @@ img { max-width: 100%; }
 						<aside class="tsd-sources">
 							<p>Implementation of <a href="../interfaces/_puf_.internalpersistentarray.html">InternalPersistentArray</a>.<a href="../interfaces/_puf_.internalpersistentarray.html#set">set</a></p>
 							<ul>
-								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/f592cef/puf.ts#L291">puf.ts:291</a></li>
+								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/518a905/puf.ts#L312">puf.ts:312</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-parameters-title">Parameters</h4>
