@@ -62,11 +62,11 @@ export type LPTerm = LP<JsonTerm, Substitution<JsonTerm>>;
 
 type Queue<A> = Array<A>;
 
-class Generator implements Scheduler {
-    private readonly selfId: number;
+abstract class Generator implements Scheduler {
     readonly globalEnv: GlobalEnvironment;
-    private prevGenerator: Generator | null;
-    private directLink: number;
+    private processes: Queue<() => void> | null = [];
+
+    // For ASCC
     // When we attempt to complete, we need to determine if we're the leader. The leader is the generator
     // such that prev.selfId < min(this.directLink, minLink(this.selfId)) where prev is the immediately
     // preceding generator in the completionStack, and minLink(id) is the minimum value of the directLink
@@ -82,12 +82,11 @@ class Generator implements Scheduler {
     // may have changed. If LRD-stratified negation is being supported, negative consumers of any of the
     // completed goals need to be woken, however, an exact SCC calculation needs to be performed to
     // correctly support even LRD-stratified negation.
-
-    private processes: Queue<() => void> | null = [];
-    // We check for completion whenever this queue is empty.
+    private prevGenerator: Generator | null; 
+    private readonly selfId: number;
+    private directLink: number;
     
-    private consumers: Array<[number, (cs: Array<JsonTerm>) => void]> | null = [];
-    private completionListeners: Array<() => void> | null = [];
+    protected completionListeners: Array<() => void> | null = [];
     private successors: {[index: number]: Generator} | null = {};
     private negativeSuccessors: {[index: number]: Generator} | null = {};
 
@@ -96,15 +95,16 @@ class Generator implements Scheduler {
     private sccLowLink: number = -1;
     private onSccStack: boolean = false;
 
-    private readonly table: Array<Array<JsonTerm>> = [];
-    // NOTE: We could have the answerSet store nodes of a linked list which could be traversed
-    // by the answer iterators, and that would mean we wouldn't need the table, but I don't think
-    // that will really make much difference in time or space, nor is it clear that it is a good
-    // trade-off. If there was an easy way to avoid needing to store the answer as an array in
-    // the nodes, then it would be worth it. In the "Efficient Access Mechanisms for Tabled Logic
-    // Programs" paper, they have parent pointers in the answer trie (but not the subgoal trie)
-    // that allow this.
-    private answerSet: JsonTrieTerm<boolean> | null = JsonTrieTerm.create();
+    protected get isComplete(): boolean { return this.processes === null; }
+    protected abstract scheduleNegativeResumes(): void;
+    protected abstract scheduleResumes(): boolean;
+    protected abstract complete(): void;
+
+    protected cleanup(): void {
+        this.processes = null;
+        this.successors = null;
+        this.negativeSuccessors = null;
+    }
 
     constructor(scheduler: Scheduler) {
         const gEnv = this.globalEnv = scheduler.globalEnv;
@@ -112,6 +112,20 @@ class Generator implements Scheduler {
         this.directLink = this.selfId;
         this.prevGenerator = gEnv.topOfCompletionStack;
         gEnv.topOfCompletionStack = this;
+    }
+
+    push(process: () => void): void {
+        (<Array<() => void>>this.processes).push(process);
+    }
+
+    execute(): void { // TODO: Maybe don't use pop on this.
+        let waiter = (<Array<() => void>>this.processes).pop();
+        while(waiter !== void(0)) { 
+            waiter(); 
+            if(this.processes === null) return; // We're already complete.
+            waiter = this.processes.pop(); 
+        }
+        Generator.checkCompletion(this);
     }
 
     dependOn(v: Generator): void {
@@ -130,102 +144,6 @@ class Generator implements Scheduler {
         this.globalEnv.sdgEdges.push([this.selfId, v.selfId]);
     }
 
-    consume(k: (cs: Array<JsonTerm>) => void): void {
-        if(this.isComplete) {
-            const answers = this.table;
-            const len = answers.length;
-            for(let i = 0; i < len; ++i) {
-                k(answers[i]);
-            }
-        } else {
-            (<Array<[number, (cs: Array<JsonTerm>) => void]>>this.consumers).push([0, k]);
-        }
-    }
-
-    consumeNegatively(k: () => void): void {
-        if(this.isComplete) {
-            if(this.table.length === 0) k();
-        } else {
-            (<Array<() => void>>this.completionListeners).push(() => this.table.length === 0 ? k() : void(0));
-        }
-    }
-
-    consumeToCompletion(k: (cs: Array<JsonTerm>) => void, onComplete: () => void): void {
-        if(this.isComplete) {
-            const answers = this.table;
-            const len = answers.length;
-            for(let i = 0; i < len; ++i) {
-                k(answers[i]);
-            }
-            onComplete();
-        } else {
-            (<Array<[number, (cs: Array<JsonTerm>) => void]>>this.consumers).push([0, k]);
-            (<Array<() => void>>this.completionListeners).push(onComplete);
-        }
-    }
-
-    private scheduleAnswers(consumer: [number, (cs: Array<JsonTerm>) => void]): boolean {
-        const answers = this.table;
-        const len = answers.length;
-        const start = consumer[0];
-        const k = consumer[1];
-        for(let i = start; i < len; ++i) {
-            k(answers[i]);
-        }
-        consumer[0] = len;
-        return start !== len;
-    }
-
-    push(process: () => void): void {
-        (<Array<() => void>>this.processes).push(process);
-    }
-
-    private isLeader(): Array<Generator> | null {
-        let prev = this.prevGenerator;
-        while(prev !== null && prev.isComplete) { 
-            const p = prev.prevGenerator;
-            prev.prevGenerator = null;
-            prev = p;
-        }
-        this.prevGenerator = prev;
-        const result: Array<Generator> = [];
-        let tos = <Generator>this.globalEnv.topOfCompletionStack;
-        let minLink = this.directLink;
-        let lastLink = this.directLink;
-        let last: Generator | null = null;
-        while(tos !== this) {
-            const p = <Generator>tos.prevGenerator;
-            if(tos.isComplete) { // unlink completed generators from the completion stack
-                if(last !== null) {
-                    last.prevGenerator = p;
-                } else {
-                    this.globalEnv.topOfCompletionStack = p;
-                }
-                tos.prevGenerator = null;
-            } else {
-                result.push(tos);
-                last = tos;
-                lastLink = tos.directLink;
-                minLink = Math.min(lastLink, minLink);
-            }
-            tos = p;
-        }
-        result.push(this);
-        return prev === null || prev.selfId < Math.min(this.directLink, minLink) ? result : null;
-    }
-
-    private scheduleResumes(): boolean {
-        const cs = <Array<[number, (cs: Array<JsonTerm>) => void]>>this.consumers;
-        const len = cs.length;
-        let wereUnconsumed = false;
-        for(let i = 0; i < len; ++i) {
-            if(this.scheduleAnswers(cs[i])) {
-                wereUnconsumed = true;
-            }
-        }
-        return wereUnconsumed;
-    }
-    
     // The following is LRD-stratified, but if p is changed to 
     //      p :- not s, not r, q. 
     // it ceases to be, though it's still dynamically stratified:
@@ -304,11 +222,45 @@ class Generator implements Scheduler {
         scc(gen);
     }
 
-    private checkCompletion(): void {
-        if(this.isComplete) return;
+    private static isLeader(g: Generator): Array<Generator> | null {
+        let prev = g.prevGenerator;
+        while(prev !== null && prev.isComplete) { 
+            const p = prev.prevGenerator;
+            prev.prevGenerator = null;
+            prev = p;
+        }
+        g.prevGenerator = prev;
+        const result: Array<Generator> = [];
+        let tos = <Generator>g.globalEnv.topOfCompletionStack;
+        let minLink = g.directLink;
+        let lastLink = g.directLink;
+        let last: Generator | null = null;
+        while(tos !== g) {
+            const p = <Generator>tos.prevGenerator;
+            if(tos.isComplete) { // unlink completed generators from the completion stack
+                if(last !== null) {
+                    last.prevGenerator = p;
+                } else {
+                    g.globalEnv.topOfCompletionStack = p;
+                }
+                tos.prevGenerator = null;
+            } else {
+                result.push(tos);
+                last = tos;
+                lastLink = tos.directLink;
+                minLink = Math.min(lastLink, minLink);
+            }
+            tos = p;
+        }
+        result.push(g);
+        return prev === null || prev.selfId < Math.min(g.directLink, minLink) ? result : null;
+    }
+
+    private static checkCompletion(g: Generator): void {
+        if(g.isComplete) return;
         completionLoop:
         while(true) {
-            const cStack = this.isLeader();
+            const cStack = Generator.isLeader(g);
             if(cStack === null) return;
             const len = cStack.length;
             let anyNegativeConsumers = false;
@@ -321,43 +273,106 @@ class Generator implements Scheduler {
                 // TODO: Do any exact SCC check and complete those. Unlink them if it is easy.
                 // The program is not LRD-stratified if any generators in the exact SCC negatively
                 // depend on any others in the SCC.
-                const prev = this.prevGenerator;
-                Generator.completeScc(this);
-                this.globalEnv.topOfCompletionStack = prev;
+                const prev = g.prevGenerator;
+                Generator.completeScc(g);
+                g.globalEnv.topOfCompletionStack = prev;
                 return;
             } else {
-                const prev = this.prevGenerator;
+                const prev = g.prevGenerator;
                 for(let i = len - 1; i >= 0; --i) {
                     const gen = cStack[i];
                     gen.complete();
                     gen.completionListeners = null; // It was empty anyway.
                     gen.prevGenerator = null;
                 }
-                this.globalEnv.topOfCompletionStack = prev;
+                g.globalEnv.topOfCompletionStack = prev;
                 return;
             }
         }
     }
+}
 
-    execute(): void { // TODO: Maybe don't use pop on this.
-        let waiter = (<Array<() => void>>this.processes).pop();
-        while(waiter !== void(0)) { 
-            waiter(); 
-            if(this.processes === null) return; // We're already complete.
-            waiter = this.processes.pop(); 
+class TableGenerator extends Generator {
+    private consumers: Array<[number, (cs: Array<JsonTerm>) => void]> | null = [];
+
+    // NOTE: We could have the answerSet store nodes of a linked list which could be traversed
+    // by the answer iterators, and that would mean we wouldn't need the table, but I don't think
+    // that will really make much difference in time or space, nor is it clear that it is a good
+    // trade-off. If there was an easy way to avoid needing to store the answer as an array in
+    // the nodes, then it would be worth it. In the "Efficient Access Mechanisms for Tabled Logic
+    // Programs" paper, they have parent pointers in the answer trie (but not the subgoal trie)
+    // that allow this.
+    private answerSet: JsonTrieTerm<boolean> | null = JsonTrieTerm.create();
+    private readonly table: Array<Array<JsonTerm>> = [];
+
+    private constructor(scheduler: Scheduler) { super(scheduler); }
+
+    static create(body: LPTerm, sched: Scheduler, count: number, s0: Substitution<JsonTerm>): TableGenerator {
+        const gen = new TableGenerator(sched);
+        gen.push(() => body(gen)(s0)(s => gen.insertAnswer(count, s)));
+        return gen;
+    }
+
+    consume(k: (cs: Array<JsonTerm>) => void): void {
+        if(this.isComplete) {
+            const answers = this.table;
+            const len = answers.length;
+            for(let i = 0; i < len; ++i) {
+                k(answers[i]);
+            }
+        } else {
+            (<Array<[number, (cs: Array<JsonTerm>) => void]>>this.consumers).push([0, k]);
         }
-        this.checkCompletion();
     }
 
-    private complete(): void {
-        this.processes = null;
-        this.consumers = null;
-        this.answerSet = null;
-        this.successors = null;
-        this.negativeSuccessors = null;
+    consumeNegatively(k: () => void): void {
+        if(this.isComplete) {
+            if(this.table.length === 0) k();
+        } else {
+            (<Array<() => void>>this.completionListeners).push(() => this.table.length === 0 ? k() : void(0));
+        }
     }
 
-    private scheduleNegativeResumes(): void {
+    consumeToCompletion(k: (cs: Array<JsonTerm>) => void, onComplete: () => void): void {
+        if(this.isComplete) {
+            const answers = this.table;
+            const len = answers.length;
+            for(let i = 0; i < len; ++i) {
+                k(answers[i]);
+            }
+            onComplete();
+        } else {
+            (<Array<[number, (cs: Array<JsonTerm>) => void]>>this.consumers).push([0, k]);
+            (<Array<() => void>>this.completionListeners).push(onComplete);
+        }
+    }
+
+    private scheduleAnswers(consumer: [number, (cs: Array<JsonTerm>) => void]): boolean {
+        const answers = this.table;
+        const len = answers.length;
+        const start = consumer[0];
+        const k = consumer[1];
+        for(let i = start; i < len; ++i) {
+            k(answers[i]);
+        }
+        consumer[0] = len;
+        return start !== len;
+    }
+
+    protected scheduleResumes(): boolean {
+        const cs = <Array<[number, (cs: Array<JsonTerm>) => void]>>this.consumers;
+        const len = cs.length;
+        let wereUnconsumed = false;
+        for(let i = 0; i < len; ++i) {
+            if(this.scheduleAnswers(cs[i])) {
+                wereUnconsumed = true;
+            }
+        }
+        return wereUnconsumed;
+    }
+    
+
+    protected scheduleNegativeResumes(): void {
         // NOTE: Each completionListener corresponding to a negation will
         // individually check (redundantly) that the table is empty before
         // notifying the listener. Aggregates just want to know when the
@@ -370,14 +385,6 @@ class Generator implements Scheduler {
             ncs[i]();
         }
         this.completionListeners = null;
-    }
-
-    get isComplete(): boolean { return this.answerSet === null; }
-
-    static create<V>(body: LPTerm, sched: Scheduler, count: number, s0: Substitution<JsonTerm>): Generator {
-        const gen = new Generator(sched);
-        gen.push(() => body(gen)(s0)(s => gen.insertAnswer(count, s)));
-        return gen;
     }
 
     private insertAnswer(count: number, sub: Substitution<JsonTerm>): void {
@@ -402,6 +409,12 @@ class Generator implements Scheduler {
             }
             (<JsonTrieTerm<boolean>>this.answerSet).modify(answer, exists => { if(!exists) { this.table.push(answer); }; return true; });
         }
+    }
+
+    protected complete(): void {
+        this.cleanup();
+        this.consumers = null;
+        this.answerSet = null;
     }
 }
 
@@ -580,10 +593,10 @@ export class UntabledPredicate implements Predicate {
  * be tabled to guarantee termination.)
  */
 export class TabledPredicate implements Predicate {
-    private readonly generators: JsonTrieTerm<Generator> = JsonTrieTerm.create();
+    private readonly generators: JsonTrieTerm<TableGenerator> = JsonTrieTerm.create();
     constructor(private readonly body: (row: JsonTerm) => LPTerm) { }
 
-    private getGenerator(row: JsonTerm, sched: Scheduler): [Generator, Array<Variable>, boolean] {
+    private getGenerator(row: JsonTerm, sched: Scheduler): [TableGenerator, Array<Variable>, boolean] {
         let vs: any = null;
         let isNew = false;
         const g = this.generators.modifyWithVars(row, (gen, varMap: VarMap) => {
@@ -591,7 +604,7 @@ export class TabledPredicate implements Predicate {
             if(gen === void(0)) {
                 const t = refreshJson(row, Substitution.emptyPersistent()); 
                 isNew = true;
-                return Generator.create(this.body(t[0]), sched, vs.length, t[1]);
+                return TableGenerator.create(this.body(t[0]), sched, vs.length, t[1]);
             } else {
                 return gen;
             }
@@ -761,6 +774,289 @@ export class TabledPredicate implements Predicate {
      * This is built on [[aggregate]] and has the same restrictions.
      */
     or: (row: JsonTerm, agg: JsonTerm) => LPTerm = this.aggregate<Json>(x => x, false, (x, y) => x || y);
+}
+
+class LatticeGenerator<L> extends Generator {
+    private consumers: Array<[L, (acc: L) => void]> | null = [];
+    private accumulator: L;
+
+    private constructor(
+      private readonly unit: L, 
+      private readonly mult: (x: L, y: L) => L,
+      private readonly eq: (x: L, y: L) => boolean,
+      private readonly earlyComplete: (x: L) => boolean,
+      scheduler: Scheduler) {
+        super(scheduler);
+        this.accumulator = unit;
+    }
+
+    static create<L>(unit: L, mult: (x: L, y:L) => L, eq: (x: L, y: L) => boolean, body: LP<JsonTerm, L>, sched: Scheduler): LatticeGenerator<L> {
+        const gen = new LatticeGenerator(unit, mult, eq, _ => false, sched);
+        gen.push(() => body(gen)(Substitution.emptyPersistent(1))(gen.updateAccumulator.bind(gen)));
+        return gen;
+    }
+
+    static createWithEarlyComplete<L>(unit: L, mult: (x: L, y:L) => L, eq: (x: L, y: L) => boolean, ec: (x: L) => boolean, body: LP<JsonTerm, L>, sched: Scheduler): LatticeGenerator<L> {
+        const gen = new LatticeGenerator(unit, mult, eq, ec, sched);
+        gen.push(() => body(gen)(Substitution.emptyPersistent(1))(gen.updateAccumulator.bind(gen)));
+        return gen;
+    }
+
+    consume(k: (acc: L) => void): void {
+        if(this.isComplete) {
+            k(this.accumulator);
+        } else {
+            (<Array<[L, (acc: L) => void]>>this.consumers).push([this.unit, k]);
+        }
+    }
+
+    protected scheduleNegativeResumes(): void {
+        // NOTE: We don't have negative consumers.
+        // const ncs = this.completionListeners;
+        // if(ncs === null) return; // This has already been called.
+        // const len = ncs.length;
+        // for(let i = 0; i < len; ++i) {
+        //     ncs[i]();
+        // }
+        this.completionListeners = null;
+    }
+
+    protected scheduleResumes(): boolean {
+        const cs = <Array<[L, (acc: L) => void]>>this.consumers;
+        const len = cs.length;
+        let wereUnconsumed = false;
+        for(let i = 0; i < len; ++i) {
+            const t = cs[i];
+            const old = t[0];
+            const l = t[0] = this.mult(old, this.accumulator);
+            if(!this.eq(old, l)) {
+                wereUnconsumed = true;
+                t[1](l);
+            }
+        }
+        return wereUnconsumed;
+    }
+
+    private updateAccumulator(newVal: L): void {
+        this.accumulator = this.mult(this.accumulator, newVal);
+        if(this.earlyComplete(this.accumulator)) { this.complete(); }
+    }
+
+    protected complete(): void {
+        this.cleanup();
+        this.consumers = null;
+    }
+}
+
+/**
+ * TODO
+ */
+export class AnyLattice {
+    private static orFn(x: boolean, y: boolean): boolean { return x || y; }
+    private static eqFn(x: boolean, y: boolean): boolean { return x === y; }
+    private generator: LatticeGenerator<boolean> | null = null;
+
+    constructor(private readonly body: LP<JsonTerm, boolean>) { }
+
+    isTrue(): LPTerm {
+        return gen => s => k => {
+            let g = this.generator;
+            if(g === null) {
+                this.generator = g = LatticeGenerator.createWithEarlyComplete(false, AnyLattice.orFn, AnyLattice.eqFn, x => x, this.body, gen);
+                gen.dependOn(g);
+                g.consume(b => b ? k(s) : void(0));
+                g.execute();
+            } else {
+                gen.dependOn(g);
+                g.consume(b => b ? k(s) : void(0));
+            }
+        };
+    }
+}
+
+/**
+ * TODO
+ */
+export class AllLattice {
+    private static andFn(x: boolean, y: boolean): boolean { return x && y; }
+    private static eqFn(x: boolean, y: boolean): boolean { return x === y; }
+    private generator: LatticeGenerator<boolean> | null = null;
+
+    constructor(private readonly body: LP<JsonTerm, boolean>) { }
+
+    isFalse(): LPTerm {
+        return gen => s => k => {
+            let g = this.generator;
+            if(g === null) {
+                this.generator = g = LatticeGenerator.createWithEarlyComplete(true, AllLattice.andFn, AllLattice.eqFn, x => !x, this.body, gen);
+                gen.dependOn(g);
+                g.consume(b => b ? void(0): k(s));
+                g.execute();
+            } else {
+                gen.dependOn(g);
+                g.consume(b => b ? void(0): k(s));
+            }
+        };
+    }
+}
+
+/*
+
+lsetContains :: (Ord a) => Lattice (LSet a) -> a -> Producer Any
+lsetContains (Lattice listenersRef _) a = Producer $ \listener -> do
+    addListener listenersRef $ \(LSet s) -> listener (Any (Set.member a s))
+
+-- TODO: Implement the rest of the lattice morphisms in the Bloom^L paper.
+
+-- Monotone Lattice functions which are not morphisms
+
+lsetSize :: Lattice (LSet a) -> Producer (Max Int)
+lsetSize (Lattice listenersRef _) = Producer $ \listener -> do
+    addListener listenersRef $ \(LSet s) -> listener (Max (Set.size s))
+*/
+
+/**
+ * TODO
+ */
+export class MinLattice {
+    private static eqFn(x: number, y: number): boolean { return x === y; }
+    private generator: LatticeGenerator<number> | null = null;
+
+    constructor(private readonly body: LP<JsonTerm, number>) { }
+
+    lessThan(threshold: number): AnyLattice {
+        return new AnyLattice(gen => s => k => {
+            let g = this.generator;
+            if(g === null) {
+                this.generator = g = LatticeGenerator.create(Number.POSITIVE_INFINITY, Math.min, MinLattice.eqFn, this.body, gen);
+                gen.dependOn(g);
+                g.consume(n => k(n < threshold));
+                g.execute();
+            } else {
+                gen.dependOn(g);
+                g.consume(n => k(n < threshold));
+            }
+        });
+    }
+
+    lessThanOrEqualTo(threshold: number): AnyLattice {
+        return new AnyLattice(gen => s => k => {
+            let g = this.generator;
+            if(g === null) {
+                this.generator = g = LatticeGenerator.create(Number.POSITIVE_INFINITY, Math.min, MinLattice.eqFn, this.body, gen);
+                gen.dependOn(g);
+                g.consume(n => k(n <= threshold));
+                g.execute();
+            } else {
+                gen.dependOn(g);
+                g.consume(n => k(n <= threshold));
+            }
+        });
+    }
+
+    add(shift: number): MinLattice {
+        return new MinLattice(gen => s => k => {
+            let g = this.generator;
+            if(g === null) {
+                this.generator = g = LatticeGenerator.create(Number.POSITIVE_INFINITY, Math.min, MinLattice.eqFn, this.body, gen);
+                gen.dependOn(g);
+                g.consume(n => k(n + shift));
+                g.execute();
+            } else {
+                gen.dependOn(g);
+                g.consume(n => k(n + shift));
+            }
+        });
+    }
+
+    sub(shift: number): MinLattice { return this.add(-shift); }
+
+    negate(): MaxLattice {
+        return new MaxLattice(gen => s => k => {
+            let g = this.generator;
+            if(g === null) {
+                this.generator = g = LatticeGenerator.create(Number.POSITIVE_INFINITY, Math.min, MinLattice.eqFn, this.body, gen);
+                gen.dependOn(g);
+                g.consume(n => k(-n));
+                g.execute();
+            } else {
+                gen.dependOn(g);
+                g.consume(n => k(-n));
+            }
+        });
+    }
+}
+
+/**
+ * TODO
+ */
+export class MaxLattice {
+    private static eqFn(x: number, y: number): boolean { return x === y; }
+    private generator: LatticeGenerator<number> | null = null;
+
+    constructor(private readonly body: LP<JsonTerm, number>) { }
+
+    greaterThan(threshold: number): AnyLattice {
+        return new AnyLattice(gen => s => k => {
+            let g = this.generator;
+            if(g === null) {
+                this.generator = g = LatticeGenerator.create(Number.NEGATIVE_INFINITY, Math.max, MaxLattice.eqFn, this.body, gen);
+                gen.dependOn(g);
+                g.consume(n => k(n > threshold));
+                g.execute();
+            } else {
+                gen.dependOn(g);
+                g.consume(n => k(n > threshold));
+            }
+        });
+    }
+
+    greaterThanOrEqualTo(threshold: number): AnyLattice {
+        return new AnyLattice(gen => s => k => {
+            let g = this.generator;
+            if(g === null) {
+                this.generator = g = LatticeGenerator.create(Number.NEGATIVE_INFINITY, Math.max, MaxLattice.eqFn, this.body, gen);
+                gen.dependOn(g);
+                g.consume(n => k(n >= threshold));
+                g.execute();
+            } else {
+                gen.dependOn(g);
+                g.consume(n => k(n >= threshold));
+            }
+        });
+    }
+
+    add(shift: number): MaxLattice {
+        return new MaxLattice(gen => s => k => {
+            let g = this.generator;
+            if(g === null) {
+                this.generator = g = LatticeGenerator.create(Number.NEGATIVE_INFINITY, Math.max, MaxLattice.eqFn, this.body, gen);
+                gen.dependOn(g);
+                g.consume(n => k(n + shift));
+                g.execute();
+            } else {
+                gen.dependOn(g);
+                g.consume(n => k(n + shift));
+            }
+        });
+    }
+
+    sub(shift: number): MaxLattice { return this.add(-shift); }
+
+    negate(): MinLattice {
+        return new MinLattice(gen => s => k => {
+            let g = this.generator;
+            if(g === null) {
+                this.generator = g = LatticeGenerator.create(Number.NEGATIVE_INFINITY, Math.max, MaxLattice.eqFn, this.body, gen);
+                gen.dependOn(g);
+                g.consume(n => k(-n));
+                g.execute();
+            } else {
+                gen.dependOn(g);
+                g.consume(n => k(-n));
+            }
+        });
+    }
 }
 
 /**

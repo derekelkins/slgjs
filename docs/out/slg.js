@@ -1,3 +1,13 @@
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
 var __values = (this && this.__values) || function (o) {
     var m = typeof Symbol === "function" && o[Symbol.iterator], i = 0;
     if (m) return m.call(o);
@@ -44,21 +54,41 @@ var __values = (this && this.__values) || function (o) {
     var Generator = (function () {
         function Generator(scheduler) {
             this.processes = [];
-            this.consumers = [];
             this.completionListeners = [];
             this.successors = {};
             this.negativeSuccessors = {};
             this.sccIndex = -1;
             this.sccLowLink = -1;
             this.onSccStack = false;
-            this.table = [];
-            this.answerSet = json_trie_1.JsonTrieTerm.create();
             var gEnv = this.globalEnv = scheduler.globalEnv;
             this.selfId = gEnv.generatorCount++;
             this.directLink = this.selfId;
             this.prevGenerator = gEnv.topOfCompletionStack;
             gEnv.topOfCompletionStack = this;
         }
+        Object.defineProperty(Generator.prototype, "isComplete", {
+            get: function () { return this.processes === null; },
+            enumerable: true,
+            configurable: true
+        });
+        Generator.prototype.cleanup = function () {
+            this.processes = null;
+            this.successors = null;
+            this.negativeSuccessors = null;
+        };
+        Generator.prototype.push = function (process) {
+            this.processes.push(process);
+        };
+        Generator.prototype.execute = function () {
+            var waiter = this.processes.pop();
+            while (waiter !== void (0)) {
+                waiter();
+                if (this.processes === null)
+                    return;
+                waiter = this.processes.pop();
+            }
+            Generator.checkCompletion(this);
+        };
         Generator.prototype.dependOn = function (v) {
             if (this.isComplete)
                 return;
@@ -72,102 +102,6 @@ var __values = (this && this.__values) || function (o) {
             this.directLink = Math.min(this.directLink, v.directLink);
             this.negativeSuccessors[v.selfId] = v;
             this.globalEnv.sdgEdges.push([this.selfId, v.selfId]);
-        };
-        Generator.prototype.consume = function (k) {
-            if (this.isComplete) {
-                var answers = this.table;
-                var len = answers.length;
-                for (var i = 0; i < len; ++i) {
-                    k(answers[i]);
-                }
-            }
-            else {
-                this.consumers.push([0, k]);
-            }
-        };
-        Generator.prototype.consumeNegatively = function (k) {
-            var _this = this;
-            if (this.isComplete) {
-                if (this.table.length === 0)
-                    k();
-            }
-            else {
-                this.completionListeners.push(function () { return _this.table.length === 0 ? k() : void (0); });
-            }
-        };
-        Generator.prototype.consumeToCompletion = function (k, onComplete) {
-            if (this.isComplete) {
-                var answers = this.table;
-                var len = answers.length;
-                for (var i = 0; i < len; ++i) {
-                    k(answers[i]);
-                }
-                onComplete();
-            }
-            else {
-                this.consumers.push([0, k]);
-                this.completionListeners.push(onComplete);
-            }
-        };
-        Generator.prototype.scheduleAnswers = function (consumer) {
-            var answers = this.table;
-            var len = answers.length;
-            var start = consumer[0];
-            var k = consumer[1];
-            for (var i = start; i < len; ++i) {
-                k(answers[i]);
-            }
-            consumer[0] = len;
-            return start !== len;
-        };
-        Generator.prototype.push = function (process) {
-            this.processes.push(process);
-        };
-        Generator.prototype.isLeader = function () {
-            var prev = this.prevGenerator;
-            while (prev !== null && prev.isComplete) {
-                var p = prev.prevGenerator;
-                prev.prevGenerator = null;
-                prev = p;
-            }
-            this.prevGenerator = prev;
-            var result = [];
-            var tos = this.globalEnv.topOfCompletionStack;
-            var minLink = this.directLink;
-            var lastLink = this.directLink;
-            var last = null;
-            while (tos !== this) {
-                var p = tos.prevGenerator;
-                if (tos.isComplete) {
-                    if (last !== null) {
-                        last.prevGenerator = p;
-                    }
-                    else {
-                        this.globalEnv.topOfCompletionStack = p;
-                    }
-                    tos.prevGenerator = null;
-                }
-                else {
-                    result.push(tos);
-                    last = tos;
-                    lastLink = tos.directLink;
-                    minLink = Math.min(lastLink, minLink);
-                }
-                tos = p;
-            }
-            result.push(this);
-            return prev === null || prev.selfId < Math.min(this.directLink, minLink) ? result : null;
-        };
-        Generator.prototype.scheduleResumes = function () {
-            var cs = this.consumers;
-            var len = cs.length;
-            var wereUnconsumed = false;
-            for (var i = 0; i < len; ++i) {
-                if (this.scheduleAnswers(cs[i])) {
-                    wereUnconsumed = true;
-                }
-            }
-            return wereUnconsumed;
         };
         Generator.completeScc = function (gen) {
             var index = 0;
@@ -217,11 +151,46 @@ var __values = (this && this.__values) || function (o) {
             };
             scc(gen);
         };
-        Generator.prototype.checkCompletion = function () {
-            if (this.isComplete)
+        Generator.isLeader = function (g) {
+            var prev = g.prevGenerator;
+            while (prev !== null && prev.isComplete) {
+                var p = prev.prevGenerator;
+                prev.prevGenerator = null;
+                prev = p;
+            }
+            g.prevGenerator = prev;
+            var result = [];
+            var tos = g.globalEnv.topOfCompletionStack;
+            var minLink = g.directLink;
+            var lastLink = g.directLink;
+            var last = null;
+            while (tos !== g) {
+                var p = tos.prevGenerator;
+                if (tos.isComplete) {
+                    if (last !== null) {
+                        last.prevGenerator = p;
+                    }
+                    else {
+                        g.globalEnv.topOfCompletionStack = p;
+                    }
+                    tos.prevGenerator = null;
+                }
+                else {
+                    result.push(tos);
+                    last = tos;
+                    lastLink = tos.directLink;
+                    minLink = Math.min(lastLink, minLink);
+                }
+                tos = p;
+            }
+            result.push(g);
+            return prev === null || prev.selfId < Math.min(g.directLink, minLink) ? result : null;
+        };
+        Generator.checkCompletion = function (g) {
+            if (g.isComplete)
                 return;
             completionLoop: while (true) {
-                var cStack = this.isLeader();
+                var cStack = Generator.isLeader(g);
                 if (cStack === null)
                     return;
                 var len = cStack.length;
@@ -235,42 +204,99 @@ var __values = (this && this.__values) || function (o) {
                         anyNegativeConsumers = true;
                 }
                 if (anyNegativeConsumers) {
-                    var prev = this.prevGenerator;
-                    Generator.completeScc(this);
-                    this.globalEnv.topOfCompletionStack = prev;
+                    var prev = g.prevGenerator;
+                    Generator.completeScc(g);
+                    g.globalEnv.topOfCompletionStack = prev;
                     return;
                 }
                 else {
-                    var prev = this.prevGenerator;
+                    var prev = g.prevGenerator;
                     for (var i = len - 1; i >= 0; --i) {
                         var gen = cStack[i];
                         gen.complete();
                         gen.completionListeners = null;
                         gen.prevGenerator = null;
                     }
-                    this.globalEnv.topOfCompletionStack = prev;
+                    g.globalEnv.topOfCompletionStack = prev;
                     return;
                 }
             }
         };
-        Generator.prototype.execute = function () {
-            var waiter = this.processes.pop();
-            while (waiter !== void (0)) {
-                waiter();
-                if (this.processes === null)
-                    return;
-                waiter = this.processes.pop();
+        return Generator;
+    }());
+    var TableGenerator = (function (_super) {
+        __extends(TableGenerator, _super);
+        function TableGenerator(scheduler) {
+            var _this = _super.call(this, scheduler) || this;
+            _this.consumers = [];
+            _this.answerSet = json_trie_1.JsonTrieTerm.create();
+            _this.table = [];
+            return _this;
+        }
+        TableGenerator.create = function (body, sched, count, s0) {
+            var gen = new TableGenerator(sched);
+            gen.push(function () { return body(gen)(s0)(function (s) { return gen.insertAnswer(count, s); }); });
+            return gen;
+        };
+        TableGenerator.prototype.consume = function (k) {
+            if (this.isComplete) {
+                var answers = this.table;
+                var len = answers.length;
+                for (var i = 0; i < len; ++i) {
+                    k(answers[i]);
+                }
             }
-            this.checkCompletion();
+            else {
+                this.consumers.push([0, k]);
+            }
         };
-        Generator.prototype.complete = function () {
-            this.processes = null;
-            this.consumers = null;
-            this.answerSet = null;
-            this.successors = null;
-            this.negativeSuccessors = null;
+        TableGenerator.prototype.consumeNegatively = function (k) {
+            var _this = this;
+            if (this.isComplete) {
+                if (this.table.length === 0)
+                    k();
+            }
+            else {
+                this.completionListeners.push(function () { return _this.table.length === 0 ? k() : void (0); });
+            }
         };
-        Generator.prototype.scheduleNegativeResumes = function () {
+        TableGenerator.prototype.consumeToCompletion = function (k, onComplete) {
+            if (this.isComplete) {
+                var answers = this.table;
+                var len = answers.length;
+                for (var i = 0; i < len; ++i) {
+                    k(answers[i]);
+                }
+                onComplete();
+            }
+            else {
+                this.consumers.push([0, k]);
+                this.completionListeners.push(onComplete);
+            }
+        };
+        TableGenerator.prototype.scheduleAnswers = function (consumer) {
+            var answers = this.table;
+            var len = answers.length;
+            var start = consumer[0];
+            var k = consumer[1];
+            for (var i = start; i < len; ++i) {
+                k(answers[i]);
+            }
+            consumer[0] = len;
+            return start !== len;
+        };
+        TableGenerator.prototype.scheduleResumes = function () {
+            var cs = this.consumers;
+            var len = cs.length;
+            var wereUnconsumed = false;
+            for (var i = 0; i < len; ++i) {
+                if (this.scheduleAnswers(cs[i])) {
+                    wereUnconsumed = true;
+                }
+            }
+            return wereUnconsumed;
+        };
+        TableGenerator.prototype.scheduleNegativeResumes = function () {
             var ncs = this.completionListeners;
             if (ncs === null)
                 return;
@@ -280,17 +306,7 @@ var __values = (this && this.__values) || function (o) {
             }
             this.completionListeners = null;
         };
-        Object.defineProperty(Generator.prototype, "isComplete", {
-            get: function () { return this.answerSet === null; },
-            enumerable: true,
-            configurable: true
-        });
-        Generator.create = function (body, sched, count, s0) {
-            var gen = new Generator(sched);
-            gen.push(function () { return body(gen)(s0)(function (s) { return gen.insertAnswer(count, s); }); });
-            return gen;
-        };
-        Generator.prototype.insertAnswer = function (count, sub) {
+        TableGenerator.prototype.insertAnswer = function (count, sub) {
             var _this = this;
             if (count === 0) {
                 if (this.table.length === 0) {
@@ -310,8 +326,13 @@ var __values = (this && this.__values) || function (o) {
                 } ; return true; });
             }
         };
-        return Generator;
-    }());
+        TableGenerator.prototype.complete = function () {
+            this.cleanup();
+            this.consumers = null;
+            this.answerSet = null;
+        };
+        return TableGenerator;
+    }(Generator));
     var TrieEdbPredicate = (function () {
         function TrieEdbPredicate(trie) {
             this.trie = trie;
@@ -441,7 +462,7 @@ var __values = (this && this.__values) || function (o) {
                 if (gen === void (0)) {
                     var t = unify_1.refreshJson(row, unify_1.Substitution.emptyPersistent());
                     isNew = true;
-                    return Generator.create(_this.body(t[0]), sched, vs.length, t[1]);
+                    return TableGenerator.create(_this.body(t[0]), sched, vs.length, t[1]);
                 }
                 else {
                     return gen;
@@ -529,6 +550,266 @@ var __values = (this && this.__values) || function (o) {
         return TabledPredicate;
     }());
     exports.TabledPredicate = TabledPredicate;
+    var LatticeGenerator = (function (_super) {
+        __extends(LatticeGenerator, _super);
+        function LatticeGenerator(unit, mult, eq, earlyComplete, scheduler) {
+            var _this = _super.call(this, scheduler) || this;
+            _this.unit = unit;
+            _this.mult = mult;
+            _this.eq = eq;
+            _this.earlyComplete = earlyComplete;
+            _this.consumers = [];
+            _this.accumulator = unit;
+            return _this;
+        }
+        LatticeGenerator.create = function (unit, mult, eq, body, sched) {
+            var gen = new LatticeGenerator(unit, mult, eq, function (_) { return false; }, sched);
+            gen.push(function () { return body(gen)(unify_1.Substitution.emptyPersistent(1))(gen.updateAccumulator.bind(gen)); });
+            return gen;
+        };
+        LatticeGenerator.createWithEarlyComplete = function (unit, mult, eq, ec, body, sched) {
+            var gen = new LatticeGenerator(unit, mult, eq, ec, sched);
+            gen.push(function () { return body(gen)(unify_1.Substitution.emptyPersistent(1))(gen.updateAccumulator.bind(gen)); });
+            return gen;
+        };
+        LatticeGenerator.prototype.consume = function (k) {
+            if (this.isComplete) {
+                k(this.accumulator);
+            }
+            else {
+                this.consumers.push([this.unit, k]);
+            }
+        };
+        LatticeGenerator.prototype.scheduleNegativeResumes = function () {
+            this.completionListeners = null;
+        };
+        LatticeGenerator.prototype.scheduleResumes = function () {
+            var cs = this.consumers;
+            var len = cs.length;
+            var wereUnconsumed = false;
+            for (var i = 0; i < len; ++i) {
+                var t = cs[i];
+                var old = t[0];
+                var l = t[0] = this.mult(old, this.accumulator);
+                if (!this.eq(old, l)) {
+                    wereUnconsumed = true;
+                    t[1](l);
+                }
+            }
+            return wereUnconsumed;
+        };
+        LatticeGenerator.prototype.updateAccumulator = function (newVal) {
+            this.accumulator = this.mult(this.accumulator, newVal);
+            if (this.earlyComplete(this.accumulator)) {
+                this.complete();
+            }
+        };
+        LatticeGenerator.prototype.complete = function () {
+            this.cleanup();
+            this.consumers = null;
+        };
+        return LatticeGenerator;
+    }(Generator));
+    var AnyLattice = (function () {
+        function AnyLattice(body) {
+            this.body = body;
+            this.generator = null;
+        }
+        AnyLattice.orFn = function (x, y) { return x || y; };
+        AnyLattice.eqFn = function (x, y) { return x === y; };
+        AnyLattice.prototype.isTrue = function () {
+            var _this = this;
+            return function (gen) { return function (s) { return function (k) {
+                var g = _this.generator;
+                if (g === null) {
+                    _this.generator = g = LatticeGenerator.createWithEarlyComplete(false, AnyLattice.orFn, AnyLattice.eqFn, function (x) { return x; }, _this.body, gen);
+                    gen.dependOn(g);
+                    g.consume(function (b) { return b ? k(s) : void (0); });
+                    g.execute();
+                }
+                else {
+                    gen.dependOn(g);
+                    g.consume(function (b) { return b ? k(s) : void (0); });
+                }
+            }; }; };
+        };
+        return AnyLattice;
+    }());
+    exports.AnyLattice = AnyLattice;
+    var AllLattice = (function () {
+        function AllLattice(body) {
+            this.body = body;
+            this.generator = null;
+        }
+        AllLattice.andFn = function (x, y) { return x && y; };
+        AllLattice.eqFn = function (x, y) { return x === y; };
+        AllLattice.prototype.isFalse = function () {
+            var _this = this;
+            return function (gen) { return function (s) { return function (k) {
+                var g = _this.generator;
+                if (g === null) {
+                    _this.generator = g = LatticeGenerator.createWithEarlyComplete(true, AllLattice.andFn, AllLattice.eqFn, function (x) { return !x; }, _this.body, gen);
+                    gen.dependOn(g);
+                    g.consume(function (b) { return b ? void (0) : k(s); });
+                    g.execute();
+                }
+                else {
+                    gen.dependOn(g);
+                    g.consume(function (b) { return b ? void (0) : k(s); });
+                }
+            }; }; };
+        };
+        return AllLattice;
+    }());
+    exports.AllLattice = AllLattice;
+    var MinLattice = (function () {
+        function MinLattice(body) {
+            this.body = body;
+            this.generator = null;
+        }
+        MinLattice.eqFn = function (x, y) { return x === y; };
+        MinLattice.prototype.lessThan = function (threshold) {
+            var _this = this;
+            return new AnyLattice(function (gen) { return function (s) { return function (k) {
+                var g = _this.generator;
+                if (g === null) {
+                    _this.generator = g = LatticeGenerator.create(Number.POSITIVE_INFINITY, Math.min, MinLattice.eqFn, _this.body, gen);
+                    gen.dependOn(g);
+                    g.consume(function (n) { return k(n < threshold); });
+                    g.execute();
+                }
+                else {
+                    gen.dependOn(g);
+                    g.consume(function (n) { return k(n < threshold); });
+                }
+            }; }; });
+        };
+        MinLattice.prototype.lessThanOrEqualTo = function (threshold) {
+            var _this = this;
+            return new AnyLattice(function (gen) { return function (s) { return function (k) {
+                var g = _this.generator;
+                if (g === null) {
+                    _this.generator = g = LatticeGenerator.create(Number.POSITIVE_INFINITY, Math.min, MinLattice.eqFn, _this.body, gen);
+                    gen.dependOn(g);
+                    g.consume(function (n) { return k(n <= threshold); });
+                    g.execute();
+                }
+                else {
+                    gen.dependOn(g);
+                    g.consume(function (n) { return k(n <= threshold); });
+                }
+            }; }; });
+        };
+        MinLattice.prototype.add = function (shift) {
+            var _this = this;
+            return new MinLattice(function (gen) { return function (s) { return function (k) {
+                var g = _this.generator;
+                if (g === null) {
+                    _this.generator = g = LatticeGenerator.create(Number.POSITIVE_INFINITY, Math.min, MinLattice.eqFn, _this.body, gen);
+                    gen.dependOn(g);
+                    g.consume(function (n) { return k(n + shift); });
+                    g.execute();
+                }
+                else {
+                    gen.dependOn(g);
+                    g.consume(function (n) { return k(n + shift); });
+                }
+            }; }; });
+        };
+        MinLattice.prototype.sub = function (shift) { return this.add(-shift); };
+        MinLattice.prototype.negate = function () {
+            var _this = this;
+            return new MaxLattice(function (gen) { return function (s) { return function (k) {
+                var g = _this.generator;
+                if (g === null) {
+                    _this.generator = g = LatticeGenerator.create(Number.POSITIVE_INFINITY, Math.min, MinLattice.eqFn, _this.body, gen);
+                    gen.dependOn(g);
+                    g.consume(function (n) { return k(-n); });
+                    g.execute();
+                }
+                else {
+                    gen.dependOn(g);
+                    g.consume(function (n) { return k(-n); });
+                }
+            }; }; });
+        };
+        return MinLattice;
+    }());
+    exports.MinLattice = MinLattice;
+    var MaxLattice = (function () {
+        function MaxLattice(body) {
+            this.body = body;
+            this.generator = null;
+        }
+        MaxLattice.eqFn = function (x, y) { return x === y; };
+        MaxLattice.prototype.greaterThan = function (threshold) {
+            var _this = this;
+            return new AnyLattice(function (gen) { return function (s) { return function (k) {
+                var g = _this.generator;
+                if (g === null) {
+                    _this.generator = g = LatticeGenerator.create(Number.NEGATIVE_INFINITY, Math.max, MaxLattice.eqFn, _this.body, gen);
+                    gen.dependOn(g);
+                    g.consume(function (n) { return k(n > threshold); });
+                    g.execute();
+                }
+                else {
+                    gen.dependOn(g);
+                    g.consume(function (n) { return k(n > threshold); });
+                }
+            }; }; });
+        };
+        MaxLattice.prototype.greaterThanOrEqualTo = function (threshold) {
+            var _this = this;
+            return new AnyLattice(function (gen) { return function (s) { return function (k) {
+                var g = _this.generator;
+                if (g === null) {
+                    _this.generator = g = LatticeGenerator.create(Number.NEGATIVE_INFINITY, Math.max, MaxLattice.eqFn, _this.body, gen);
+                    gen.dependOn(g);
+                    g.consume(function (n) { return k(n >= threshold); });
+                    g.execute();
+                }
+                else {
+                    gen.dependOn(g);
+                    g.consume(function (n) { return k(n >= threshold); });
+                }
+            }; }; });
+        };
+        MaxLattice.prototype.add = function (shift) {
+            var _this = this;
+            return new MaxLattice(function (gen) { return function (s) { return function (k) {
+                var g = _this.generator;
+                if (g === null) {
+                    _this.generator = g = LatticeGenerator.create(Number.NEGATIVE_INFINITY, Math.max, MaxLattice.eqFn, _this.body, gen);
+                    gen.dependOn(g);
+                    g.consume(function (n) { return k(n + shift); });
+                    g.execute();
+                }
+                else {
+                    gen.dependOn(g);
+                    g.consume(function (n) { return k(n + shift); });
+                }
+            }; }; });
+        };
+        MaxLattice.prototype.sub = function (shift) { return this.add(-shift); };
+        MaxLattice.prototype.negate = function () {
+            var _this = this;
+            return new MinLattice(function (gen) { return function (s) { return function (k) {
+                var g = _this.generator;
+                if (g === null) {
+                    _this.generator = g = LatticeGenerator.create(Number.NEGATIVE_INFINITY, Math.max, MaxLattice.eqFn, _this.body, gen);
+                    gen.dependOn(g);
+                    g.consume(function (n) { return k(-n); });
+                    g.execute();
+                }
+                else {
+                    gen.dependOn(g);
+                    g.consume(function (n) { return k(-n); });
+                }
+            }; }; });
+        };
+        return MaxLattice;
+    }());
+    exports.MaxLattice = MaxLattice;
     function seq(m1, m2) {
         return function (gen) { return function (s) { return function (k) { return m1(gen)(s)(function (s) { return m2(gen)(s)(k); }); }; }; };
     }
