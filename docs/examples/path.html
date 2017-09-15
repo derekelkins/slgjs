@@ -19,58 +19,63 @@
 <body>
 <pre><code id="codeBox" class="js"></code></pre>
 Input:
+<textarea id="inputBox" style="width: 100%;">[["a","b"],["b","c"],["c","a"]]</textarea><br/>
+<button id="renderBtn">Rerender</button><br/>
+Edges:
 <div id="edgeGraph" class="graphBox"></div>
-Output (shake it loose):
+Paths (shake it loose):
 <div id="pathGraph" class="graphBox"></div>
 Subgoal Dependency Graph:
 <div id="sdgGraph" class="graphBox"></div>
 <script id="code" type="text/javascript">
 requirejs(['../out/slg'], function(slg) {
-const edge = new slg.EdbPredicate([
-    [1, 2],
-    [2, 3],
-    [3, 1]]);
-    //[3, 4]]);
-const path = new slg.TabledPredicate(([X, Z]) => slg.rule(
-    () => [edge.match([X, Z])],
-    Y  => [edge.match([X, Y]), path.match([Y, Z])]));
+function render(edges) {
+    const edge = new slg.EdbPredicate(edges);
+    const path = new slg.TabledPredicate(([X, Z]) => slg.rule(
+        () => [edge.match([X, Z])],
+        Y  => [edge.match([X, Y]), path.match([Y, Z])]));
 
-const edgeEdges = slg.toArrayQ(Q => slg.clause((S, E) => [edge.match([S, E]), slg.unify(Q, {from: S, to: E})]));
-const [sdgEdges, pathEdges] = slg.debugToArrayQ(Q => slg.clause((S, E) => [path.match([S, E]), slg.unify(Q, {from: S, to: E})]));
+    const edgeEdges = slg.toArrayQ(Q => slg.clause((S, E) => [edge.match([S, E]), slg.unify(Q, {from: S, to: E})]));
+    const [sdgEdges, pathEdges] = slg.debugToArrayQ(Q => slg.clause((S, E) => [path.match([S, E]), slg.unify(Q, {from: S, to: E})]));
 
-// Graph rendering stuff.
+    // Graph rendering stuff.
 
-const nodes = new vis.DataSet([
-     {id: 1, label: '1'}
-    ,{id: 2, label: '2'}
-    ,{id: 3, label: '3'}
-    //,{id: 4, label: '4'}
-]);
+    const dedupEdges = {};
+    for(const edge of edges) {
+        dedupEdges[edge[0]] = edge[0];
+        dedupEdges[edge[1]] = edge[1];
+    }
 
-const dedup = {};
-for(const edge of sdgEdges) {
-    dedup[edge[0]] = edge[0];
-    dedup[edge[1]] = edge[1];
+    const nodes = new vis.DataSet(Object.keys(dedupEdges).map(k => ({id: dedupEdges[k], label: k})));
+
+    const dedupSdg = {};
+    for(const edge of sdgEdges) {
+        dedupSdg[edge[0]] = edge[0];
+        dedupSdg[edge[1]] = edge[1];
+    }
+
+    const sdgNodes = new vis.DataSet(Object.keys(dedupSdg).map(k => ({id: dedupSdg[k], label: k})));
+
+    const edgeData = {
+        nodes: nodes,
+        edges: new vis.DataSet(edgeEdges)
+    };
+    const pathData = {
+        nodes: nodes,
+        edges: new vis.DataSet(pathEdges)
+    };
+    const sdgData = {
+        nodes: sdgNodes,
+        edges: new vis.DataSet(sdgEdges.map(e => ({from: e[0], to: e[1]})))
+    };
+    const options = {edges: {arrows: 'to'}};
+    new vis.Network(document.getElementById('edgeGraph'), edgeData, options);
+    new vis.Network(document.getElementById('pathGraph'), pathData, options);
+    new vis.Network(document.getElementById('sdgGraph'), sdgData, options);
 }
-
-const sdgNodes = new vis.DataSet(Object.keys(dedup).map(k => ({id: dedup[k], label: k})));
-
-const edgeData = {
-    nodes: nodes,
-    edges: new vis.DataSet(edgeEdges)
-};
-const pathData = {
-    nodes: nodes,
-    edges: new vis.DataSet(pathEdges)
-};
-const sdgData = {
-    nodes: sdgNodes,
-    edges: new vis.DataSet(sdgEdges.map(e => ({from: e[0], to: e[1]})))
-};
-const options = {edges: {arrows: 'to'}};
-new vis.Network(document.getElementById('edgeGraph'), edgeData, options);
-new vis.Network(document.getElementById('pathGraph'), pathData, options);
-new vis.Network(document.getElementById('sdgGraph'), sdgData, options);
+const inputBox = document.getElementById('inputBox');
+document.getElementById('renderBtn').onclick = () => { render(JSON.parse(inputBox.value)); };
+render(JSON.parse(inputBox.value));
 });
 </script>
 <script type="text/javascript">
