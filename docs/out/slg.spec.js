@@ -28,6 +28,15 @@ var __read = (this && this.__read) || function (o, n) {
     require("jest");
     var unify_1 = require("./unify");
     var slg_1 = require("./slg");
+    describe('lattices', function () {
+        test('quorum example', function () {
+            var quorumSize = 2;
+            var vote = new slg_1.EdbPredicate(['A', 'B', 'C']);
+            var votes = slg_1.GrowingSetLattice.fromLP(function (Q) { return vote.match(Q); });
+            var result = slg_1.toArrayQ(function (Q) { return slg_1.conj(votes.size().greaterThanOrEqualTo(quorumSize).isTrue(), slg_1.unify(Q, true)); });
+            expect(result).toEqual([true]);
+        });
+    });
     describe('non-monotonic aggregation', function () {
         test('non-ground results throw an error', function () {
             var p = new slg_1.TabledPredicate(function (X) { return slg_1.fresh(function (Y) { return slg_1.unify(X, Y); }); });

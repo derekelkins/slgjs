@@ -24,13 +24,14 @@ var __values = (this && this.__values) || function (o) {
         if (v !== undefined) module.exports = v;
     }
     else if (typeof define === "function" && define.amd) {
-        define(["require", "exports", "./unify", "./json-trie"], factory);
+        define(["require", "exports", "./unify", "./json-trie", "immutable"], factory);
     }
 })(function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var unify_1 = require("./unify");
     var json_trie_1 = require("./json-trie");
+    var im = require("immutable");
     var TopLevelScheduler = (function () {
         function TopLevelScheduler() {
             this.processes = [];
@@ -601,7 +602,9 @@ var __values = (this && this.__values) || function (o) {
         LatticeGenerator.prototype.updateAccumulator = function (newVal) {
             this.accumulator = this.mult(this.accumulator, newVal);
             if (this.earlyComplete(this.accumulator)) {
+                this.scheduleResumes();
                 this.complete();
+                this.scheduleNegativeResumes();
             }
         };
         LatticeGenerator.prototype.complete = function () {
@@ -662,6 +665,51 @@ var __values = (this && this.__values) || function (o) {
         return AllLattice;
     }());
     exports.AllLattice = AllLattice;
+    var GrowingSetLattice = (function () {
+        function GrowingSetLattice(body) {
+            this.body = body;
+            this.generator = null;
+        }
+        GrowingSetLattice.eqFn = function (x, y) { return x.equals(y); };
+        GrowingSetLattice.fromLP = function (body) {
+            var comp = fresh(function (Q) { return seq(body(Q), completelyGround(Q)); });
+            return new GrowingSetLattice(function (gen) { return function (s) { return function (k) { return comp(gen)(s)(function (x) { return k(im.Set.of(x)); }); }; }; });
+        };
+        GrowingSetLattice.prototype.contains = function (x) {
+            var _this = this;
+            return new AnyLattice(function (gen) { return function (s) { return function (k) {
+                var g = _this.generator;
+                if (g === null) {
+                    _this.generator = g = LatticeGenerator.create(im.Set.of(), function (x, y) { return x.union(y); }, GrowingSetLattice.eqFn, _this.body, gen);
+                    gen.dependOn(g);
+                    g.consume(function (s) { return k(s.contains(x)); });
+                    g.execute();
+                }
+                else {
+                    gen.dependOn(g);
+                    g.consume(function (s) { return k(s.contains(x)); });
+                }
+            }; }; });
+        };
+        GrowingSetLattice.prototype.size = function () {
+            var _this = this;
+            return new MaxLattice(function (gen) { return function (s) { return function (k) {
+                var g = _this.generator;
+                if (g === null) {
+                    _this.generator = g = LatticeGenerator.create(im.Set.of(), function (x, y) { return x.union(y); }, GrowingSetLattice.eqFn, _this.body, gen);
+                    gen.dependOn(g);
+                    g.consume(function (s) { return k(s.size); });
+                    g.execute();
+                }
+                else {
+                    gen.dependOn(g);
+                    g.consume(function (s) { return k(s.size); });
+                }
+            }; }; });
+        };
+        return GrowingSetLattice;
+    }());
+    exports.GrowingSetLattice = GrowingSetLattice;
     var MinLattice = (function () {
         function MinLattice(body) {
             this.body = body;
@@ -814,8 +862,14 @@ var __values = (this && this.__values) || function (o) {
         return function (gen) { return function (s) { return function (k) { return m1(gen)(s)(function (s) { return m2(gen)(s)(k); }); }; }; };
     }
     exports.seq = seq;
+    function succeedWith(val) {
+        return function (gen) { return function (s) { return function (k) { return k(val); }; }; };
+    }
     function ground(val) {
         return function (gen) { return function (s) { return function (k) { return k(unify_1.groundJson(val, s)); }; }; };
+    }
+    function completelyGround(val) {
+        return function (gen) { return function (s) { return function (k) { return k(unify_1.completelyGroundJson(val, s)); }; }; };
     }
     function apply(f) {
         return function (In, Out) { return function (gen) { return function (s) { return function (k) {

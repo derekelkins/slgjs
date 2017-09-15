@@ -1,6 +1,9 @@
+///<reference path='./node_modules/immutable/dist/immutable.d.ts'/>
 import { Json, JsonTerm, Variable, Substitution, 
          groundJson, completelyGroundJson, looseUnifyJson, unifyJson, matchJson, looseMatchJson, refreshJson } from "./unify"
 import { VarMap, JsonTrie, JsonTrieTerm } from "./json-trie"
+
+import * as im from "immutable"
 
 interface GlobalEnvironment {
     generatorCount: number;
@@ -839,7 +842,11 @@ class LatticeGenerator<L> extends Generator {
 
     private updateAccumulator(newVal: L): void {
         this.accumulator = this.mult(this.accumulator, newVal);
-        if(this.earlyComplete(this.accumulator)) { this.complete(); }
+        if(this.earlyComplete(this.accumulator)) { 
+            this.scheduleResumes();
+            this.complete();
+            this.scheduleNegativeResumes();
+        }
     }
 
     protected complete(): void {
@@ -900,20 +907,50 @@ export class AllLattice {
     }
 }
 
-/*
+/**
+ * TODO
+ */
+export class GrowingSetLattice {
+    private static eqFn(x: im.Set<Json>, y: im.Set<Json>): boolean { return x.equals(y); }
+    private generator: LatticeGenerator<im.Set<Json>> | null = null;
 
-lsetContains :: (Ord a) => Lattice (LSet a) -> a -> Producer Any
-lsetContains (Lattice listenersRef _) a = Producer $ \listener -> do
-    addListener listenersRef $ \(LSet s) -> listener (Any (Set.member a s))
+    constructor(private readonly body: LP<JsonTerm, im.Set<Json>>) { }
 
--- TODO: Implement the rest of the lattice morphisms in the Bloom^L paper.
+    static fromLP(body: (q: Variable) => LPTerm): GrowingSetLattice { 
+        const comp = fresh(Q => seq(body(Q), completelyGround(Q)));
+        return new GrowingSetLattice(gen => s => k => comp(gen)(s)(x => k(im.Set.of(x))));
+    }
 
--- Monotone Lattice functions which are not morphisms
+    contains(x: Json): AnyLattice {
+        return new AnyLattice(gen => s => k => {
+            let g = this.generator;
+            if(g === null) {
+                this.generator = g = LatticeGenerator.create(im.Set.of(), (x: im.Set<Json>, y: im.Set<Json>) => x.union(y), GrowingSetLattice.eqFn, this.body, gen);
+                gen.dependOn(g);
+                g.consume(s => k(s.contains(x)));
+                g.execute();
+            } else {
+                gen.dependOn(g);
+                g.consume(s => k(s.contains(x)));
+            }
+        });
+    }
 
-lsetSize :: Lattice (LSet a) -> Producer (Max Int)
-lsetSize (Lattice listenersRef _) = Producer $ \listener -> do
-    addListener listenersRef $ \(LSet s) -> listener (Max (Set.size s))
-*/
+    size(): MaxLattice {
+        return new MaxLattice(gen => s => k => {
+            let g = this.generator;
+            if(g === null) {
+                this.generator = g = LatticeGenerator.create(im.Set.of(), (x: im.Set<Json>, y: im.Set<Json>) => x.union(y), GrowingSetLattice.eqFn, this.body, gen);
+                gen.dependOn(g);
+                g.consume(s => k(s.size));
+                g.execute();
+            } else {
+                gen.dependOn(g);
+                g.consume(s => k(s.size));
+            }
+        });
+    }
+}
 
 /**
  * TODO
@@ -1067,8 +1104,28 @@ export function seq<V, A>(m1: LPSub<V>, m2: LP<V, A>): LP<V, A> {
     return gen => s => k => m1(gen)(s)(s => m2(gen)(s)(k))
 }
 
+/**
+ * Monadic unit, what Haskell calls `return`. Simply makes a computation
+ * that returns `val`.
+ */
+function succeedWith<V, A>(val: A): LP<V, A> {
+    return gen => s => k => k(val);
+}
+
+/**
+ * Makes a computation that returns the result of [[groundJson]] applied
+ * to `val`.
+ */
 function ground(val: JsonTerm): LP<JsonTerm, JsonTerm> {
     return gen => s => k => k(groundJson(val, s));
+}
+
+/**
+ * Makes a computation that returns the result of [[completelyGroundJson]] applied
+ * to `val`.
+ */
+function completelyGround(val: JsonTerm): LP<JsonTerm, Json> {
+    return gen => s => k => k(completelyGroundJson(val, s));
 }
 
 /**

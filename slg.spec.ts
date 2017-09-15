@@ -1,8 +1,20 @@
 import "jest"
 
 import { Variable, JsonTerm } from "./unify"
-import { Predicate, UntabledPredicate, TabledPredicate, EdbPredicate, TrieEdbPredicate,
+import { Predicate, UntabledPredicate, TabledPredicate, EdbPredicate, TrieEdbPredicate, GrowingSetLattice, AnyLattice, MaxLattice,
          rule, clause, fresh, unify, conj, apply, looseUnify, toArrayQ } from "./slg"
+
+describe('lattices', () => {
+    test('quorum example', () => {
+        // This example was originally from an incremental context. It's not that interesting in a batch
+        // context. However, given a suitable amount recursion it would become interesting.
+        const quorumSize = 2;
+        const vote: Predicate = new EdbPredicate(['A', 'B', 'C']);
+        const votes: GrowingSetLattice = GrowingSetLattice.fromLP(Q => vote.match(Q));
+        const result = toArrayQ(Q => conj(votes.size().greaterThanOrEqualTo(quorumSize).isTrue(), unify(Q, true)));
+        expect(result).toEqual([true]);
+    });
+});
 
 describe('non-monotonic aggregation', () => {
     test('non-ground results throw an error', () => {

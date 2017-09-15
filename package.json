@@ -4,6 +4,7 @@
   "description": "",
   "main": "slg.js",
   "dependencies": {
+    "immutable": "^3.8.1",
     "jest": "^20.0.4",
     "ts-jest": "^20.0.10"
   },
@@ -21,7 +22,7 @@
       "^.+\\.tsx?$": "<rootDir>/node_modules/ts-jest/preprocessor.js"
     },
     "modulePathIgnorePatterns": [
-        "<rootDir>/docs/"
+      "<rootDir>/docs/"
     ],
     "testRegex": "(/__test__/.*|\\.(test|spec))\\.(tsx?|jsx?)$",
     "moduleFileExtensions": [
