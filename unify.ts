@@ -244,6 +244,51 @@ export function groundJson(x: JsonTerm, sub: Substitution<JsonTerm>, mapping: {[
 }
 
 /**
+ * Traverse a [[JsonTerm]] looking up [[Variable]]s in `sub` producing a [[JsonTerm]] that
+ * only no [[Variable]]s. This preserves the sharing represented by the variables. This will
+ * throw an exception if the term has any unbound [[Variable]]s.
+ * @param x The [[JsonTerm]] to ground.
+ * @param sub The bindings against which to ground.
+ * @returns A [[Json]] with no [[Variable]]s.
+ */
+export function completelyGroundJson(x: JsonTerm, sub: Substitution<JsonTerm>, mapping: {[id: number]: JsonTerm} = {}): Json {
+    let id: number | null = null;
+    if(x instanceof Variable) { 
+        const v = sub.lookupVar(x);
+        id = v.id;
+        if(id in mapping) return mapping[id]
+        if(v.isBound) {
+            x = v.value;
+        } else {
+            throw new Error('completelyGroundJson: term contains unbound variables');
+        }
+    }
+    switch(typeof x) {
+        case 'object':
+            if(x === null) {
+                return x;
+            } else if(x instanceof Array) {
+                const len = x.length;
+                const result = new Array<JsonTerm>(len);
+                for(let i = 0; i < len; ++i) {
+                    result[i] = completelyGroundJson(x[i], sub, mapping);
+                }
+                if(id !== null) mapping[id] = result;
+                return result;
+            } else { // it's an object
+                const result: JsonTerm = {};
+                for(const key in x) {
+                    result[key] = completelyGroundJson(x[key], sub, mapping);
+                }
+                if(id !== null) mapping[id] = result;
+                return result;
+            }
+        default:
+            return x;
+    }
+}
+
+/**
  * Traverse a [[JsonTerm]] replacing any [[Variable]]s with fresh variables allocated from `sub`.
  * @param x The [[JsonTerm]] whose [[Variable]]s will be replaced. This should usually be a ground term as produced, e.g. by [[groundJson]].
  * @param sub The [[Substitution]] to extend with fresh variables.

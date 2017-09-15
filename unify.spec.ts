@@ -1,6 +1,6 @@
 import "jest"
 import { Variable, Substitution,
-         groundJsonNoSharing, groundJson, refreshJson } from "./unify"
+         groundJsonNoSharing, groundJson, completelyGroundJson, refreshJson } from "./unify"
 
 // TODO: Add tests for the *Json functions:
 //export function looseMatchJson(x: JsonTerm, y: Json, sub: Substitution<JsonTerm>): Substitution<JsonTerm> | null {
@@ -34,6 +34,31 @@ test('groundJson', () => {
         [1, void(0), [1,2], {}, {foo: 1, bar: void(0), baz: [1,2], quux: {} }, [1, void(0), [1,2], {}], 1, U]
         ,{foo: 1, bar: void(0), baz: [1,2], quux: {}, objVar: {foo: 1, bar: void(0), baz: [1,2], quux: {} }, arrVar: [1, void(0), [1,2], {}], primVar: 1, unboundVar: U }
     ]);
+});
+
+test('completelyGroundJson success', () => {
+    const [[X, Y, Z, W, A, B], sub] = Substitution.emptyPersistent<any>().fresh(6);
+    let s = sub.bind(X, {foo: 1, bar: void(0), baz: [1,2], quux: {} });
+    s = s.bind(B, 1);
+    s = s.bind(Y, [1, void(0), [1,2], {}]);
+    s = s.bind(Z, {foo: 1, bar: void(0), baz: [1,2], quux: {}, objVar: X, arrVar: Y, primVar: B});
+    s = s.bind(W, [1, void(0), [1,2], {}, X, Y, B]);
+    s = s.bind(A, [W, Z]);
+    expect(completelyGroundJson(A, s)).toEqual([
+        [1, void(0), [1,2], {}, {foo: 1, bar: void(0), baz: [1,2], quux: {} }, [1, void(0), [1,2], {}], 1]
+        ,{foo: 1, bar: void(0), baz: [1,2], quux: {}, objVar: {foo: 1, bar: void(0), baz: [1,2], quux: {} }, arrVar: [1, void(0), [1,2], {}], primVar: 1}
+    ]);
+});
+
+test('completelyGroundJson unbound variables', () => {
+    const [[X, Y, Z, W, A, B, U], sub] = Substitution.emptyPersistent<any>().fresh(7);
+    let s = sub.bind(X, {foo: 1, bar: void(0), baz: [1,2], quux: {} });
+    s = s.bind(B, 1);
+    s = s.bind(Y, [1, void(0), [1,2], {}]);
+    s = s.bind(Z, {foo: 1, bar: void(0), baz: [1,2], quux: {}, objVar: X, arrVar: Y, primVar: B, unboundVar: U });
+    s = s.bind(W, [1, void(0), [1,2], {}, X, Y, B, U]);
+    s = s.bind(A, [W, Z]);
+    expect(() => completelyGroundJson(A, s)).toThrow('completelyGroundJson: term contains unbound variables');
 });
 
 test('refreshJson simple linear', () => {
