@@ -158,6 +158,50 @@
         }
     }
     exports.groundJson = groundJson;
+    function completelyGroundJson(x, sub, mapping) {
+        if (mapping === void 0) { mapping = {}; }
+        var id = null;
+        if (x instanceof Variable) {
+            var v = sub.lookupVar(x);
+            id = v.id;
+            if (id in mapping)
+                return mapping[id];
+            if (v.isBound) {
+                x = v.value;
+            }
+            else {
+                throw new Error('completelyGroundJson: term contains unbound variables');
+            }
+        }
+        switch (typeof x) {
+            case 'object':
+                if (x === null) {
+                    return x;
+                }
+                else if (x instanceof Array) {
+                    var len = x.length;
+                    var result = new Array(len);
+                    for (var i = 0; i < len; ++i) {
+                        result[i] = completelyGroundJson(x[i], sub, mapping);
+                    }
+                    if (id !== null)
+                        mapping[id] = result;
+                    return result;
+                }
+                else {
+                    var result = {};
+                    for (var key in x) {
+                        result[key] = completelyGroundJson(x[key], sub, mapping);
+                    }
+                    if (id !== null)
+                        mapping[id] = result;
+                    return result;
+                }
+            default:
+                return x;
+        }
+    }
+    exports.completelyGroundJson = completelyGroundJson;
     function refreshJson(x, sub, mapping) {
         if (mapping === void 0) { mapping = {}; }
         switch (typeof x) {

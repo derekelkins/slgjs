@@ -53,6 +53,29 @@ var __read = (this && this.__read) || function (o, n) {
             { foo: 1, bar: void (0), baz: [1, 2], quux: {}, objVar: { foo: 1, bar: void (0), baz: [1, 2], quux: {} }, arrVar: [1, void (0), [1, 2], {}], primVar: 1, unboundVar: U }
         ]);
     });
+    test('completelyGroundJson success', function () {
+        var _a = __read(unify_1.Substitution.emptyPersistent().fresh(6), 2), _b = __read(_a[0], 6), X = _b[0], Y = _b[1], Z = _b[2], W = _b[3], A = _b[4], B = _b[5], sub = _a[1];
+        var s = sub.bind(X, { foo: 1, bar: void (0), baz: [1, 2], quux: {} });
+        s = s.bind(B, 1);
+        s = s.bind(Y, [1, void (0), [1, 2], {}]);
+        s = s.bind(Z, { foo: 1, bar: void (0), baz: [1, 2], quux: {}, objVar: X, arrVar: Y, primVar: B });
+        s = s.bind(W, [1, void (0), [1, 2], {}, X, Y, B]);
+        s = s.bind(A, [W, Z]);
+        expect(unify_1.completelyGroundJson(A, s)).toEqual([
+            [1, void (0), [1, 2], {}, { foo: 1, bar: void (0), baz: [1, 2], quux: {} }, [1, void (0), [1, 2], {}], 1],
+            { foo: 1, bar: void (0), baz: [1, 2], quux: {}, objVar: { foo: 1, bar: void (0), baz: [1, 2], quux: {} }, arrVar: [1, void (0), [1, 2], {}], primVar: 1 }
+        ]);
+    });
+    test('completelyGroundJson unbound variables', function () {
+        var _a = __read(unify_1.Substitution.emptyPersistent().fresh(7), 2), _b = __read(_a[0], 7), X = _b[0], Y = _b[1], Z = _b[2], W = _b[3], A = _b[4], B = _b[5], U = _b[6], sub = _a[1];
+        var s = sub.bind(X, { foo: 1, bar: void (0), baz: [1, 2], quux: {} });
+        s = s.bind(B, 1);
+        s = s.bind(Y, [1, void (0), [1, 2], {}]);
+        s = s.bind(Z, { foo: 1, bar: void (0), baz: [1, 2], quux: {}, objVar: X, arrVar: Y, primVar: B, unboundVar: U });
+        s = s.bind(W, [1, void (0), [1, 2], {}, X, Y, B, U]);
+        s = s.bind(A, [W, Z]);
+        expect(function () { return unify_1.completelyGroundJson(A, s); }).toThrow('completelyGroundJson: term contains unbound variables');
+    });
     test('refreshJson simple linear', function () {
         var _a = __read(unify_1.Substitution.emptyPersistent().fresh(4), 2), _b = __read(_a[0], 4), X = _b[0], Y = _b[1], Z = _b[2], W = _b[3], sub = _a[1];
         var _c = __read(unify_1.refreshJson([Z, W], sub), 2), t = _c[0], subResult = _c[1];

@@ -28,6 +28,22 @@ var __read = (this && this.__read) || function (o, n) {
     require("jest");
     var unify_1 = require("./unify");
     var slg_1 = require("./slg");
+    describe('non-monotonic aggregation', function () {
+        test('non-ground results throw an error', function () {
+            var p = new slg_1.TabledPredicate(function (X) { return slg_1.fresh(function (Y) { return slg_1.unify(X, Y); }); });
+            expect(function () { return slg_1.toArrayQ(function (Q) { return slg_1.fresh(function (X) { return p.count(X, Q); }); }); }).toThrow('completelyGroundJson: term contains unbound variables');
+        });
+        test('sum', function () {
+            var edge = new slg_1.EdbPredicate([[1, 2], [2, 3], [3, 1]]);
+            var path = new slg_1.TabledPredicate(function (_a) {
+                var _b = __read(_a, 2), X = _b[0], Z = _b[1];
+                return slg_1.rule(function () { return [edge.match([X, Z])]; }, function (Y) { return [path.match([X, Y]), path.match([Y, Z])]; });
+            });
+            var fst = new slg_1.TabledPredicate(function (X) { return slg_1.fresh(function (Y) { return path.match([X, Y]); }); });
+            var result = slg_1.toArrayQ(function (Q) { return slg_1.fresh(function (S) { return fst.sum(S, Q); }); });
+            expect(result).toEqual([6]);
+        });
+    });
     describe('LRD-stratified negation', function () {
         test('LRD-stratified example', function () {
             var p = new slg_1.TabledPredicate(function (X) { return slg_1.rule(function () { return [q.match(X), r.notMatch(X), s.notMatch(X)]; }); });

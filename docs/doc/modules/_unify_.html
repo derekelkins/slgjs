@@ -922,6 +922,9 @@ img { max-width: 100%; }
 			<a href="_unify_.html#jsonterm" class="tsd-kind-icon">Json<wbr>Term</a>
 		</li>
 		<li class=" tsd-kind-function tsd-parent-kind-external-module">
+			<a href="_unify_.html#completelygroundjson" class="tsd-kind-icon">completely<wbr>Ground<wbr>Json</a>
+		</li>
+		<li class=" tsd-kind-function tsd-parent-kind-external-module">
 			<a href="_unify_.html#groundjson" class="tsd-kind-icon">ground<wbr>Json</a>
 		</li>
 		<li class=" tsd-kind-function tsd-parent-kind-external-module">
@@ -967,6 +970,7 @@ img { max-width: 100%; }
 					<section class="tsd-index-section ">
 						<h3>Functions</h3>
 						<ul class="tsd-index-list">
+							<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="_unify_.html#completelygroundjson" class="tsd-kind-icon">completely<wbr>Ground<wbr>Json</a></li>
 							<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="_unify_.html#groundjson" class="tsd-kind-icon">ground<wbr>Json</a></li>
 							<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="_unify_.html#groundjsonnosharing" class="tsd-kind-icon">ground<wbr>Json<wbr>NoSharing</a></li>
 							<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="_unify_.html#loosematchjson" class="tsd-kind-icon">loose<wbr>Match<wbr>Json</a></li>
@@ -987,7 +991,7 @@ img { max-width: 100%; }
 				<div class="tsd-signature tsd-kind-icon">Json<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/e3e50f0/unify.ts#L16">unify.ts:16</a></li>
+						<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/338000a/unify.ts#L16">unify.ts:16</a></li>
 					</ul>
 				</aside>
 				<div class="tsd-comment tsd-typography">
@@ -1003,7 +1007,7 @@ img { max-width: 100%; }
 				<div class="tsd-signature tsd-kind-icon">Json<wbr>Term<span class="tsd-signature-symbol">:</span> <a href="_unify_.html#json" class="tsd-signature-type">Json</a><span class="tsd-signature-symbol"> | </span><a href="../classes/_unify_.variable.html" class="tsd-signature-type">Variable</a></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/e3e50f0/unify.ts#L21">unify.ts:21</a></li>
+						<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/338000a/unify.ts#L21">unify.ts:21</a></li>
 					</ul>
 				</aside>
 				<div class="tsd-comment tsd-typography">
@@ -1016,6 +1020,54 @@ img { max-width: 100%; }
 		<section class="tsd-panel-group tsd-member-group ">
 			<h2>Functions</h2>
 			<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
+				<a name="completelygroundjson" class="tsd-anchor"></a>
+				<h3>completely<wbr>Ground<wbr>Json</h3>
+				<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<li class="tsd-signature tsd-kind-icon">completely<wbr>Ground<wbr>Json<span class="tsd-signature-symbol">(</span>x<span class="tsd-signature-symbol">: </span><a href="_unify_.html#jsonterm" class="tsd-signature-type">JsonTerm</a>, sub<span class="tsd-signature-symbol">: </span><a href="../classes/_unify_.substitution.html" class="tsd-signature-type">Substitution</a><span class="tsd-signature-symbol">&lt;</span><a href="_unify_.html#jsonterm" class="tsd-signature-type">JsonTerm</a><span class="tsd-signature-symbol">&gt;</span>, mapping<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">object</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_unify_.html#json" class="tsd-signature-type">Json</a></li>
+				</ul>
+				<ul class="tsd-descriptions">
+					<li class="tsd-description">
+						<aside class="tsd-sources">
+							<ul>
+								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/338000a/unify.ts#L254">unify.ts:254</a></li>
+							</ul>
+						</aside>
+						<div class="tsd-comment tsd-typography">
+							<div class="lead">
+								<p>Traverse a <a href="_unify_.html#jsonterm">JsonTerm</a> looking up <a href="../classes/_unify_.variable.html">Variable</a>s in <code>sub</code> producing a <a href="_unify_.html#jsonterm">JsonTerm</a> that
+									only no <a href="../classes/_unify_.variable.html">Variable</a>s. This preserves the sharing represented by the variables. This will
+								throw an exception if the term has any unbound <a href="../classes/_unify_.variable.html">Variable</a>s.</p>
+							</div>
+						</div>
+						<h4 class="tsd-parameters-title">Parameters</h4>
+						<ul class="tsd-parameters">
+							<li>
+								<h5>x: <a href="_unify_.html#jsonterm" class="tsd-signature-type">JsonTerm</a></h5>
+								<div class="tsd-comment tsd-typography">
+									<p>The <a href="_unify_.html#jsonterm">JsonTerm</a> to ground.</p>
+								</div>
+							</li>
+							<li>
+								<h5>sub: <a href="../classes/_unify_.substitution.html" class="tsd-signature-type">Substitution</a><span class="tsd-signature-symbol">&lt;</span><a href="_unify_.html#jsonterm" class="tsd-signature-type">JsonTerm</a><span class="tsd-signature-symbol">&gt;</span></h5>
+								<div class="tsd-comment tsd-typography">
+									<p>The bindings against which to ground.</p>
+								</div>
+							</li>
+							<li>
+								<h5><span class="tsd-flag ts-flagDefault value">Default value</span> mapping: <span class="tsd-signature-type">object</span><span class="tsd-signature-symbol"> =&nbsp;{}</span></h5>
+								<ul class="tsd-parameters">
+									<li class="tsd-parameter-index-signature">
+										<h5><span class="tsd-signature-symbol">[</span>id: <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">]: </span><a href="_unify_.html#jsonterm" class="tsd-signature-type">JsonTerm</a></h5>
+									</li>
+								</ul>
+							</li>
+						</ul>
+						<h4 class="tsd-returns-title">Returns <a href="_unify_.html#json" class="tsd-signature-type">Json</a></h4>
+						<p>A <a href="_unify_.html#json">Json</a> with no <a href="../classes/_unify_.variable.html">Variable</a>s.</p>
+					</li>
+				</ul>
+			</section>
+			<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
 				<a name="groundjson" class="tsd-anchor"></a>
 				<h3>ground<wbr>Json</h3>
 				<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
@@ -1025,7 +1077,7 @@ img { max-width: 100%; }
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/e3e50f0/unify.ts#L211">unify.ts:211</a></li>
+								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/338000a/unify.ts#L211">unify.ts:211</a></li>
 							</ul>
 						</aside>
 						<div class="tsd-comment tsd-typography">
@@ -1072,7 +1124,7 @@ img { max-width: 100%; }
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/e3e50f0/unify.ts#L177">unify.ts:177</a></li>
+								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/338000a/unify.ts#L177">unify.ts:177</a></li>
 							</ul>
 						</aside>
 						<div class="tsd-comment tsd-typography">
@@ -1112,7 +1164,7 @@ img { max-width: 100%; }
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/e3e50f0/unify.ts#L301">unify.ts:301</a></li>
+								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/338000a/unify.ts#L346">unify.ts:346</a></li>
 							</ul>
 						</aside>
 						<div class="tsd-comment tsd-typography">
@@ -1162,7 +1214,7 @@ img { max-width: 100%; }
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/e3e50f0/unify.ts#L354">unify.ts:354</a></li>
+								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/338000a/unify.ts#L399">unify.ts:399</a></li>
 							</ul>
 						</aside>
 						<div class="tsd-comment tsd-typography">
@@ -1212,7 +1264,7 @@ img { max-width: 100%; }
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/e3e50f0/unify.ts#L411">unify.ts:411</a></li>
+								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/338000a/unify.ts#L456">unify.ts:456</a></li>
 							</ul>
 						</aside>
 						<div class="tsd-comment tsd-typography">
@@ -1259,7 +1311,7 @@ img { max-width: 100%; }
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/e3e50f0/unify.ts#L252">unify.ts:252</a></li>
+								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/338000a/unify.ts#L297">unify.ts:297</a></li>
 							</ul>
 						</aside>
 						<div class="tsd-comment tsd-typography">
@@ -1305,7 +1357,7 @@ img { max-width: 100%; }
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/e3e50f0/unify.ts#L464">unify.ts:464</a></li>
+								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/338000a/unify.ts#L509">unify.ts:509</a></li>
 							</ul>
 						</aside>
 						<div class="tsd-comment tsd-typography">

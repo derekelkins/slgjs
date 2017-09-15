@@ -1,5 +1,5 @@
 import { Json, JsonTerm, Variable, Substitution, 
-         groundJson, looseUnifyJson, unifyJson, matchJson, looseMatchJson, refreshJson } from "./unify"
+         groundJson, completelyGroundJson, looseUnifyJson, unifyJson, matchJson, looseMatchJson, refreshJson } from "./unify"
 import { VarMap, JsonTrie, JsonTrieTerm } from "./json-trie"
 
 interface GlobalEnvironment {
@@ -87,7 +87,7 @@ class Generator implements Scheduler {
     // We check for completion whenever this queue is empty.
     
     private consumers: Array<[number, (cs: Array<JsonTerm>) => void]> | null = [];
-    private negativeConsumers: Array<() => void> | null = [];
+    private completionListeners: Array<() => void> | null = [];
     private successors: {[index: number]: Generator} | null = {};
     private negativeSuccessors: {[index: number]: Generator} | null = {};
 
@@ -146,7 +146,21 @@ class Generator implements Scheduler {
         if(this.isComplete) {
             if(this.table.length === 0) k();
         } else {
-            (<Array<() => void>>this.negativeConsumers).push(k);
+            (<Array<() => void>>this.completionListeners).push(() => this.table.length === 0 ? k() : void(0));
+        }
+    }
+
+    consumeToCompletion(k: (cs: Array<JsonTerm>) => void, onComplete: () => void): void {
+        if(this.isComplete) {
+            const answers = this.table;
+            const len = answers.length;
+            for(let i = 0; i < len; ++i) {
+                k(answers[i]);
+            }
+            onComplete();
+        } else {
+            (<Array<[number, (cs: Array<JsonTerm>) => void]>>this.consumers).push([0, k]);
+            (<Array<() => void>>this.completionListeners).push(onComplete);
         }
     }
 
@@ -301,7 +315,7 @@ class Generator implements Scheduler {
             for(let i = len - 1; i >= 0; --i) { // this loop corresponds to fixpoint_check.
                 const gen = cStack[i];
                 if(gen.scheduleResumes()) { continue completionLoop; }
-                if((<Array<() => void>>gen.negativeConsumers).length !== 0) anyNegativeConsumers = true;
+                if((<Array<() => void>>gen.completionListeners).length !== 0) anyNegativeConsumers = true;
             }
             if(anyNegativeConsumers) {
                 // TODO: Do any exact SCC check and complete those. Unlink them if it is easy.
@@ -316,7 +330,7 @@ class Generator implements Scheduler {
                 for(let i = len - 1; i >= 0; --i) {
                     const gen = cStack[i];
                     gen.complete();
-                    gen.negativeConsumers = null; // It was empty anyway.
+                    gen.completionListeners = null; // It was empty anyway.
                     gen.prevGenerator = null;
                 }
                 this.globalEnv.topOfCompletionStack = prev;
@@ -344,14 +358,18 @@ class Generator implements Scheduler {
     }
 
     private scheduleNegativeResumes(): void {
-        if(this.table.length === 0) {
-            const ncs = (<Array<() => void>>this.negativeConsumers);
-            const len = ncs.length;
-            for(let i = 0; i < len; ++i) {
-                ncs[i]();
-            }
+        // NOTE: Each completionListener corresponding to a negation will
+        // individually check (redundantly) that the table is empty before
+        // notifying the listener. Aggregates just want to know when the
+        // table is complete regardless of whether the table is empty or
+        // not, so this lets approach lets them know.
+        const ncs = this.completionListeners;
+        if(ncs === null) return; // This has already been called.
+        const len = ncs.length;
+        for(let i = 0; i < len; ++i) {
+            ncs[i]();
         }
-        this.negativeConsumers = null;
+        this.completionListeners = null;
     }
 
     get isComplete(): boolean { return this.answerSet === null; }
@@ -398,6 +416,26 @@ export interface Predicate {
      * consistent with the predicate.
      */
     match(row: JsonTerm): LPTerm;
+
+    /*
+     * Applies a function to each resulting term which are required to have no unbound variables,
+     * otherwise an exception will be thrown.
+     * @param row The [[JsonTerm]] to match against.
+     * @param f The function applied to each completely grounded result. See [[completelyGroundJson]].
+     * @returns A predicate containing the image of `f`.
+     */
+    //map(row: JsonTerm, f: (x: Json) => Json): Predicate;
+
+    /*
+     * Produces a predicate filtered to those terms which match `row` and satisfy `pred`. The terms
+     * in the original predicate are required to have no unbound variables, otherwise an exception
+     * will be thrown.
+     * @param row The [[JsonTerm]] to match against.
+     * @param pred The condition to filter against. Returns a truthy result for elements that should
+     * be kept.
+     * @returns A filtered predicate.
+     */
+    //filter(row: JsonTerm, pred: (x: Json) => boolean): Predicate;
     // notMatch(row: JsonTerm): LPTerm;
 }
 
@@ -568,8 +606,9 @@ export class TabledPredicate implements Predicate {
             const generator = t[0];
             const vs = t[1];
             const isNew = t[2];
-            gen.dependOn(generator);
             const len = vs.length;
+            const rs = new Array<JsonTerm>(len);
+            gen.dependOn(generator);
             generator.consume(cs => {
                 // const [cs2, s2] = refreshJson(cs, s, vs); // TODO: Combine these or something.
                 // const s3 = <Substitution<JsonTerm>>unifyJson(vs, cs2, s2);
@@ -578,10 +617,10 @@ export class TabledPredicate implements Predicate {
                 for(let i = 0; i < len; ++i) {
                     const t = refreshJson(cs[i], s2, vs); 
                     s2 = t[1]; 
-                    cs[i] = t[0];
+                    rs[i] = t[0];
                 }
                 for(let i = 0; i < len; ++i) {
-                    s2 = <Substitution<JsonTerm>>unifyJson(vs[i], cs[i], s2);
+                    s2 = <Substitution<JsonTerm>>unifyJson(vs[i], rs[i], s2);
                 }
                 k(s2);
             });
@@ -614,12 +653,114 @@ export class TabledPredicate implements Predicate {
             const generator = t[0];
             const vs = t[1];
             const isNew = t[2];
-            gen.dependNegativelyOn(generator);
             if(vs.length !== 0) throw new Error('TabledPredicate.notMatch: negation of non-ground atom (floundering)');
+            gen.dependNegativelyOn(generator);
             generator.consumeNegatively(() => k(s));
             if(isNew) generator.execute();
         };
     }
+
+    /**
+     * Non-monotonic aggregation. This behaves similarly to [[notMatch]]. It takes the operations of
+     * a commutative monoid and will apply them to the *set* of results (there's guaranteed to be no
+     * duplicates). For this, the predicate must only produce fully groundable [[JsonTerm]]s, i.e.
+     * ones with no unbound [[Variable]]s. It will throw an error if a term is produced that has
+     * unbound variables.
+     *
+     * Like [[notMatch]] this can (currently) only be used in an LRD-stratified manner.
+     *
+     * @param M A type of a commutative monoid which is a subtype of [[Json]], i.e. `Json | M = Json`.
+     * @param inject Turns a fully ground [[Json]] into an element of `M`.
+     * @param unit A unit element for a commutative monoid.
+     * @param mult The multiplication of a commutative monoid. That is, it's associative, commutative,
+     * and `unit` is a left and right unit.
+     * @returns A function taking two parameters. The first, `row`, specifies which elements to consider,
+     * namely those which match `row`, while the resulting aggregate will be unified against `agg` which
+     * typically will be a [[Variable]] to hold the result aggregate.
+     */
+    aggregate<M>(inject: (t: Json) => M, unit: M, mult: (x: M, y: M) => M): (row: JsonTerm, agg: JsonTerm) => LPTerm { 
+        return (row, result) => gen => s => k => {
+            // TODO: Can I add back the groundingModifyWithVars to eliminate this groundJson?
+            const t = this.getGenerator(groundJson(row, s), gen);
+            const generator = t[0];
+            const vs = t[1];
+            const isNew = t[2];
+            const len = vs.length;
+            const rs = new Array<JsonTerm>(len);
+            let agg = unit;
+            gen.dependNegativelyOn(generator);
+            generator.consumeToCompletion(cs => {
+                let s2 = s;
+                for(let i = 0; i < len; ++i) {
+                    const t = refreshJson(cs[i], s2, vs); 
+                    s2 = t[1]; 
+                    rs[i] = t[0];
+                }
+                for(let i = 0; i < len; ++i) {
+                    s2 = <Substitution<JsonTerm>>unifyJson(vs[i], rs[i], s2);
+                }
+                agg = mult(agg, inject(completelyGroundJson(row, s2)));
+            }, () => { 
+                const s2 = matchJson(result, agg, s); 
+                if(s2 !== null) k(s2);
+            });
+            if(isNew) generator.execute();
+        };
+    }
+
+    private static isNumber(t: JsonTerm): number {
+        if(typeof t === 'number') return t;
+        throw new Error('TabledPredicate.isNumber: expected a number');
+    }
+
+    /**
+     * Sums over the elements. They are required to be numbers.
+     *
+     * This is built on [[aggregate]] and has the same restrictions.
+     */
+    sum: (row: JsonTerm, agg: JsonTerm) => LPTerm = this.aggregate<number>(TabledPredicate.isNumber, 0, (x, y) => x+y);
+
+    /**
+     * Calculates the product over the elements. They are required to be numbers.
+     *
+     * This is built on [[aggregate]] and has the same restrictions.
+     */
+    product: (row: JsonTerm, agg: JsonTerm) => LPTerm = this.aggregate<number>(TabledPredicate.isNumber, 1, (x, y) => x*y);
+
+    /**
+     * Finds the minimum of the elements. They are required to be numbers.
+     *
+     * This is built on [[aggregate]] and has the same restrictions.
+     */
+    min: (row: JsonTerm, agg: JsonTerm) => LPTerm = this.aggregate<number>(TabledPredicate.isNumber, Number.POSITIVE_INFINITY, Math.min);
+
+    /**
+     * Finds the maximum of the elements. They are required to be numbers.
+     *
+     * This is built on [[aggregate]] and has the same restrictions.
+     */
+    max: (row: JsonTerm, agg: JsonTerm) => LPTerm = this.aggregate<number>(TabledPredicate.isNumber, Number.NEGATIVE_INFINITY, Math.max);
+
+    /**
+     * Calculates the disjunction of the elements.
+     *
+     * This is built on [[aggregate]] and has the same restrictions.
+     */
+    count: (row: JsonTerm, agg: JsonTerm) => LPTerm = this.aggregate<Json>(_ => 1, 0, (x, y) => x+y);
+
+    /**
+     * Calculates the conjunction of the elements.
+     *
+     * This is built on [[aggregate]] and has the same restrictions.
+     */
+    and: (row: JsonTerm, agg: JsonTerm) => LPTerm = this.aggregate<Json>(x => x, true, (x, y) => x && y);
+
+    /**
+     * Calculates the disjunction of the elements.
+     *
+     * This is built on [[aggregate]] and has the same restrictions.
+     */
+    or: (row: JsonTerm, agg: JsonTerm) => LPTerm = this.aggregate<Json>(x => x, false, (x, y) => x || y);
 }
 
 /**
@@ -632,6 +773,17 @@ export function seq<V, A>(m1: LPSub<V>, m2: LP<V, A>): LP<V, A> {
 
 function ground(val: JsonTerm): LP<JsonTerm, JsonTerm> {
     return gen => s => k => k(groundJson(val, s));
+}
+
+/**
+ * Expects `In` to be completely groundable and applies `f` to it unifying `Out` to
+ * the result.
+ */
+export function apply(f: (x: Json) => Json): (In: JsonTerm, Out: JsonTerm) => LPTerm {
+    return (In, Out) => gen => s => k => {
+        const result = matchJson(Out, f(completelyGroundJson(In, s)), s);
+        if(result !== null) return k(result);
+    };
 }
 
 /**

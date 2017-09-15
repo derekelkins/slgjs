@@ -45,7 +45,7 @@ var __values = (this && this.__values) || function (o) {
         function Generator(scheduler) {
             this.processes = [];
             this.consumers = [];
-            this.negativeConsumers = [];
+            this.completionListeners = [];
             this.successors = {};
             this.negativeSuccessors = {};
             this.sccIndex = -1;
@@ -86,12 +86,27 @@ var __values = (this && this.__values) || function (o) {
             }
         };
         Generator.prototype.consumeNegatively = function (k) {
+            var _this = this;
             if (this.isComplete) {
                 if (this.table.length === 0)
                     k();
             }
             else {
-                this.negativeConsumers.push(k);
+                this.completionListeners.push(function () { return _this.table.length === 0 ? k() : void (0); });
+            }
+        };
+        Generator.prototype.consumeToCompletion = function (k, onComplete) {
+            if (this.isComplete) {
+                var answers = this.table;
+                var len = answers.length;
+                for (var i = 0; i < len; ++i) {
+                    k(answers[i]);
+                }
+                onComplete();
+            }
+            else {
+                this.consumers.push([0, k]);
+                this.completionListeners.push(onComplete);
             }
         };
         Generator.prototype.scheduleAnswers = function (consumer) {
@@ -216,7 +231,7 @@ var __values = (this && this.__values) || function (o) {
                     if (gen.scheduleResumes()) {
                         continue completionLoop;
                     }
-                    if (gen.negativeConsumers.length !== 0)
+                    if (gen.completionListeners.length !== 0)
                         anyNegativeConsumers = true;
                 }
                 if (anyNegativeConsumers) {
@@ -230,7 +245,7 @@ var __values = (this && this.__values) || function (o) {
                     for (var i = len - 1; i >= 0; --i) {
                         var gen = cStack[i];
                         gen.complete();
-                        gen.negativeConsumers = null;
+                        gen.completionListeners = null;
                         gen.prevGenerator = null;
                     }
                     this.globalEnv.topOfCompletionStack = prev;
@@ -256,14 +271,14 @@ var __values = (this && this.__values) || function (o) {
             this.negativeSuccessors = null;
         };
         Generator.prototype.scheduleNegativeResumes = function () {
-            if (this.table.length === 0) {
-                var ncs = this.negativeConsumers;
-                var len = ncs.length;
-                for (var i = 0; i < len; ++i) {
-                    ncs[i]();
-                }
+            var ncs = this.completionListeners;
+            if (ncs === null)
+                return;
+            var len = ncs.length;
+            for (var i = 0; i < len; ++i) {
+                ncs[i]();
             }
-            this.negativeConsumers = null;
+            this.completionListeners = null;
         };
         Object.defineProperty(Generator.prototype, "isComplete", {
             get: function () { return this.answerSet === null; },
@@ -409,6 +424,11 @@ var __values = (this && this.__values) || function (o) {
         function TabledPredicate(body) {
             this.body = body;
             this.generators = json_trie_1.JsonTrieTerm.create();
+            this.sum = this.aggregate(TabledPredicate.isNumber, 0, function (x, y) { return x + y; });
+            this.product = this.aggregate(TabledPredicate.isNumber, 1, function (x, y) { return x * y; });
+            this.min = this.aggregate(TabledPredicate.isNumber, Number.POSITIVE_INFINITY, Math.min);
+            this.max = this.aggregate(TabledPredicate.isNumber, Number.NEGATIVE_INFINITY, Math.max);
+            this.count = this.aggregate(function (_) { return 1; }, 0, function (x, y) { return x + y; });
         }
         TabledPredicate.prototype.getGenerator = function (row, sched) {
             var _this = this;
@@ -434,17 +454,18 @@ var __values = (this && this.__values) || function (o) {
                 var generator = t[0];
                 var vs = t[1];
                 var isNew = t[2];
-                gen.dependOn(generator);
                 var len = vs.length;
+                var rs = new Array(len);
+                gen.dependOn(generator);
                 generator.consume(function (cs) {
                     var s2 = s;
                     for (var i = 0; i < len; ++i) {
                         var t_1 = unify_1.refreshJson(cs[i], s2, vs);
                         s2 = t_1[1];
-                        cs[i] = t_1[0];
+                        rs[i] = t_1[0];
                     }
                     for (var i = 0; i < len; ++i) {
-                        s2 = unify_1.unifyJson(vs[i], cs[i], s2);
+                        s2 = unify_1.unifyJson(vs[i], rs[i], s2);
                     }
                     k(s2);
                 });
@@ -459,13 +480,49 @@ var __values = (this && this.__values) || function (o) {
                 var generator = t[0];
                 var vs = t[1];
                 var isNew = t[2];
-                gen.dependNegativelyOn(generator);
                 if (vs.length !== 0)
                     throw new Error('TabledPredicate.notMatch: negation of non-ground atom (floundering)');
+                gen.dependNegativelyOn(generator);
                 generator.consumeNegatively(function () { return k(s); });
                 if (isNew)
                     generator.execute();
             }; }; };
+        };
+        TabledPredicate.prototype.aggregate = function (inject, unit, mult) {
+            var _this = this;
+            return function (row, result) { return function (gen) { return function (s) { return function (k) {
+                var t = _this.getGenerator(unify_1.groundJson(row, s), gen);
+                var generator = t[0];
+                var vs = t[1];
+                var isNew = t[2];
+                var len = vs.length;
+                var rs = new Array(len);
+                var agg = unit;
+                gen.dependNegativelyOn(generator);
+                generator.consumeToCompletion(function (cs) {
+                    var s2 = s;
+                    for (var i = 0; i < len; ++i) {
+                        var t_2 = unify_1.refreshJson(cs[i], s2, vs);
+                        s2 = t_2[1];
+                        rs[i] = t_2[0];
+                    }
+                    for (var i = 0; i < len; ++i) {
+                        s2 = unify_1.unifyJson(vs[i], rs[i], s2);
+                    }
+                    agg = mult(agg, inject(unify_1.completelyGroundJson(row, s2)));
+                }, function () {
+                    var s2 = unify_1.matchJson(result, agg, s);
+                    if (s2 !== null)
+                        k(s2);
+                });
+                if (isNew)
+                    generator.execute();
+            }; }; }; };
+        };
+        TabledPredicate.isNumber = function (t) {
+            if (typeof t === 'number')
+                return t;
+            throw new Error('TabledPredicate.isNumber: expected a number');
         };
         return TabledPredicate;
     }());

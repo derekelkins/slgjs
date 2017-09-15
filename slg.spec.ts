@@ -2,7 +2,97 @@ import "jest"
 
 import { Variable, JsonTerm } from "./unify"
 import { Predicate, UntabledPredicate, TabledPredicate, EdbPredicate, TrieEdbPredicate,
-         rule, clause, unify, conj, looseUnify, toArrayQ } from "./slg"
+         rule, clause, fresh, unify, conj, apply, looseUnify, toArrayQ } from "./slg"
+
+describe('non-monotonic aggregation', () => {
+    test('non-ground results throw an error', () => {
+        const p: TabledPredicate = new TabledPredicate(X => fresh(Y => unify(X, Y)));
+        expect(() => toArrayQ(Q => fresh(X => p.count(X, Q)))).toThrow('completelyGroundJson: term contains unbound variables');
+    });
+
+    test('sum', () => {
+        const edge: Predicate = new EdbPredicate([[1, 2], [2, 3], [3, 1]]);
+        const path: Predicate = new TabledPredicate(([X, Z]) => rule(
+            () => [edge.match([X, Z])],
+            Y  => [path.match([X, Y]), path.match([Y, Z])]));
+        const fst: TabledPredicate = new TabledPredicate(X => fresh(Y => path.match([X, Y])));
+        const result = toArrayQ(Q => fresh(S => fst.sum(S, Q)));
+        expect(result).toEqual([6]);
+    });
+
+    test('min', () => {
+        const edge: Predicate = new EdbPredicate([[1, 2], [2, 3], [3, 1]]);
+        const path: Predicate = new TabledPredicate(([X, Z]) => rule(
+            () => [edge.match([X, Z])],
+            Y  => [path.match([X, Y]), path.match([Y, Z])]));
+        const fst: TabledPredicate = new TabledPredicate(X => fresh(Y => path.match([X, Y])));
+        const result = toArrayQ(Q => fresh(S => fst.min(S, Q)));
+        expect(result).toEqual([1]);
+    });
+
+    test('max', () => {
+        const edge: Predicate = new EdbPredicate([[1, 2], [2, 3], [3, 1]]);
+        const path: Predicate = new TabledPredicate(([X, Z]) => rule(
+            () => [edge.match([X, Z])],
+            Y  => [path.match([X, Y]), path.match([Y, Z])]));
+        const fst: TabledPredicate = new TabledPredicate(X => fresh(Y => path.match([X, Y])));
+        const result = toArrayQ(Q => fresh(S => fst.max(S, Q)));
+        expect(result).toEqual([3]);
+    });
+
+    test('count', () => {
+        const edge: Predicate = new EdbPredicate([[1, 2], [2, 3], [3, 1]]);
+        const path: TabledPredicate = new TabledPredicate(([X, Z]) => rule(
+            () => [edge.match([X, Z])],
+            Y  => [path.match([X, Y]), path.match([Y, Z])]));
+        const result = toArrayQ(Q => fresh((S, E) => path.count([S, E], Q)));
+        expect(result).toEqual([9]);
+    });
+
+    test('and true', () => {
+        const edge: Predicate = new EdbPredicate([[1, 2], [2, 3], [3, 1]]);
+        const path: Predicate = new TabledPredicate(([X, Z]) => rule(
+            () => [edge.match([X, Z])],
+            Y  => [path.match([X, Y]), path.match([Y, Z])]));
+        const p: TabledPredicate = new TabledPredicate(
+            Q => clause((X, Y) => [path.match([X, Y]), apply(([x, _]) => x > 0)([X, Y], Q)]));
+        const result = toArrayQ(Q => fresh(S => p.and(S, Q)));
+        expect(result).toEqual([true]);
+    });
+
+    test('and false', () => {
+        const edge: Predicate = new EdbPredicate([[1, 2], [2, 3], [3, 1]]);
+        const path: Predicate = new TabledPredicate(([X, Z]) => rule(
+            () => [edge.match([X, Z])],
+            Y  => [path.match([X, Y]), path.match([Y, Z])]));
+        const p: TabledPredicate = new TabledPredicate(
+            Q => clause((X, Y) => [path.match([X, Y]), apply(([x, y]) => x === y)([X, Y], Q)]));
+        const result = toArrayQ(Q => fresh(S => p.and(S, Q)));
+        expect(result).toEqual([false]);
+    });
+
+    test('or true', () => {
+        const edge: Predicate = new EdbPredicate([[1, 2], [2, 3], [3, 1]]);
+        const path: Predicate = new TabledPredicate(([X, Z]) => rule(
+            () => [edge.match([X, Z])],
+            Y  => [path.match([X, Y]), path.match([Y, Z])]));
+        const p: TabledPredicate = new TabledPredicate(
+            Q => clause((X, Y) => [path.match([X, Y]), apply(([x, y]) => x === y)([X, Y], Q)]));
+        const result = toArrayQ(Q => fresh(S => p.or(S, Q)));
+        expect(result).toEqual([true]);
+    });
+
+    test('or false', () => {
+        const edge: Predicate = new EdbPredicate([[1, 2], [2, 3], [3, 1]]);
+        const path: Predicate = new TabledPredicate(([X, Z]) => rule(
+            () => [edge.match([X, Z])],
+            Y  => [path.match([X, Y]), path.match([Y, Z])]));
+        const p: TabledPredicate = new TabledPredicate(
+            Q => clause((X, Y) => [path.match([X, Y]), apply(([x, _]) => x < 0)([X, Y], Q)]));
+        const result = toArrayQ(Q => fresh(S => p.or(S, Q)));
+        expect(result).toEqual([false]);
+    });
+});
 
 describe('LRD-stratified negation', () => {
     test('LRD-stratified example', () => {
