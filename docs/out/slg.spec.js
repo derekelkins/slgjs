@@ -43,6 +43,87 @@ var __read = (this && this.__read) || function (o, n) {
             var result = slg_1.toArrayQ(function (Q) { return slg_1.fresh(function (S) { return fst.sum(S, Q); }); });
             expect(result).toEqual([6]);
         });
+        test('min', function () {
+            var edge = new slg_1.EdbPredicate([[1, 2], [2, 3], [3, 1]]);
+            var path = new slg_1.TabledPredicate(function (_a) {
+                var _b = __read(_a, 2), X = _b[0], Z = _b[1];
+                return slg_1.rule(function () { return [edge.match([X, Z])]; }, function (Y) { return [path.match([X, Y]), path.match([Y, Z])]; });
+            });
+            var fst = new slg_1.TabledPredicate(function (X) { return slg_1.fresh(function (Y) { return path.match([X, Y]); }); });
+            var result = slg_1.toArrayQ(function (Q) { return slg_1.fresh(function (S) { return fst.min(S, Q); }); });
+            expect(result).toEqual([1]);
+        });
+        test('max', function () {
+            var edge = new slg_1.EdbPredicate([[1, 2], [2, 3], [3, 1]]);
+            var path = new slg_1.TabledPredicate(function (_a) {
+                var _b = __read(_a, 2), X = _b[0], Z = _b[1];
+                return slg_1.rule(function () { return [edge.match([X, Z])]; }, function (Y) { return [path.match([X, Y]), path.match([Y, Z])]; });
+            });
+            var fst = new slg_1.TabledPredicate(function (X) { return slg_1.fresh(function (Y) { return path.match([X, Y]); }); });
+            var result = slg_1.toArrayQ(function (Q) { return slg_1.fresh(function (S) { return fst.max(S, Q); }); });
+            expect(result).toEqual([3]);
+        });
+        test('count', function () {
+            var edge = new slg_1.EdbPredicate([[1, 2], [2, 3], [3, 1]]);
+            var path = new slg_1.TabledPredicate(function (_a) {
+                var _b = __read(_a, 2), X = _b[0], Z = _b[1];
+                return slg_1.rule(function () { return [edge.match([X, Z])]; }, function (Y) { return [path.match([X, Y]), path.match([Y, Z])]; });
+            });
+            var result = slg_1.toArrayQ(function (Q) { return slg_1.fresh(function (S, E) { return path.count([S, E], Q); }); });
+            expect(result).toEqual([9]);
+        });
+        test('and true', function () {
+            var edge = new slg_1.EdbPredicate([[1, 2], [2, 3], [3, 1]]);
+            var path = new slg_1.TabledPredicate(function (_a) {
+                var _b = __read(_a, 2), X = _b[0], Z = _b[1];
+                return slg_1.rule(function () { return [edge.match([X, Z])]; }, function (Y) { return [path.match([X, Y]), path.match([Y, Z])]; });
+            });
+            var p = new slg_1.TabledPredicate(function (Q) { return slg_1.clause(function (X, Y) { return [path.match([X, Y]), slg_1.apply(function (_a) {
+                    var _b = __read(_a, 2), x = _b[0], _ = _b[1];
+                    return x > 0;
+                })([X, Y], Q)]; }); });
+            var result = slg_1.toArrayQ(function (Q) { return slg_1.fresh(function (S) { return p.and(S, Q); }); });
+            expect(result).toEqual([true]);
+        });
+        test('and false', function () {
+            var edge = new slg_1.EdbPredicate([[1, 2], [2, 3], [3, 1]]);
+            var path = new slg_1.TabledPredicate(function (_a) {
+                var _b = __read(_a, 2), X = _b[0], Z = _b[1];
+                return slg_1.rule(function () { return [edge.match([X, Z])]; }, function (Y) { return [path.match([X, Y]), path.match([Y, Z])]; });
+            });
+            var p = new slg_1.TabledPredicate(function (Q) { return slg_1.clause(function (X, Y) { return [path.match([X, Y]), slg_1.apply(function (_a) {
+                    var _b = __read(_a, 2), x = _b[0], y = _b[1];
+                    return x === y;
+                })([X, Y], Q)]; }); });
+            var result = slg_1.toArrayQ(function (Q) { return slg_1.fresh(function (S) { return p.and(S, Q); }); });
+            expect(result).toEqual([false]);
+        });
+        test('or true', function () {
+            var edge = new slg_1.EdbPredicate([[1, 2], [2, 3], [3, 1]]);
+            var path = new slg_1.TabledPredicate(function (_a) {
+                var _b = __read(_a, 2), X = _b[0], Z = _b[1];
+                return slg_1.rule(function () { return [edge.match([X, Z])]; }, function (Y) { return [path.match([X, Y]), path.match([Y, Z])]; });
+            });
+            var p = new slg_1.TabledPredicate(function (Q) { return slg_1.clause(function (X, Y) { return [path.match([X, Y]), slg_1.apply(function (_a) {
+                    var _b = __read(_a, 2), x = _b[0], y = _b[1];
+                    return x === y;
+                })([X, Y], Q)]; }); });
+            var result = slg_1.toArrayQ(function (Q) { return slg_1.fresh(function (S) { return p.or(S, Q); }); });
+            expect(result).toEqual([true]);
+        });
+        test('or false', function () {
+            var edge = new slg_1.EdbPredicate([[1, 2], [2, 3], [3, 1]]);
+            var path = new slg_1.TabledPredicate(function (_a) {
+                var _b = __read(_a, 2), X = _b[0], Z = _b[1];
+                return slg_1.rule(function () { return [edge.match([X, Z])]; }, function (Y) { return [path.match([X, Y]), path.match([Y, Z])]; });
+            });
+            var p = new slg_1.TabledPredicate(function (Q) { return slg_1.clause(function (X, Y) { return [path.match([X, Y]), slg_1.apply(function (_a) {
+                    var _b = __read(_a, 2), x = _b[0], _ = _b[1];
+                    return x < 0;
+                })([X, Y], Q)]; }); });
+            var result = slg_1.toArrayQ(function (Q) { return slg_1.fresh(function (S) { return p.or(S, Q); }); });
+            expect(result).toEqual([false]);
+        });
     });
     describe('LRD-stratified negation', function () {
         test('LRD-stratified example', function () {

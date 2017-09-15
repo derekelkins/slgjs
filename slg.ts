@@ -787,6 +787,14 @@ export function apply(f: (x: Json) => Json): (In: JsonTerm, Out: JsonTerm) => LP
 }
 
 /**
+ * Expects `In` to be completely groundable and applies `pred` to it failing if
+ * `pred` returns `false`.
+ */
+export function guard(pred: (x: Json) => boolean): (In: JsonTerm) => LPTerm {
+    return In => gen => s => k => pred(completelyGroundJson(In, s)) ? k(s) : void(0);
+}
+
+/**
  * A computation that succeeds if all of its arguments do. That is, the conjunction.
  */
 export function conj<V>(...cs: Array<LPSub<V>>): LPSub<V> {

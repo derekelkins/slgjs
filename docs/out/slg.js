@@ -429,6 +429,8 @@ var __values = (this && this.__values) || function (o) {
             this.min = this.aggregate(TabledPredicate.isNumber, Number.POSITIVE_INFINITY, Math.min);
             this.max = this.aggregate(TabledPredicate.isNumber, Number.NEGATIVE_INFINITY, Math.max);
             this.count = this.aggregate(function (_) { return 1; }, 0, function (x, y) { return x + y; });
+            this.and = this.aggregate(function (x) { return x; }, true, function (x, y) { return x && y; });
+            this.or = this.aggregate(function (x) { return x; }, false, function (x, y) { return x || y; });
         }
         TabledPredicate.prototype.getGenerator = function (row, sched) {
             var _this = this;
@@ -534,6 +536,18 @@ var __values = (this && this.__values) || function (o) {
     function ground(val) {
         return function (gen) { return function (s) { return function (k) { return k(unify_1.groundJson(val, s)); }; }; };
     }
+    function apply(f) {
+        return function (In, Out) { return function (gen) { return function (s) { return function (k) {
+            var result = unify_1.matchJson(Out, f(unify_1.completelyGroundJson(In, s)), s);
+            if (result !== null)
+                return k(result);
+        }; }; }; };
+    }
+    exports.apply = apply;
+    function guard(pred) {
+        return function (In) { return function (gen) { return function (s) { return function (k) { return pred(unify_1.completelyGroundJson(In, s)) ? k(s) : void (0); }; }; }; };
+    }
+    exports.guard = guard;
     function conj() {
         var cs = [];
         for (var _i = 0; _i < arguments.length; _i++) {
