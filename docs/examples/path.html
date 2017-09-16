@@ -19,7 +19,7 @@
 <body>
 <pre><code id="codeBox" class="js"></code></pre>
 Input:
-<textarea id="inputBox" style="width: 100%;">[["a","b"],["b","c"],["c","a"]]</textarea><br/>
+<textarea id="inputBox" style="width: 100%;">[["a","b", 1],["b","c", 1],["c","a", 1]]</textarea><br/>
 <button id="renderBtn">Rerender</button><br/>
 Edges:
 <div id="edgeGraph" class="graphBox"></div>
@@ -34,12 +34,18 @@ requirejs.config({enforceDefine: true, paths: {
 requirejs(['../out/slg'], function(slg) {
 function render(edges) {
     const edge = new slg.EdbPredicate(edges);
-    const path = new slg.TabledPredicate(([X, Z]) => slg.rule(
-        () => [edge.match([X, Z])],
-        Y  => [edge.match([X, Y]), path.match([Y, Z])]));
+    const shortestPathLen = slg.MinLattice.fromLP(([S, E], Q) => path.match([S, E, Q]));
+    const path = new slg.TabledPredicate(([X, Z, SD]) => slg.rule(
+        ()             => [edge.match([X, Z, SD])],
+        (Y, D1, D2, D) => [path.match([X, Y, D1]), 
+                           edge.match([Y, Z, D2]), 
+                           slg.apply(([d1, d2]) => d1 + d2)([D1, D2], D),
+                           shortestPathLen.join(D, SD).for([X, Z])]));
+    const shortestPath = new slg.GroupedPredicate((S, E) => D => path.match([S, E, D]));
 
-    const edgeEdges = slg.toArrayQ(Q => slg.clause((S, E) => [edge.match([S, E]), slg.unify(Q, {from: S, to: E})]));
-    const [sdgEdges, pathEdges] = slg.debugToArrayQ(Q => slg.clause((S, E) => [path.match([S, E]), slg.unify(Q, {from: S, to: E})]));
+    const edgeEdges = slg.toArrayQ(Q => slg.clause((S, E, D) => [edge.match([S, E, D]), slg.unify(Q, {from: S, to: E, label: D})]));
+    const [sdgEdges, pathEdges] = slg.debugToArrayQ(Q => slg.clause((S, E, D) => [shortestPath.groupBy(S, E).minInto(D), 
+                                                                                 slg.unify(Q, {from: S, to: E, label: D})]));
 
     // Graph rendering stuff.
 
