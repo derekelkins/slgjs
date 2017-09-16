@@ -256,6 +256,20 @@ describe('non-monotonic aggregation', () => {
         ]);
     });
 
+    test('grouped count', () => {
+        const employees: Predicate = new EdbPredicate([
+            {name: 'harry', dept: 'sales', onVacation: true},
+            {name: 'sally', dept: 'hr', onVacation: false},
+            {name: 'jane', dept: 'sales', onVacation: false}
+        ]);
+        const vacationing: GroupedPredicate = new GroupedPredicate(
+            D => S => fresh(N => employees.match({name: N, dept: D, onVacation: S})));
+        const result = toArrayQ(Q => clause((D, TS) => [vacationing.groupBy(D).countInto(TS), unify(Q, [D, TS])]));
+        expect(result).toEqual([
+            ["sales", 2], ["hr", 1]
+        ]);
+    });
+
     test('empty group sum', () => {
         const employees: Predicate = new EdbPredicate([
             {name: 'harry', dept: 'sales', salary: 20},
