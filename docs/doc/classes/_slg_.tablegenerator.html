@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>SemiPersistentImmediateArray | slgjs</title>
+	<title>TableGenerator | slgjs</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<style type="text/css">/*! normalize.css v1.1.3 | MIT License | git.io/normalize */
@@ -909,379 +909,630 @@ img { max-width: 100%; }
 </header>
 <nav class="tsd-navigation secondary">
 	<ul>
-		<li class=" tsd-kind-class tsd-parent-kind-external-module tsd-has-type-parameter tsd-is-not-exported">
-			<a href="_puf_.arraycell.html" class="tsd-kind-icon">Array<wbr>Cell</a>
-		</li>
-		<li class=" tsd-kind-class tsd-parent-kind-external-module tsd-has-type-parameter tsd-is-not-exported">
-			<a href="_puf_.diffarray.html" class="tsd-kind-icon">Diff<wbr>Array</a>
-		</li>
-		<li class=" tsd-kind-class tsd-parent-kind-external-module tsd-has-type-parameter">
-			<a href="_puf_.ephemeralunionfind.html" class="tsd-kind-icon">Ephemeral<wbr>Union<wbr>Find</a>
-		</li>
-		<li class=" tsd-kind-class tsd-parent-kind-external-module tsd-has-type-parameter tsd-is-not-exported">
-			<a href="_puf_.invalidarray.html" class="tsd-kind-icon">Invalid<wbr>Array</a>
-		</li>
-		<li class=" tsd-kind-class tsd-parent-kind-external-module tsd-has-type-parameter tsd-is-not-exported">
-			<a href="_puf_.persistentimmediatearray.html" class="tsd-kind-icon">Persistent<wbr>Immediate<wbr>Array</a>
-		</li>
-		<li class=" tsd-kind-class tsd-parent-kind-external-module tsd-has-type-parameter">
-			<a href="_puf_.persistentunionfind.html" class="tsd-kind-icon">Persistent<wbr>Union<wbr>Find</a>
-		</li>
-		<li class="current tsd-kind-class tsd-parent-kind-external-module tsd-has-type-parameter tsd-is-not-exported">
-			<a href="_puf_.semipersistentimmediatearray.html" class="tsd-kind-icon">Semi<wbr>Persistent<wbr>Immediate<wbr>Array</a>
+		<li class="current tsd-kind-class tsd-parent-kind-external-module tsd-is-not-exported">
+			<a href="_slg_.tablegenerator.html" class="tsd-kind-icon">Table<wbr>Generator</a>
 			<ul>
-				<li class=" tsd-kind-constructor tsd-parent-kind-class tsd-is-not-exported">
-					<a href="_puf_.semipersistentimmediatearray.html#constructor" class="tsd-kind-icon">constructor</a>
+				<li class=" tsd-kind-constructor tsd-parent-kind-class tsd-is-overwrite tsd-is-private tsd-is-not-exported">
+					<a href="_slg_.tablegenerator.html#constructor" class="tsd-kind-icon">constructor</a>
 				</li>
 				<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-private tsd-is-not-exported">
-					<a href="_puf_.semipersistentimmediatearray.html#basearray" class="tsd-kind-icon">base<wbr>Array</a>
+					<a href="_slg_.tablegenerator.html#answerset" class="tsd-kind-icon">answer<wbr>Set</a>
+				</li>
+				<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-not-exported">
+					<a href="_slg_.tablegenerator.html#completionlisteners" class="tsd-kind-icon">completion<wbr>Listeners</a>
 				</li>
 				<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-private tsd-is-not-exported">
-					<a href="_puf_.semipersistentimmediatearray.html#init" class="tsd-kind-icon">init</a>
+					<a href="_slg_.tablegenerator.html#consumers" class="tsd-kind-icon">consumers</a>
+				</li>
+				<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-not-exported">
+					<a href="_slg_.tablegenerator.html#globalenv" class="tsd-kind-icon">global<wbr>Env</a>
+				</li>
+				<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-private tsd-is-not-exported">
+					<a href="_slg_.tablegenerator.html#table" class="tsd-kind-icon">table</a>
+				</li>
+				<li class=" tsd-kind-get-signature tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-not-exported">
+					<a href="_slg_.tablegenerator.html#iscomplete" class="tsd-kind-icon">is<wbr>Complete</a>
+				</li>
+				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-not-exported">
+					<a href="_slg_.tablegenerator.html#cleanup" class="tsd-kind-icon">cleanup</a>
+				</li>
+				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-protected tsd-is-not-exported">
+					<a href="_slg_.tablegenerator.html#complete" class="tsd-kind-icon">complete</a>
 				</li>
 				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-not-exported">
-					<a href="_puf_.semipersistentimmediatearray.html#get" class="tsd-kind-icon">get</a>
+					<a href="_slg_.tablegenerator.html#consume" class="tsd-kind-icon">consume</a>
 				</li>
 				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-not-exported">
-					<a href="_puf_.semipersistentimmediatearray.html#getunsafe" class="tsd-kind-icon">get<wbr>Unsafe</a>
+					<a href="_slg_.tablegenerator.html#consumenegatively" class="tsd-kind-icon">consume<wbr>Negatively</a>
+				</li>
+				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-not-exported">
+					<a href="_slg_.tablegenerator.html#consumetocompletion" class="tsd-kind-icon">consume<wbr>ToCompletion</a>
+				</li>
+				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-not-exported">
+					<a href="_slg_.tablegenerator.html#dependnegativelyon" class="tsd-kind-icon">depend<wbr>Negatively<wbr>On</a>
+				</li>
+				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-not-exported">
+					<a href="_slg_.tablegenerator.html#dependon" class="tsd-kind-icon">depend<wbr>On</a>
+				</li>
+				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-not-exported">
+					<a href="_slg_.tablegenerator.html#execute" class="tsd-kind-icon">execute</a>
 				</li>
 				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-private tsd-is-not-exported">
-					<a href="_puf_.semipersistentimmediatearray.html#grow" class="tsd-kind-icon">grow</a>
+					<a href="_slg_.tablegenerator.html#insertanswer" class="tsd-kind-icon">insert<wbr>Answer</a>
 				</li>
-				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-not-exported">
-					<a href="_puf_.semipersistentimmediatearray.html#reroot" class="tsd-kind-icon">reroot</a>
+				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-not-exported">
+					<a href="_slg_.tablegenerator.html#push" class="tsd-kind-icon">push</a>
 				</li>
-				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-not-exported">
-					<a href="_puf_.semipersistentimmediatearray.html#rerootaux" class="tsd-kind-icon">reroot<wbr>Aux</a>
+				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-private tsd-is-not-exported">
+					<a href="_slg_.tablegenerator.html#scheduleanswers" class="tsd-kind-icon">schedule<wbr>Answers</a>
 				</li>
-				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-not-exported">
-					<a href="_puf_.semipersistentimmediatearray.html#set" class="tsd-kind-icon">set</a>
+				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-protected tsd-is-not-exported">
+					<a href="_slg_.tablegenerator.html#schedulenegativeresumes" class="tsd-kind-icon">schedule<wbr>Negative<wbr>Resumes</a>
+				</li>
+				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-protected tsd-is-not-exported">
+					<a href="_slg_.tablegenerator.html#scheduleresumes" class="tsd-kind-icon">schedule<wbr>Resumes</a>
+				</li>
+				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-static tsd-is-not-exported">
+					<a href="_slg_.tablegenerator.html#create" class="tsd-kind-icon">create</a>
 				</li>
 			</ul>
-		</li>
-		<li class=" tsd-kind-class tsd-parent-kind-external-module tsd-has-type-parameter">
-			<a href="_puf_.variable.html" class="tsd-kind-icon">Variable</a>
-		</li>
-		<li class=" tsd-kind-interface tsd-parent-kind-external-module tsd-has-type-parameter tsd-is-not-exported">
-			<a href="../interfaces/_puf_.internalpersistentarray.html" class="tsd-kind-icon">Internal<wbr>Persistent<wbr>Array</a>
-		</li>
-		<li class=" tsd-kind-interface tsd-parent-kind-external-module tsd-has-type-parameter tsd-is-not-exported">
-			<a href="../interfaces/_puf_.persistentarray.html" class="tsd-kind-icon">Persistent<wbr>Array</a>
-		</li>
-		<li class=" tsd-kind-interface tsd-parent-kind-external-module tsd-has-type-parameter">
-			<a href="../interfaces/_puf_.unionfind.html" class="tsd-kind-icon">Union<wbr>Find</a>
 		</li>
 	</ul>
 </nav>
 <div class="container container-main">
 	<div class="content-wrap">
-		<section class="tsd-panel tsd-type-parameters">
-			<h3>Type parameters</h3>
-			<ul class="tsd-type-parameters">
-				<li>
-					<h4>A</h4>
-				</li>
-			</ul>
-		</section>
 		<section class="tsd-panel tsd-hierarchy">
 			<h3>Hierarchy</h3>
 			<ul class="tsd-hierarchy">
 				<li>
-					<span class="target">SemiPersistentImmediateArray</span>
+					<a href="_slg_.generator.html" class="tsd-signature-type">Generator</a>
+					<ul class="tsd-hierarchy">
+						<li>
+							<span class="target">TableGenerator</span>
+						</li>
+					</ul>
 				</li>
 			</ul>
 		</section>
 		<section class="tsd-panel">
 			<h3>Implements</h3>
 			<ul class="tsd-hierarchy">
-				<li><a href="../interfaces/_puf_.internalpersistentarray.html" class="tsd-signature-type">InternalPersistentArray</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">A</span><span class="tsd-signature-symbol">&gt;</span></li>
+				<li><a href="../interfaces/_slg_.scheduler.html" class="tsd-signature-type">Scheduler</a></li>
 			</ul>
 		</section>
 		<section class="tsd-panel-group tsd-index-group">
 			<h2>Index</h2>
 			<section class="tsd-panel tsd-index-panel">
 				<div class="tsd-index-content">
-					<section class="tsd-index-section tsd-is-not-exported">
+					<section class="tsd-index-section tsd-is-private tsd-is-private-protected tsd-is-not-exported">
 						<h3>Constructors</h3>
 						<ul class="tsd-index-list">
-							<li class="tsd-kind-constructor tsd-parent-kind-class tsd-is-not-exported"><a href="_puf_.semipersistentimmediatearray.html#constructor" class="tsd-kind-icon">constructor</a></li>
+							<li class="tsd-kind-constructor tsd-parent-kind-class tsd-is-overwrite tsd-is-private tsd-is-not-exported"><a href="_slg_.tablegenerator.html#constructor" class="tsd-kind-icon">constructor</a></li>
 						</ul>
 					</section>
-					<section class="tsd-index-section tsd-is-private tsd-is-private-protected tsd-is-not-exported">
+					<section class="tsd-index-section tsd-is-not-exported">
 						<h3>Properties</h3>
 						<ul class="tsd-index-list">
-							<li class="tsd-kind-property tsd-parent-kind-class tsd-is-private tsd-is-not-exported"><a href="_puf_.semipersistentimmediatearray.html#basearray" class="tsd-kind-icon">base<wbr>Array</a></li>
-							<li class="tsd-kind-property tsd-parent-kind-class tsd-is-private tsd-is-not-exported"><a href="_puf_.semipersistentimmediatearray.html#init" class="tsd-kind-icon">init</a></li>
+							<li class="tsd-kind-property tsd-parent-kind-class tsd-is-private tsd-is-not-exported"><a href="_slg_.tablegenerator.html#answerset" class="tsd-kind-icon">answer<wbr>Set</a></li>
+							<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-not-exported"><a href="_slg_.tablegenerator.html#completionlisteners" class="tsd-kind-icon">completion<wbr>Listeners</a></li>
+							<li class="tsd-kind-property tsd-parent-kind-class tsd-is-private tsd-is-not-exported"><a href="_slg_.tablegenerator.html#consumers" class="tsd-kind-icon">consumers</a></li>
+							<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-not-exported"><a href="_slg_.tablegenerator.html#globalenv" class="tsd-kind-icon">global<wbr>Env</a></li>
+							<li class="tsd-kind-property tsd-parent-kind-class tsd-is-private tsd-is-not-exported"><a href="_slg_.tablegenerator.html#table" class="tsd-kind-icon">table</a></li>
+						</ul>
+					</section>
+					<section class="tsd-index-section tsd-is-inherited tsd-is-private-protected tsd-is-not-exported">
+						<h3>Accessors</h3>
+						<ul class="tsd-index-list">
+							<li class="tsd-kind-get-signature tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-not-exported"><a href="_slg_.tablegenerator.html#iscomplete" class="tsd-kind-icon">is<wbr>Complete</a></li>
 						</ul>
 					</section>
 					<section class="tsd-index-section tsd-is-not-exported">
 						<h3>Methods</h3>
 						<ul class="tsd-index-list">
-							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-not-exported"><a href="_puf_.semipersistentimmediatearray.html#get" class="tsd-kind-icon">get</a></li>
-							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-not-exported"><a href="_puf_.semipersistentimmediatearray.html#getunsafe" class="tsd-kind-icon">get<wbr>Unsafe</a></li>
-							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-private tsd-is-not-exported"><a href="_puf_.semipersistentimmediatearray.html#grow" class="tsd-kind-icon">grow</a></li>
-							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-not-exported"><a href="_puf_.semipersistentimmediatearray.html#reroot" class="tsd-kind-icon">reroot</a></li>
-							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-not-exported"><a href="_puf_.semipersistentimmediatearray.html#rerootaux" class="tsd-kind-icon">reroot<wbr>Aux</a></li>
-							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-not-exported"><a href="_puf_.semipersistentimmediatearray.html#set" class="tsd-kind-icon">set</a></li>
+							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-not-exported"><a href="_slg_.tablegenerator.html#cleanup" class="tsd-kind-icon">cleanup</a></li>
+							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-protected tsd-is-not-exported"><a href="_slg_.tablegenerator.html#complete" class="tsd-kind-icon">complete</a></li>
+							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-not-exported"><a href="_slg_.tablegenerator.html#consume" class="tsd-kind-icon">consume</a></li>
+							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-not-exported"><a href="_slg_.tablegenerator.html#consumenegatively" class="tsd-kind-icon">consume<wbr>Negatively</a></li>
+							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-not-exported"><a href="_slg_.tablegenerator.html#consumetocompletion" class="tsd-kind-icon">consume<wbr>ToCompletion</a></li>
+							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-not-exported"><a href="_slg_.tablegenerator.html#dependnegativelyon" class="tsd-kind-icon">depend<wbr>Negatively<wbr>On</a></li>
+							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-not-exported"><a href="_slg_.tablegenerator.html#dependon" class="tsd-kind-icon">depend<wbr>On</a></li>
+							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-not-exported"><a href="_slg_.tablegenerator.html#execute" class="tsd-kind-icon">execute</a></li>
+							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-private tsd-is-not-exported"><a href="_slg_.tablegenerator.html#insertanswer" class="tsd-kind-icon">insert<wbr>Answer</a></li>
+							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-not-exported"><a href="_slg_.tablegenerator.html#push" class="tsd-kind-icon">push</a></li>
+							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-private tsd-is-not-exported"><a href="_slg_.tablegenerator.html#scheduleanswers" class="tsd-kind-icon">schedule<wbr>Answers</a></li>
+							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-protected tsd-is-not-exported"><a href="_slg_.tablegenerator.html#schedulenegativeresumes" class="tsd-kind-icon">schedule<wbr>Negative<wbr>Resumes</a></li>
+							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-protected tsd-is-not-exported"><a href="_slg_.tablegenerator.html#scheduleresumes" class="tsd-kind-icon">schedule<wbr>Resumes</a></li>
+							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static tsd-is-not-exported"><a href="_slg_.tablegenerator.html#create" class="tsd-kind-icon">create</a></li>
 						</ul>
 					</section>
 				</div>
 			</section>
 		</section>
-		<section class="tsd-panel-group tsd-member-group tsd-is-not-exported">
+		<section class="tsd-panel-group tsd-member-group tsd-is-private tsd-is-private-protected tsd-is-not-exported">
 			<h2>Constructors</h2>
-			<section class="tsd-panel tsd-member tsd-kind-constructor tsd-parent-kind-class tsd-is-not-exported">
+			<section class="tsd-panel tsd-member tsd-kind-constructor tsd-parent-kind-class tsd-is-overwrite tsd-is-private tsd-is-not-exported">
 				<a name="constructor" class="tsd-anchor"></a>
-				<h3>constructor</h3>
-				<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class tsd-is-not-exported">
-					<li class="tsd-signature tsd-kind-icon">new <wbr>Semi<wbr>Persistent<wbr>Immediate<wbr>Array<span class="tsd-signature-symbol">(</span>baseArray<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">A</span><span class="tsd-signature-symbol">&gt;</span>, init<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">function</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_puf_.semipersistentimmediatearray.html" class="tsd-signature-type">SemiPersistentImmediateArray</a></li>
+				<h3><span class="tsd-flag ts-flagPrivate">Private</span> constructor</h3>
+				<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class tsd-is-overwrite tsd-is-private tsd-is-not-exported">
+					<li class="tsd-signature tsd-kind-icon">new <wbr>Table<wbr>Generator<span class="tsd-signature-symbol">(</span>scheduler<span class="tsd-signature-symbol">: </span><a href="../interfaces/_slg_.scheduler.html" class="tsd-signature-type">Scheduler</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_slg_.tablegenerator.html" class="tsd-signature-type">TableGenerator</a></li>
 				</ul>
 				<ul class="tsd-descriptions">
 					<li class="tsd-description">
 						<aside class="tsd-sources">
+							<p>Overrides <a href="_slg_.generator.html">Generator</a>.<a href="_slg_.generator.html#constructor">constructor</a></p>
 							<ul>
-								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/89f8284/puf.ts#L224">puf.ts:224</a></li>
+								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/89f8284/slg.ts#L309">slg.ts:309</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-parameters-title">Parameters</h4>
 						<ul class="tsd-parameters">
 							<li>
-								<h5>baseArray: <span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">A</span><span class="tsd-signature-symbol">&gt;</span></h5>
+								<h5>scheduler: <a href="../interfaces/_slg_.scheduler.html" class="tsd-signature-type">Scheduler</a></h5>
 							</li>
+						</ul>
+						<h4 class="tsd-returns-title">Returns <a href="_slg_.tablegenerator.html" class="tsd-signature-type">TableGenerator</a></h4>
+					</li>
+				</ul>
+			</section>
+		</section>
+		<section class="tsd-panel-group tsd-member-group tsd-is-not-exported">
+			<h2>Properties</h2>
+			<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-private tsd-is-not-exported">
+				<a name="answerset" class="tsd-anchor"></a>
+				<h3><span class="tsd-flag ts-flagPrivate">Private</span> answer<wbr>Set</h3>
+				<div class="tsd-signature tsd-kind-icon">answer<wbr>Set<span class="tsd-signature-symbol">:</span> <a href="_json_trie_.jsontrieterm.html" class="tsd-signature-type">JsonTrieTerm</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span><span class="tsd-signature-symbol"> =&nbsp;JsonTrieTerm.create()</span></div>
+				<aside class="tsd-sources">
+					<ul>
+						<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/89f8284/slg.ts#L308">slg.ts:308</a></li>
+					</ul>
+				</aside>
+			</section>
+			<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-not-exported">
+				<a name="completionlisteners" class="tsd-anchor"></a>
+				<h3><span class="tsd-flag ts-flagProtected">Protected</span> completion<wbr>Listeners</h3>
+				<div class="tsd-signature tsd-kind-icon">completion<wbr>Listeners<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">function</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span><span class="tsd-signature-symbol"> =&nbsp;[]</span></div>
+				<aside class="tsd-sources">
+					<p>Inherited from <a href="_slg_.generator.html">Generator</a>.<a href="_slg_.generator.html#completionlisteners">completionListeners</a></p>
+					<ul>
+						<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/89f8284/slg.ts#L92">slg.ts:92</a></li>
+					</ul>
+				</aside>
+			</section>
+			<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-private tsd-is-not-exported">
+				<a name="consumers" class="tsd-anchor"></a>
+				<h3><span class="tsd-flag ts-flagPrivate">Private</span> consumers</h3>
+				<div class="tsd-signature tsd-kind-icon">consumers<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-symbol">[</span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">function</span><span class="tsd-signature-symbol">]</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span><span class="tsd-signature-symbol"> =&nbsp;[]</span></div>
+				<aside class="tsd-sources">
+					<ul>
+						<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/89f8284/slg.ts#L299">slg.ts:299</a></li>
+					</ul>
+				</aside>
+			</section>
+			<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-not-exported">
+				<a name="globalenv" class="tsd-anchor"></a>
+				<h3>global<wbr>Env</h3>
+				<div class="tsd-signature tsd-kind-icon">global<wbr>Env<span class="tsd-signature-symbol">:</span> <a href="../interfaces/_slg_.globalenvironment.html" class="tsd-signature-type">GlobalEnvironment</a></div>
+				<aside class="tsd-sources">
+					<p>Implementation of <a href="../interfaces/_slg_.scheduler.html">Scheduler</a>.<a href="../interfaces/_slg_.scheduler.html#globalenv">globalEnv</a></p>
+					<p>Inherited from <a href="_slg_.generator.html">Generator</a>.<a href="_slg_.generator.html#globalenv">globalEnv</a></p>
+					<ul>
+						<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/89f8284/slg.ts#L69">slg.ts:69</a></li>
+					</ul>
+				</aside>
+			</section>
+			<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-private tsd-is-not-exported">
+				<a name="table" class="tsd-anchor"></a>
+				<h3><span class="tsd-flag ts-flagPrivate">Private</span> table</h3>
+				<div class="tsd-signature tsd-kind-icon">table<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><a href="../modules/_unify_.html#jsonterm" class="tsd-signature-type">JsonTerm</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> =&nbsp;[]</span></div>
+				<aside class="tsd-sources">
+					<ul>
+						<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/89f8284/slg.ts#L309">slg.ts:309</a></li>
+					</ul>
+				</aside>
+			</section>
+		</section>
+		<section class="tsd-panel-group tsd-member-group tsd-is-inherited tsd-is-private-protected tsd-is-not-exported">
+			<h2>Accessors</h2>
+			<section class="tsd-panel tsd-member tsd-kind-get-signature tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-not-exported">
+				<a name="iscomplete" class="tsd-anchor"></a>
+				<h3><span class="tsd-flag ts-flagProtected">Protected</span> is<wbr>Complete</h3>
+				<div class="tsd-signature tsd-kind-icon">is<wbr>Complete<span class="tsd-signature-symbol">:</span> </div>
+				<aside class="tsd-sources">
+					<p>Inherited from <a href="_slg_.generator.html">Generator</a>.<a href="_slg_.generator.html#iscomplete">isComplete</a></p>
+					<ul>
+						<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/89f8284/slg.ts#L101">slg.ts:101</a></li>
+					</ul>
+				</aside>
+			</section>
+		</section>
+		<section class="tsd-panel-group tsd-member-group tsd-is-not-exported">
+			<h2>Methods</h2>
+			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-not-exported">
+				<a name="cleanup" class="tsd-anchor"></a>
+				<h3><span class="tsd-flag ts-flagProtected">Protected</span> cleanup</h3>
+				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected tsd-is-not-exported">
+					<li class="tsd-signature tsd-kind-icon">cleanup<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+				</ul>
+				<ul class="tsd-descriptions">
+					<li class="tsd-description">
+						<aside class="tsd-sources">
+							<p>Inherited from <a href="_slg_.generator.html">Generator</a>.<a href="_slg_.generator.html#cleanup">cleanup</a></p>
+							<ul>
+								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/89f8284/slg.ts#L106">slg.ts:106</a></li>
+							</ul>
+						</aside>
+						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+					</li>
+				</ul>
+			</section>
+			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-protected tsd-is-not-exported">
+				<a name="complete" class="tsd-anchor"></a>
+				<h3><span class="tsd-flag ts-flagProtected">Protected</span> complete</h3>
+				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-protected tsd-is-not-exported">
+					<li class="tsd-signature tsd-kind-icon">complete<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+				</ul>
+				<ul class="tsd-descriptions">
+					<li class="tsd-description">
+						<aside class="tsd-sources">
+							<p>Overrides <a href="_slg_.generator.html">Generator</a>.<a href="_slg_.generator.html#complete">complete</a></p>
+							<ul>
+								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/89f8284/slg.ts#L417">slg.ts:417</a></li>
+							</ul>
+						</aside>
+						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+					</li>
+				</ul>
+			</section>
+			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-not-exported">
+				<a name="consume" class="tsd-anchor"></a>
+				<h3>consume</h3>
+				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-not-exported">
+					<li class="tsd-signature tsd-kind-icon">consume<span class="tsd-signature-symbol">(</span>k<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">function</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+				</ul>
+				<ul class="tsd-descriptions">
+					<li class="tsd-description">
+						<aside class="tsd-sources">
+							<ul>
+								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/89f8284/slg.ts#L319">slg.ts:319</a></li>
+							</ul>
+						</aside>
+						<h4 class="tsd-parameters-title">Parameters</h4>
+						<ul class="tsd-parameters">
 							<li>
-								<h5>init: <span class="tsd-signature-type">function</span></h5>
+								<h5>k: <span class="tsd-signature-type">function</span></h5>
 								<ul class="tsd-parameters">
 									<li class="tsd-parameter-siganture">
 										<ul class="tsd-signatures tsd-kind-type-literal tsd-is-not-exported">
-											<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">(</span>i<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">A</span></li>
+											<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">(</span>cs<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><a href="../modules/_unify_.html#jsonterm" class="tsd-signature-type">JsonTerm</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
 										</ul>
 										<ul class="tsd-descriptions">
 											<li class="tsd-description">
 												<h4 class="tsd-parameters-title">Parameters</h4>
 												<ul class="tsd-parameters">
 													<li>
-														<h5>i: <span class="tsd-signature-type">number</span></h5>
+														<h5>cs: <span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><a href="../modules/_unify_.html#jsonterm" class="tsd-signature-type">JsonTerm</a><span class="tsd-signature-symbol">&gt;</span></h5>
 													</li>
 												</ul>
-												<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">A</span></h4>
+												<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 											</li>
 										</ul>
 									</li>
 								</ul>
 							</li>
 						</ul>
-						<h4 class="tsd-returns-title">Returns <a href="_puf_.semipersistentimmediatearray.html" class="tsd-signature-type">SemiPersistentImmediateArray</a></h4>
+						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 					</li>
 				</ul>
 			</section>
-		</section>
-		<section class="tsd-panel-group tsd-member-group tsd-is-private tsd-is-private-protected tsd-is-not-exported">
-			<h2>Properties</h2>
-			<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-private tsd-is-not-exported">
-				<a name="basearray" class="tsd-anchor"></a>
-				<h3><span class="tsd-flag ts-flagPrivate">Private</span> base<wbr>Array</h3>
-				<div class="tsd-signature tsd-kind-icon">base<wbr>Array<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">A</span><span class="tsd-signature-symbol">&gt;</span></div>
-				<aside class="tsd-sources">
-					<ul>
-						<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/89f8284/puf.ts#L225">puf.ts:225</a></li>
-					</ul>
-				</aside>
-			</section>
-			<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-private tsd-is-not-exported">
-				<a name="init" class="tsd-anchor"></a>
-				<h3><span class="tsd-flag ts-flagPrivate">Private</span> init</h3>
-				<div class="tsd-signature tsd-kind-icon">init<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">function</span></div>
-				<aside class="tsd-sources">
-					<ul>
-						<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/89f8284/puf.ts#L225">puf.ts:225</a></li>
-					</ul>
-				</aside>
-				<div class="tsd-type-declaration">
-					<h4>Type declaration</h4>
-					<ul class="tsd-parameters">
-						<li class="tsd-parameter-siganture">
-							<ul class="tsd-signatures tsd-kind-type-literal tsd-parent-kind-class tsd-is-not-exported">
-								<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">(</span>i<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">A</span></li>
-							</ul>
-							<ul class="tsd-descriptions">
-								<li class="tsd-description">
-									<h4 class="tsd-parameters-title">Parameters</h4>
-									<ul class="tsd-parameters">
-										<li>
-											<h5>i: <span class="tsd-signature-type">number</span></h5>
-										</li>
-									</ul>
-									<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">A</span></h4>
-								</li>
-							</ul>
-						</li>
-					</ul>
-				</div>
-			</section>
-		</section>
-		<section class="tsd-panel-group tsd-member-group tsd-is-not-exported">
-			<h2>Methods</h2>
 			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-not-exported">
-				<a name="get" class="tsd-anchor"></a>
-				<h3>get</h3>
+				<a name="consumenegatively" class="tsd-anchor"></a>
+				<h3>consume<wbr>Negatively</h3>
 				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-not-exported">
-					<li class="tsd-signature tsd-kind-icon">get<span class="tsd-signature-symbol">(</span>cell<span class="tsd-signature-symbol">: </span><a href="_puf_.arraycell.html" class="tsd-signature-type">ArrayCell</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">A</span><span class="tsd-signature-symbol">&gt;</span>, index<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">A</span></li>
+					<li class="tsd-signature tsd-kind-icon">consume<wbr>Negatively<span class="tsd-signature-symbol">(</span>k<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">function</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
 				</ul>
 				<ul class="tsd-descriptions">
 					<li class="tsd-description">
 						<aside class="tsd-sources">
-							<p>Implementation of <a href="../interfaces/_puf_.internalpersistentarray.html">InternalPersistentArray</a>.<a href="../interfaces/_puf_.internalpersistentarray.html#get">get</a></p>
 							<ul>
-								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/89f8284/puf.ts#L242">puf.ts:242</a></li>
+								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/89f8284/slg.ts#L331">slg.ts:331</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-parameters-title">Parameters</h4>
 						<ul class="tsd-parameters">
 							<li>
-								<h5>cell: <a href="_puf_.arraycell.html" class="tsd-signature-type">ArrayCell</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">A</span><span class="tsd-signature-symbol">&gt;</span></h5>
-							</li>
-							<li>
-								<h5>index: <span class="tsd-signature-type">number</span></h5>
+								<h5>k: <span class="tsd-signature-type">function</span></h5>
+								<ul class="tsd-parameters">
+									<li class="tsd-parameter-siganture">
+										<ul class="tsd-signatures tsd-kind-type-literal tsd-is-not-exported">
+											<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+										</ul>
+										<ul class="tsd-descriptions">
+											<li class="tsd-description">
+												<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+											</li>
+										</ul>
+									</li>
+								</ul>
 							</li>
 						</ul>
-						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">A</span></h4>
+						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 					</li>
 				</ul>
 			</section>
 			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-not-exported">
-				<a name="getunsafe" class="tsd-anchor"></a>
-				<h3>get<wbr>Unsafe</h3>
+				<a name="consumetocompletion" class="tsd-anchor"></a>
+				<h3>consume<wbr>ToCompletion</h3>
 				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-not-exported">
-					<li class="tsd-signature tsd-kind-icon">get<wbr>Unsafe<span class="tsd-signature-symbol">(</span>cell<span class="tsd-signature-symbol">: </span><a href="_puf_.arraycell.html" class="tsd-signature-type">ArrayCell</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">A</span><span class="tsd-signature-symbol">&gt;</span>, index<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">A</span></li>
+					<li class="tsd-signature tsd-kind-icon">consume<wbr>ToCompletion<span class="tsd-signature-symbol">(</span>k<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">function</span>, onComplete<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">function</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
 				</ul>
 				<ul class="tsd-descriptions">
 					<li class="tsd-description">
 						<aside class="tsd-sources">
-							<p>Implementation of <a href="../interfaces/_puf_.internalpersistentarray.html">InternalPersistentArray</a>.<a href="../interfaces/_puf_.internalpersistentarray.html#getunsafe">getUnsafe</a></p>
 							<ul>
-								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/89f8284/puf.ts#L248">puf.ts:248</a></li>
+								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/89f8284/slg.ts#L339">slg.ts:339</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-parameters-title">Parameters</h4>
 						<ul class="tsd-parameters">
 							<li>
-								<h5>cell: <a href="_puf_.arraycell.html" class="tsd-signature-type">ArrayCell</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">A</span><span class="tsd-signature-symbol">&gt;</span></h5>
+								<h5>k: <span class="tsd-signature-type">function</span></h5>
+								<ul class="tsd-parameters">
+									<li class="tsd-parameter-siganture">
+										<ul class="tsd-signatures tsd-kind-type-literal tsd-is-not-exported">
+											<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">(</span>cs<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><a href="../modules/_unify_.html#jsonterm" class="tsd-signature-type">JsonTerm</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+										</ul>
+										<ul class="tsd-descriptions">
+											<li class="tsd-description">
+												<h4 class="tsd-parameters-title">Parameters</h4>
+												<ul class="tsd-parameters">
+													<li>
+														<h5>cs: <span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><a href="../modules/_unify_.html#jsonterm" class="tsd-signature-type">JsonTerm</a><span class="tsd-signature-symbol">&gt;</span></h5>
+													</li>
+												</ul>
+												<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+											</li>
+										</ul>
+									</li>
+								</ul>
 							</li>
 							<li>
-								<h5>index: <span class="tsd-signature-type">number</span></h5>
+								<h5>onComplete: <span class="tsd-signature-type">function</span></h5>
+								<ul class="tsd-parameters">
+									<li class="tsd-parameter-siganture">
+										<ul class="tsd-signatures tsd-kind-type-literal tsd-is-not-exported">
+											<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+										</ul>
+										<ul class="tsd-descriptions">
+											<li class="tsd-description">
+												<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+											</li>
+										</ul>
+									</li>
+								</ul>
 							</li>
 						</ul>
-						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">A</span></h4>
+						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+					</li>
+				</ul>
+			</section>
+			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-not-exported">
+				<a name="dependnegativelyon" class="tsd-anchor"></a>
+				<h3>depend<wbr>Negatively<wbr>On</h3>
+				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-not-exported">
+					<li class="tsd-signature tsd-kind-icon">depend<wbr>Negatively<wbr>On<span class="tsd-signature-symbol">(</span>v<span class="tsd-signature-symbol">: </span><a href="_slg_.generator.html" class="tsd-signature-type">Generator</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+				</ul>
+				<ul class="tsd-descriptions">
+					<li class="tsd-description">
+						<aside class="tsd-sources">
+							<p>Implementation of <a href="../interfaces/_slg_.scheduler.html">Scheduler</a>.<a href="../interfaces/_slg_.scheduler.html#dependnegativelyon">dependNegativelyOn</a></p>
+							<p>Inherited from <a href="_slg_.generator.html">Generator</a>.<a href="_slg_.generator.html#dependnegativelyon">dependNegativelyOn</a></p>
+							<ul>
+								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/89f8284/slg.ts#L142">slg.ts:142</a></li>
+							</ul>
+						</aside>
+						<h4 class="tsd-parameters-title">Parameters</h4>
+						<ul class="tsd-parameters">
+							<li>
+								<h5>v: <a href="_slg_.generator.html" class="tsd-signature-type">Generator</a></h5>
+							</li>
+						</ul>
+						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+					</li>
+				</ul>
+			</section>
+			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-not-exported">
+				<a name="dependon" class="tsd-anchor"></a>
+				<h3>depend<wbr>On</h3>
+				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-not-exported">
+					<li class="tsd-signature tsd-kind-icon">depend<wbr>On<span class="tsd-signature-symbol">(</span>v<span class="tsd-signature-symbol">: </span><a href="_slg_.generator.html" class="tsd-signature-type">Generator</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+				</ul>
+				<ul class="tsd-descriptions">
+					<li class="tsd-description">
+						<aside class="tsd-sources">
+							<p>Implementation of <a href="../interfaces/_slg_.scheduler.html">Scheduler</a>.<a href="../interfaces/_slg_.scheduler.html#dependon">dependOn</a></p>
+							<p>Inherited from <a href="_slg_.generator.html">Generator</a>.<a href="_slg_.generator.html#dependon">dependOn</a></p>
+							<ul>
+								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/89f8284/slg.ts#L134">slg.ts:134</a></li>
+							</ul>
+						</aside>
+						<h4 class="tsd-parameters-title">Parameters</h4>
+						<ul class="tsd-parameters">
+							<li>
+								<h5>v: <a href="_slg_.generator.html" class="tsd-signature-type">Generator</a></h5>
+							</li>
+						</ul>
+						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+					</li>
+				</ul>
+			</section>
+			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-not-exported">
+				<a name="execute" class="tsd-anchor"></a>
+				<h3>execute</h3>
+				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-not-exported">
+					<li class="tsd-signature tsd-kind-icon">execute<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+				</ul>
+				<ul class="tsd-descriptions">
+					<li class="tsd-description">
+						<aside class="tsd-sources">
+							<p>Inherited from <a href="_slg_.generator.html">Generator</a>.<a href="_slg_.generator.html#execute">execute</a></p>
+							<ul>
+								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/89f8284/slg.ts#L124">slg.ts:124</a></li>
+							</ul>
+						</aside>
+						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 					</li>
 				</ul>
 			</section>
 			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-private tsd-is-not-exported">
-				<a name="grow" class="tsd-anchor"></a>
-				<h3><span class="tsd-flag ts-flagPrivate">Private</span> grow</h3>
+				<a name="insertanswer" class="tsd-anchor"></a>
+				<h3><span class="tsd-flag ts-flagPrivate">Private</span> insert<wbr>Answer</h3>
 				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-private tsd-is-not-exported">
-					<li class="tsd-signature tsd-kind-icon">grow<span class="tsd-signature-symbol">(</span>newSize<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					<li class="tsd-signature tsd-kind-icon">insert<wbr>Answer<span class="tsd-signature-symbol">(</span>count<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span>, sub<span class="tsd-signature-symbol">: </span><a href="_unify_.substitution.html" class="tsd-signature-type">Substitution</a><span class="tsd-signature-symbol">&lt;</span><a href="../modules/_unify_.html#jsonterm" class="tsd-signature-type">JsonTerm</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
 				</ul>
 				<ul class="tsd-descriptions">
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/89f8284/puf.ts#L232">puf.ts:232</a></li>
+								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/89f8284/slg.ts#L393">slg.ts:393</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-parameters-title">Parameters</h4>
 						<ul class="tsd-parameters">
 							<li>
-								<h5>newSize: <span class="tsd-signature-type">number</span></h5>
+								<h5>count: <span class="tsd-signature-type">number</span></h5>
+							</li>
+							<li>
+								<h5>sub: <a href="_unify_.substitution.html" class="tsd-signature-type">Substitution</a><span class="tsd-signature-symbol">&lt;</span><a href="../modules/_unify_.html#jsonterm" class="tsd-signature-type">JsonTerm</a><span class="tsd-signature-symbol">&gt;</span></h5>
 							</li>
 						</ul>
 						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 					</li>
 				</ul>
 			</section>
-			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-not-exported">
-				<a name="reroot" class="tsd-anchor"></a>
-				<h3>reroot</h3>
-				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-not-exported">
-					<li class="tsd-signature tsd-kind-icon">reroot<span class="tsd-signature-symbol">(</span>cell<span class="tsd-signature-symbol">: </span><a href="_puf_.arraycell.html" class="tsd-signature-type">ArrayCell</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">A</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-not-exported">
+				<a name="push" class="tsd-anchor"></a>
+				<h3>push</h3>
+				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-not-exported">
+					<li class="tsd-signature tsd-kind-icon">push<span class="tsd-signature-symbol">(</span>process<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">function</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
 				</ul>
 				<ul class="tsd-descriptions">
 					<li class="tsd-description">
 						<aside class="tsd-sources">
-							<p>Implementation of <a href="../interfaces/_puf_.internalpersistentarray.html">InternalPersistentArray</a>.<a href="../interfaces/_puf_.internalpersistentarray.html#reroot">reroot</a></p>
+							<p>Inherited from <a href="_slg_.generator.html">Generator</a>.<a href="_slg_.generator.html#push">push</a></p>
 							<ul>
-								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/89f8284/puf.ts#L262">puf.ts:262</a></li>
+								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/89f8284/slg.ts#L120">slg.ts:120</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-parameters-title">Parameters</h4>
 						<ul class="tsd-parameters">
 							<li>
-								<h5>cell: <a href="_puf_.arraycell.html" class="tsd-signature-type">ArrayCell</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">A</span><span class="tsd-signature-symbol">&gt;</span></h5>
+								<h5>process: <span class="tsd-signature-type">function</span></h5>
+								<ul class="tsd-parameters">
+									<li class="tsd-parameter-siganture">
+										<ul class="tsd-signatures tsd-kind-type-literal tsd-is-not-exported">
+											<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+										</ul>
+										<ul class="tsd-descriptions">
+											<li class="tsd-description">
+												<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+											</li>
+										</ul>
+									</li>
+								</ul>
 							</li>
 						</ul>
 						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 					</li>
 				</ul>
 			</section>
-			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-not-exported">
-				<a name="rerootaux" class="tsd-anchor"></a>
-				<h3>reroot<wbr>Aux</h3>
-				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-not-exported">
-					<li class="tsd-signature tsd-kind-icon">reroot<wbr>Aux<span class="tsd-signature-symbol">(</span>i<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span>, v<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">A</span>, t<span class="tsd-signature-symbol">: </span><a href="_puf_.arraycell.html" class="tsd-signature-type">ArrayCell</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">A</span><span class="tsd-signature-symbol">&gt;</span>, t2<span class="tsd-signature-symbol">: </span><a href="_puf_.arraycell.html" class="tsd-signature-type">ArrayCell</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">A</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-private tsd-is-not-exported">
+				<a name="scheduleanswers" class="tsd-anchor"></a>
+				<h3><span class="tsd-flag ts-flagPrivate">Private</span> schedule<wbr>Answers</h3>
+				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-private tsd-is-not-exported">
+					<li class="tsd-signature tsd-kind-icon">schedule<wbr>Answers<span class="tsd-signature-symbol">(</span>consumer<span class="tsd-signature-symbol">: </span><span class="tsd-signature-symbol">[</span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">function</span><span class="tsd-signature-symbol">]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
 				</ul>
 				<ul class="tsd-descriptions">
 					<li class="tsd-description">
 						<aside class="tsd-sources">
-							<p>Implementation of <a href="../interfaces/_puf_.internalpersistentarray.html">InternalPersistentArray</a>.<a href="../interfaces/_puf_.internalpersistentarray.html#rerootaux">rerootAux</a></p>
 							<ul>
-								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/89f8284/puf.ts#L265">puf.ts:265</a></li>
+								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/89f8284/slg.ts#L353">slg.ts:353</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-parameters-title">Parameters</h4>
 						<ul class="tsd-parameters">
 							<li>
-								<h5>i: <span class="tsd-signature-type">number</span></h5>
-							</li>
-							<li>
-								<h5>v: <span class="tsd-signature-type">A</span></h5>
-							</li>
-							<li>
-								<h5>t: <a href="_puf_.arraycell.html" class="tsd-signature-type">ArrayCell</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">A</span><span class="tsd-signature-symbol">&gt;</span></h5>
-							</li>
-							<li>
-								<h5>t2: <a href="_puf_.arraycell.html" class="tsd-signature-type">ArrayCell</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">A</span><span class="tsd-signature-symbol">&gt;</span></h5>
+								<h5>consumer: <span class="tsd-signature-symbol">[</span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">function</span><span class="tsd-signature-symbol">]</span></h5>
 							</li>
 						</ul>
+						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
+					</li>
+				</ul>
+			</section>
+			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-protected tsd-is-not-exported">
+				<a name="schedulenegativeresumes" class="tsd-anchor"></a>
+				<h3><span class="tsd-flag ts-flagProtected">Protected</span> schedule<wbr>Negative<wbr>Resumes</h3>
+				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-protected tsd-is-not-exported">
+					<li class="tsd-signature tsd-kind-icon">schedule<wbr>Negative<wbr>Resumes<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+				</ul>
+				<ul class="tsd-descriptions">
+					<li class="tsd-description">
+						<aside class="tsd-sources">
+							<p>Overrides <a href="_slg_.generator.html">Generator</a>.<a href="_slg_.generator.html#schedulenegativeresumes">scheduleNegativeResumes</a></p>
+							<ul>
+								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/89f8284/slg.ts#L378">slg.ts:378</a></li>
+							</ul>
+						</aside>
 						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 					</li>
 				</ul>
 			</section>
-			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-not-exported">
-				<a name="set" class="tsd-anchor"></a>
-				<h3>set</h3>
-				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-not-exported">
-					<li class="tsd-signature tsd-kind-icon">set<span class="tsd-signature-symbol">(</span>cell<span class="tsd-signature-symbol">: </span><a href="_puf_.arraycell.html" class="tsd-signature-type">ArrayCell</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">A</span><span class="tsd-signature-symbol">&gt;</span>, index<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span>, value<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">A</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../interfaces/_puf_.persistentarray.html" class="tsd-signature-type">PersistentArray</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">A</span><span class="tsd-signature-symbol">&gt;</span></li>
+			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-protected tsd-is-not-exported">
+				<a name="scheduleresumes" class="tsd-anchor"></a>
+				<h3><span class="tsd-flag ts-flagProtected">Protected</span> schedule<wbr>Resumes</h3>
+				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-protected tsd-is-not-exported">
+					<li class="tsd-signature tsd-kind-icon">schedule<wbr>Resumes<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
 				</ul>
 				<ul class="tsd-descriptions">
 					<li class="tsd-description">
 						<aside class="tsd-sources">
-							<p>Implementation of <a href="../interfaces/_puf_.internalpersistentarray.html">InternalPersistentArray</a>.<a href="../interfaces/_puf_.internalpersistentarray.html#set">set</a></p>
+							<p>Overrides <a href="_slg_.generator.html">Generator</a>.<a href="_slg_.generator.html#scheduleresumes">scheduleResumes</a></p>
 							<ul>
-								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/89f8284/puf.ts#L252">puf.ts:252</a></li>
+								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/89f8284/slg.ts#L365">slg.ts:365</a></li>
+							</ul>
+						</aside>
+						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
+					</li>
+				</ul>
+			</section>
+			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static tsd-is-not-exported">
+				<a name="create" class="tsd-anchor"></a>
+				<h3><span class="tsd-flag ts-flagStatic">Static</span> create</h3>
+				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static tsd-is-not-exported">
+					<li class="tsd-signature tsd-kind-icon">create<span class="tsd-signature-symbol">(</span>body<span class="tsd-signature-symbol">: </span><a href="../modules/_slg_.html#lpterm" class="tsd-signature-type">LPTerm</a>, sched<span class="tsd-signature-symbol">: </span><a href="../interfaces/_slg_.scheduler.html" class="tsd-signature-type">Scheduler</a>, count<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span>, s0<span class="tsd-signature-symbol">: </span><a href="_unify_.substitution.html" class="tsd-signature-type">Substitution</a><span class="tsd-signature-symbol">&lt;</span><a href="../modules/_unify_.html#jsonterm" class="tsd-signature-type">JsonTerm</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_slg_.tablegenerator.html" class="tsd-signature-type">TableGenerator</a></li>
+				</ul>
+				<ul class="tsd-descriptions">
+					<li class="tsd-description">
+						<aside class="tsd-sources">
+							<ul>
+								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/89f8284/slg.ts#L313">slg.ts:313</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-parameters-title">Parameters</h4>
 						<ul class="tsd-parameters">
 							<li>
-								<h5>cell: <a href="_puf_.arraycell.html" class="tsd-signature-type">ArrayCell</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">A</span><span class="tsd-signature-symbol">&gt;</span></h5>
+								<h5>body: <a href="../modules/_slg_.html#lpterm" class="tsd-signature-type">LPTerm</a></h5>
 							</li>
 							<li>
-								<h5>index: <span class="tsd-signature-type">number</span></h5>
+								<h5>sched: <a href="../interfaces/_slg_.scheduler.html" class="tsd-signature-type">Scheduler</a></h5>
 							</li>
 							<li>
-								<h5>value: <span class="tsd-signature-type">A</span></h5>
+								<h5>count: <span class="tsd-signature-type">number</span></h5>
+							</li>
+							<li>
+								<h5>s0: <a href="_unify_.substitution.html" class="tsd-signature-type">Substitution</a><span class="tsd-signature-symbol">&lt;</span><a href="../modules/_unify_.html#jsonterm" class="tsd-signature-type">JsonTerm</a><span class="tsd-signature-symbol">&gt;</span></h5>
 							</li>
 						</ul>
-						<h4 class="tsd-returns-title">Returns <a href="../interfaces/_puf_.persistentarray.html" class="tsd-signature-type">PersistentArray</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">A</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						<h4 class="tsd-returns-title">Returns <a href="_slg_.tablegenerator.html" class="tsd-signature-type">TableGenerator</a></h4>
 					</li>
 				</ul>
 			</section>
