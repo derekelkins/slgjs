@@ -5,10 +5,9 @@ layout: default
 ## Introduction
 
 This provides a embedding of tabled logic programming in TypeScript/JavaScript.
-Currently, it supports LRD-stratified negation and non-monotic aggregation. Adding 
-non-stratified negation and aggregation is something I'm considering. Also, adding
-support for lattice terms and monotonic predicates on them is something I'm also
-considering.
+Currently, it supports LRD-stratified negation, monotonic aggregation via lattice
+variables, and non-monotic aggregation. Adding non-stratified negation and
+aggregation is something I'm considering.
 
 The implementation techniques are similar to the SLG-WAM of the XSB Prolog
 implementation.
@@ -33,4 +32,4 @@ implements (non-tabled) logic programming using a different approach to the
 main library.
 
 [Tests](https://github.com/derekelkins/slgjs/blob/master/slg.spec.ts) - The
-tests have some other standard examples like append.
+tests have some other standard examples like append, shortest paths, etc.
