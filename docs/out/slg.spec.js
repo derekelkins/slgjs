@@ -174,6 +174,98 @@ var __read = (this && this.__read) || function (o, n) {
             var result = slg_1.toArrayQ(function (Q) { return slg_1.fresh(function (S) { return p.or(S).into(Q); }); });
             expect(result).toEqual([false]);
         });
+        test('grouped sum', function () {
+            var employees = new slg_1.EdbPredicate([
+                { name: 'harry', dept: 'sales', salary: 20 },
+                { name: 'sally', dept: 'hr', salary: 20 },
+                { name: 'jane', dept: 'sales', salary: 30 }
+            ]);
+            var salaries = new slg_1.GroupedPredicate(function (D) { return function (S) { return slg_1.fresh(function (N) { return employees.match({ name: N, dept: D, salary: S }); }); }; });
+            var result = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (D, TS) { return [salaries.groupBy(D).sumInto(TS), slg_1.unify(Q, [D, TS])]; }); });
+            expect(result).toEqual([
+                ["sales", 50], ["hr", 20]
+            ]);
+        });
+        test('grouped sum over all', function () {
+            var employees = new slg_1.EdbPredicate([
+                { name: 'harry', dept: 'sales', salary: 20 },
+                { name: 'sally', dept: 'hr', salary: 20 },
+                { name: 'jane', dept: 'sales', salary: 30 }
+            ]);
+            var salaries = new slg_1.GroupedPredicate(function () { return function (S) { return slg_1.fresh(function (N, D) { return employees.match({ name: N, dept: D, salary: S }); }); }; });
+            var result = slg_1.toArrayQ(function (Q) { return salaries.groupBy().sumInto(Q); });
+            expect(result).toEqual([70]);
+        });
+        test('grouped product', function () {
+            var employees = new slg_1.EdbPredicate([
+                { name: 'harry', dept: 'sales', salary: 20 },
+                { name: 'sally', dept: 'hr', salary: 20 },
+                { name: 'jane', dept: 'sales', salary: 30 }
+            ]);
+            var salaries = new slg_1.GroupedPredicate(function (D) { return function (S) { return slg_1.fresh(function (N) { return employees.match({ name: N, dept: D, salary: S }); }); }; });
+            var result = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (D, TS) { return [salaries.groupBy(D).productInto(TS), slg_1.unify(Q, [D, TS])]; }); });
+            expect(result).toEqual([
+                ["sales", 600], ["hr", 20]
+            ]);
+        });
+        test('grouped max', function () {
+            var employees = new slg_1.EdbPredicate([
+                { name: 'harry', dept: 'sales', salary: 20 },
+                { name: 'sally', dept: 'hr', salary: 20 },
+                { name: 'jane', dept: 'sales', salary: 30 }
+            ]);
+            var salaries = new slg_1.GroupedPredicate(function (D) { return function (S) { return slg_1.fresh(function (N) { return employees.match({ name: N, dept: D, salary: S }); }); }; });
+            var result = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (D, TS) { return [salaries.groupBy(D).maxInto(TS), slg_1.unify(Q, [D, TS])]; }); });
+            expect(result).toEqual([
+                ["sales", 30], ["hr", 20]
+            ]);
+        });
+        test('grouped min', function () {
+            var employees = new slg_1.EdbPredicate([
+                { name: 'harry', dept: 'sales', salary: 20 },
+                { name: 'sally', dept: 'hr', salary: 20 },
+                { name: 'jane', dept: 'sales', salary: 30 }
+            ]);
+            var salaries = new slg_1.GroupedPredicate(function (D) { return function (S) { return slg_1.fresh(function (N) { return employees.match({ name: N, dept: D, salary: S }); }); }; });
+            var result = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (D, TS) { return [salaries.groupBy(D).minInto(TS), slg_1.unify(Q, [D, TS])]; }); });
+            expect(result).toEqual([
+                ["sales", 20], ["hr", 20]
+            ]);
+        });
+        test('grouped and', function () {
+            var employees = new slg_1.EdbPredicate([
+                { name: 'harry', dept: 'sales', onVacation: true },
+                { name: 'sally', dept: 'hr', onVacation: false },
+                { name: 'jane', dept: 'sales', onVacation: true }
+            ]);
+            var vacationing = new slg_1.GroupedPredicate(function (D) { return function (S) { return slg_1.fresh(function (N) { return employees.match({ name: N, dept: D, onVacation: S }); }); }; });
+            var result = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (D, TS) { return [vacationing.groupBy(D).andInto(TS), slg_1.unify(Q, [D, TS])]; }); });
+            expect(result).toEqual([
+                ["sales", true], ["hr", false]
+            ]);
+        });
+        test('grouped or', function () {
+            var employees = new slg_1.EdbPredicate([
+                { name: 'harry', dept: 'sales', onVacation: true },
+                { name: 'sally', dept: 'hr', onVacation: false },
+                { name: 'jane', dept: 'sales', onVacation: false }
+            ]);
+            var vacationing = new slg_1.GroupedPredicate(function (D) { return function (S) { return slg_1.fresh(function (N) { return employees.match({ name: N, dept: D, onVacation: S }); }); }; });
+            var result = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (D, TS) { return [vacationing.groupBy(D).orInto(TS), slg_1.unify(Q, [D, TS])]; }); });
+            expect(result).toEqual([
+                ["sales", true], ["hr", false]
+            ]);
+        });
+        test('empty group sum', function () {
+            var employees = new slg_1.EdbPredicate([
+                { name: 'harry', dept: 'sales', salary: 20 },
+                { name: 'sally', dept: 'hr', salary: 20 },
+                { name: 'jane', dept: 'sales', salary: 30 }
+            ]);
+            var salaries = new slg_1.GroupedPredicate(function (D) { return function (S) { return slg_1.fresh(function (N) { return employees.match({ name: N, dept: D, salary: S }); }); }; });
+            var result = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (TS) { return [salaries.groupBy('management').sumInto(TS), slg_1.unify(Q, TS)]; }); });
+            expect(result).toEqual([0]);
+        });
     });
     describe('LRD-stratified negation', function () {
         test('LRD-stratified example', function () {

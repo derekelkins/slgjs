@@ -682,10 +682,9 @@ export class TabledPredicate implements NonMonotonicPredicate {
 
     /**
      * Non-monotonic aggregation. This behaves similarly to [[notMatch]]. It takes the operations of
-     * a commutative monoid and will apply them to the *set* of results (there's guaranteed to be no
-     * duplicates). For this, the predicate must only produce fully groundable [[JsonTerm]]s, i.e.
-     * ones with no unbound [[Variable]]s. It will throw an error if a term is produced that has
-     * unbound variables.
+     * a commutative monoid and will apply them to the *multi-set* of results. For this, the predicate 
+     * must only produce fully groundable [[JsonTerm]]s, i.e. ones with no unbound [[Variable]]s. This
+     * will throw an error if a term is produced that has unbound variables.
      *
      * Like [[notMatch]] this can (currently) only be used in an LRD-stratified manner.
      *
@@ -738,57 +737,297 @@ export class TabledPredicate implements NonMonotonicPredicate {
      *
      * This is built on [[aggregate]] and has the same restrictions.
      */
-    sum: (row: JsonTerm) => {into: (agg: JsonTerm) => LPTerm} = this.aggregate<number>(TabledPredicate.isNumber, 0, (x, y) => x+y);
+    sum(row: JsonTerm): {into: (agg: JsonTerm) => LPTerm} {
+        return this.aggregate<number>(TabledPredicate.isNumber, 0, (x, y) => x+y)(row);
+    }
 
     /**
      * Calculates the product over the elements. They are required to be numbers.
      *
      * This is built on [[aggregate]] and has the same restrictions.
      */
-    product: (row: JsonTerm) => {into: (agg: JsonTerm) => LPTerm} = this.aggregate<number>(TabledPredicate.isNumber, 1, (x, y) => x*y);
+    product(row: JsonTerm): {into: (agg: JsonTerm) => LPTerm} {
+        return this.aggregate<number>(TabledPredicate.isNumber, 1, (x, y) => x*y)(row);
+    }
 
     /**
      * Finds the minimum of the elements. They are required to be numbers.
      *
      * This is built on [[aggregate]] and has the same restrictions.
      */
-    min: (row: JsonTerm) => {into: (agg: JsonTerm) => LPTerm} = this.aggregate<number>(TabledPredicate.isNumber, Number.POSITIVE_INFINITY, Math.min);
+    min(row: JsonTerm): {into: (agg: JsonTerm) => LPTerm} {
+        return this.aggregate<number>(TabledPredicate.isNumber, Number.POSITIVE_INFINITY, Math.min)(row);
+    }
 
     /**
      * Finds the maximum of the elements. They are required to be numbers.
      *
      * This is built on [[aggregate]] and has the same restrictions.
      */
-    max: (row: JsonTerm) => {into: (agg: JsonTerm) => LPTerm} = this.aggregate<number>(TabledPredicate.isNumber, Number.NEGATIVE_INFINITY, Math.max);
+    max(row: JsonTerm): {into: (agg: JsonTerm) => LPTerm} {
+        return this.aggregate<number>(TabledPredicate.isNumber, Number.NEGATIVE_INFINITY, Math.max)(row);
+    }
 
     /**
      * Calculates the disjunction of the elements.
      *
      * This is built on [[aggregate]] and has the same restrictions.
      */
-    count: (row: JsonTerm) => {into: (agg: JsonTerm) => LPTerm} = this.aggregate<Json>(_ => 1, 0, (x, y) => x+y);
+    count(row: JsonTerm): {into: (agg: JsonTerm) => LPTerm} {
+        return this.aggregate<Json>(_ => 1, 0, (x, y) => x+y)(row);
+    }
 
     /**
      * Calculates the conjunction of the elements.
      *
      * This is built on [[aggregate]] and has the same restrictions.
      */
-    and: (row: JsonTerm) => {into: (agg: JsonTerm) => LPTerm} = this.aggregate<Json>(x => x, true, (x, y) => x && y);
+    and(row: JsonTerm): {into: (agg: JsonTerm) => LPTerm} {
+        return this.aggregate<Json>(x => x, true, (x, y) => x && y)(row);
+    }
 
     /**
      * Calculates the disjunction of the elements.
      *
      * This is built on [[aggregate]] and has the same restrictions.
      */
-    or: (row: JsonTerm) => {into: (agg: JsonTerm) => LPTerm} = this.aggregate<Json>(x => x, false, (x, y) => x || y);
+    or(row: JsonTerm): {into: (agg: JsonTerm) => LPTerm} {
+        return this.aggregate<Json>(x => x, false, (x, y) => x || y)(row);
+    }
 }
 
-/*
-export class GroupedPredicate {
+export interface Group {
+    /**
+     * Non-monotonic aggregation. This behaves similarly to [[TabledPredicate.notMatch]]. It takes the operations of
+     * a commutative monoid and will apply them to the *set* of results (there's guaranteed to be no
+     * duplicates). For this, the predicate must only produce fully groundable [[JsonTerm]]s, i.e.
+     * ones with no unbound [[Variable]]s. This will throw an error if a term is produced that has
+     * unbound variables.
+     *
+     * Like [[TabledPredicate.notMatch]] this can (currently) only be used in an LRD-stratified manner.
+     *
+     * @param M A type of a commutative monoid which is a subtype of [[Json]], i.e. `Json | M = Json`.
+     * @param inject Turns a fully ground [[Json]] into an element of `M`.
+     * @param unit A unit element for a commutative monoid.
+     * @param mult The multiplication of a commutative monoid. That is, it's associative, commutative,
+     * and `unit` is a left and right unit.
+     * @param agg The aggregate is unified against this [[JsonTerm]].
+     * @returns A computation that if the aggregate unifies with `agg`.
+     */
+    aggregateInto<M>(inject: (t: Json) => M, unit: M, mult: (x: M, y: M) => M, agg: JsonTerm): LPTerm;
+
+    /**
+     * Sums over the elements. They are required to be numbers.
+     *
+     * This is built on [[aggregateInto]] and has the same restrictions.
+     */
+    sumInto(agg: JsonTerm): LPTerm;
+
+    /**
+     * Calculates the product over the elements. They are required to be numbers.
+     *
+     * This is built on [[aggregateInto]] and has the same restrictions.
+     */
+    productInto(agg: JsonTerm): LPTerm;
+
+    /**
+     * Finds the minimum of the elements. They are required to be numbers.
+     *
+     * This is built on [[aggregateInto]] and has the same restrictions.
+     */
+    minInto(agg: JsonTerm): LPTerm;
+
+    /**
+     * Finds the maximum of the elements. They are required to be numbers.
+     *
+     * This is built on [[aggregateInto]] and has the same restrictions.
+     */
+    maxInto(agg: JsonTerm): LPTerm;
+
+    /**
+     * Calculates the disjunction of the elements.
+     *
+     * This is built on [[aggregateInto]] and has the same restrictions.
+     */
+    countInto(agg: JsonTerm): LPTerm;
+
+    /**
+     * Calculates the conjunction of the elements.
+     *
+     * This is built on [[aggregateInto]] and has the same restrictions.
+     */
+    andInto(agg: JsonTerm): LPTerm;
+
+    /**
+     * Calculates the disjunction of the elements.
+     *
+     * This is built on [[aggregateInto]] and has the same restrictions.
+     */
+    orInto(agg: JsonTerm): LPTerm;
+}
+
+class GroupGenerator<M> extends Generator {
+    // NOTE: We could have the answerSet store nodes of a linked list which could be traversed
+    // by the answer iterators, and that would mean we wouldn't need the table, but I don't think
+    // that will really make much difference in time or space, nor is it clear that it is a good
+    // trade-off. If there was an easy way to avoid needing to store the answer as an array in
+    // the nodes, then it would be worth it. In the "Efficient Access Mechanisms for Tabled Logic
+    // Programs" paper, they have parent pointers in the answer trie (but not the subgoal trie)
+    // that allow this.
+    private answerSet: JsonTrieTerm<M> = JsonTrieTerm.create();
+
+    private constructor(
+        private readonly inject: (t: Json) => M, 
+        private readonly mult: (x: M, y: M) => M,
+        scheduler: Scheduler) { super(scheduler); }
+
+    static create<M>(
+      inject: (t: Json) => M, mult: (x: M, y: M) => M,
+      body: LPTerm, sched: Scheduler, count: number, valVar: Variable, s0: Substitution<JsonTerm>): GroupGenerator<M> {
+        const gen = new GroupGenerator<M>(inject, mult, sched);
+        gen.push(() => body(gen)(s0)(s => gen.insertAnswer(count, valVar, s)));
+        return gen;
+    }
+
+    consumeToCompletion(k: (cs: Array<JsonTerm>, acc: M) => void, onComplete: () => void): void {
+        if(this.isComplete) {
+            for(let answer of this.answerSet.entries()) {
+                k(answer[0], answer[1]);
+            }
+            onComplete();
+        } else {
+            (<Array<() => void>>this.completionListeners).push(() => {
+                for(let answer of this.answerSet.entries()) {
+                    k(answer[0], answer[1]);
+                }
+                onComplete();
+            });
+        }
+    }
+
+    protected scheduleResumes(): boolean {
+        return false;
+    }
+    
+    protected scheduleNegativeResumes(): void {
+        // NOTE: Each completionListener corresponding to a negation will
+        // individually check (redundantly) that the table is empty before
+        // notifying the listener. Aggregates just want to know when the
+        // table is complete regardless of whether the table is empty or
+        // not, so this lets approach lets them know.
+        const ncs = this.completionListeners;
+        if(ncs === null) return; // This has already been called.
+        const len = ncs.length;
+        for(let i = 0; i < len; ++i) {
+            ncs[i]();
+        }
+        this.completionListeners = null;
+    }
+
+    private insertAnswer(count: number, valVar: Variable, sub: Substitution<JsonTerm>): void {
+        const answer = new Array<JsonTerm>(count);
+        for(let i = 0; i < count; ++i) {
+            answer[i] = groundJson(sub.lookupById(i), sub);
+        }
+        const val = completelyGroundJson(valVar, sub);
+        this.answerSet.modify(answer, (acc, exists) => { 
+            if(exists) {
+                return this.mult(<M>acc, this.inject(val));
+            } else {
+                return this.inject(val);
+            }
+        });
+    }
+
+    protected complete(): void {
+        this.cleanup();
+    }
+}
+
+class GroupedPredicateGroup implements Group {
+    constructor(private readonly groups: Array<JsonTerm>, private readonly body: (...groups: Array<Variable>) => (row: Variable) => LPTerm) { }
+    
+    private static isNumber(t: JsonTerm): number {
+        if(typeof t === 'number') return t;
+        throw new Error('GroupedPredicateGroup.isNumber: expected a number');
+    }
+
+    aggregateInto<M>(inject: (t: Json) => M, unit: M, mult: (x: M, y: M) => M, agg: JsonTerm): LPTerm {
+        const t1 = refreshJson(this.groups, Substitution.emptyPersistent()); 
+        const t = t1[1].freshVar();
+        const valVar = t[0];
+        const vsLen = t[0].id; // TODO: HACK
+        const rs = new Array<JsonTerm>(vsLen);
+        return gen => s => k => {
+            const generator = GroupGenerator.create(inject, mult, this.body.apply(null, t1[0])(valVar), gen, vsLen, valVar, t[1]);
+            gen.dependNegativelyOn(generator);
+            let anyResults = false;
+            generator.consumeToCompletion((cs, acc) => {
+                anyResults = true;
+                const grps = this.groups;
+                let s2: Substitution<JsonTerm> | null = s;
+                for(let i = 0; i < vsLen; ++i) {
+                    const t = refreshJson(cs[i], s2, grps); 
+                    s2 = t[1]; 
+                    rs[i] = t[0];
+                }
+                for(let i = 0; i < vsLen; ++i) {
+                    s2 = <Substitution<JsonTerm>>unifyJson(grps[i], rs[i], s2);
+                }
+                s2 = matchJson(agg, acc, s2);
+                if(s2 !== null) k(s2);
+            }, () => {
+                if(!anyResults) {
+                    const s2 = matchJson(agg, unit, s);
+                    if(s2 !== null) k(s2);
+                }
+            });
+            generator.execute();
+        };
+    }
+
+    sumInto(agg: JsonTerm): LPTerm {
+        return this.aggregateInto<number>(GroupedPredicateGroup.isNumber, 0, (x, y) => x+y, agg);
+    }
+
+    productInto(agg: JsonTerm): LPTerm {
+        return this.aggregateInto<number>(GroupedPredicateGroup.isNumber, 1, (x, y) => x*y, agg);
+    }
+
+    minInto(agg: JsonTerm): LPTerm {
+        return this.aggregateInto<number>(GroupedPredicateGroup.isNumber, Number.POSITIVE_INFINITY, Math.min, agg);
+    }
+
+    maxInto(agg: JsonTerm): LPTerm {
+        return this.aggregateInto<number>(GroupedPredicateGroup.isNumber, Number.NEGATIVE_INFINITY, Math.max, agg);
+    }
+
+    countInto(agg: JsonTerm): LPTerm {
+        return this.aggregateInto<Json>(_ => 1, 0, (x, y) => x+y, agg);
+    }
+
+    andInto(agg: JsonTerm): LPTerm {
+        return this.aggregateInto<Json>(x => x, true, (x, y) => x && y, agg);
+    }
+
+    orInto(agg: JsonTerm): LPTerm {
+        return this.aggregateInto<Json>(x => x, false, (x, y) => x || y, agg);
+    }
+}
+
+// NOTE: XSB's HiLog approach to grouping is quite nice. It would be nice to do something similar.
+// See: http://www3.cs.stonybrook.edu/~warren/xsbbook/node50.html
+/**
+ * A predicate supporting grouping.
+ *
+ * As a non-monotonic predicate, `new GroupedPredicate((G1, ..., Gn) => Q => body(G1, ..., Gn, Q))`
+ * behaves exactly like: `new TabledPredicate(([G1, ..., Gn]) => fresh(Q => body(G1, ..., Gn, Q)))`.
+ */
+export class GroupedPredicate implements NonMonotonicPredicate {
     private readonly generators: JsonTrieTerm<TableGenerator> = JsonTrieTerm.create();
     constructor(private readonly body: (...groups: Array<Variable>) => (row: Variable) => LPTerm) { }
 
-    private getGenerator(row: JsonTerm, sched: Scheduler): [TableGenerator, Array<Variable>, boolean] {
+    private getGenerator(row: JsonTerm, acc: Variable, sched: Scheduler): [TableGenerator, Array<Variable>, boolean] {
         let vs: any = null;
         let isNew = false;
         const g = this.generators.modifyWithVars(row, (gen, varMap: VarMap) => {
@@ -796,7 +1035,7 @@ export class GroupedPredicate {
             if(gen === void(0)) {
                 const t = refreshJson(row, Substitution.emptyPersistent()); 
                 isNew = true;
-                return TableGenerator.create(this.body(t[0]), sched, vs.length, t[1]);
+                return TableGenerator.create(this.body.apply(null, t[0])(acc), sched, vs.length, t[1]);
             } else {
                 return gen;
             }
@@ -804,11 +1043,67 @@ export class GroupedPredicate {
         return [g, vs, isNew];
     }
 
-    groupBy(...groups: Array<JsonTerm>): Something {
-        
+    /**
+     * `const gp = new GroupedPredicate((G1, G2) => Acc => p.match([G1, G2, Acc]));`
+     * behaves as a predicate that matches 2-element arrays. In general, it will be *N*-element
+     * arrays for *N* grouping variables. For example, `gp.match([1, 2])` will succeed if 
+     * `p.match([1, 2, X])` succeeds for any `X`.
+     */
+    match(row: JsonTerm): LPTerm {
+        return gen => s0 => k => {
+            // TODO: Can I add back the groundingModifyWithVars to eliminate this groundJson?
+            const t1 = s0.freshVar();
+            const s = t1[1];
+            const t = this.getGenerator(groundJson(row, s), t1[0], gen);
+            const generator = t[0];
+            const vs = t[1];
+            const isNew = t[2];
+            const len = vs.length;
+            const rs = new Array<JsonTerm>(len);
+            gen.dependOn(generator);
+            generator.consume(cs => {
+                // const [cs2, s2] = refreshJson(cs, s, vs); // TODO: Combine these or something.
+                // const s3 = <Substitution<JsonTerm>>unifyJson(vs, cs2, s2);
+                // k(s3);
+                let s2 = s;
+                for(let i = 0; i < len; ++i) {
+                    const t = refreshJson(cs[i], s2, vs); 
+                    s2 = t[1]; 
+                    rs[i] = t[0];
+                }
+                for(let i = 0; i < len; ++i) {
+                    s2 = <Substitution<JsonTerm>>unifyJson(vs[i], rs[i], s2);
+                }
+                k(s2);
+            });
+            if(isNew) generator.execute();
+        };
+    }
+
+    /**
+     * See [[match]] and [[TabledPredicate.notMatch]].
+     */
+    notMatch(row: JsonTerm): LPTerm {
+        return gen => s0 => k => {
+            const t1 = s0.freshVar();
+            const s = t1[1];
+            // TODO: Can I add back the groundingModifyWithVars to eliminate this groundJson?
+            const t = this.getGenerator(groundJson(row, s), t1[0], gen);
+            const generator = t[0];
+            const vs = t[1];
+            const isNew = t[2];
+            if(vs.length !== 0) throw new Error('GroupedPredicate.notMatch: negation of non-ground atom (floundering)');
+            gen.dependNegativelyOn(generator);
+            generator.consumeNegatively(() => k(s));
+            if(isNew) generator.execute();
+        };
+    }
+
+    groupBy(...groups: Array<JsonTerm>): Group {
+        if(this.body.length !== groups.length) throw new Error('GroupedPredicate.groupBy: number of arguments does not match number of groupings');
+        return new GroupedPredicateGroup(groups, this.body);
     }
 }
-*/
 
 class LatticeGenerator<L> extends Generator {
     private consumers: Array<[L, (acc: L) => void]> | null = [];

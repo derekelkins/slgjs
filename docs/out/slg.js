@@ -462,13 +462,6 @@ var __read = (this && this.__read) || function (o, n) {
         function TabledPredicate(body) {
             this.body = body;
             this.generators = json_trie_1.JsonTrieTerm.create();
-            this.sum = this.aggregate(TabledPredicate.isNumber, 0, function (x, y) { return x + y; });
-            this.product = this.aggregate(TabledPredicate.isNumber, 1, function (x, y) { return x * y; });
-            this.min = this.aggregate(TabledPredicate.isNumber, Number.POSITIVE_INFINITY, Math.min);
-            this.max = this.aggregate(TabledPredicate.isNumber, Number.NEGATIVE_INFINITY, Math.max);
-            this.count = this.aggregate(function (_) { return 1; }, 0, function (x, y) { return x + y; });
-            this.and = this.aggregate(function (x) { return x; }, true, function (x, y) { return x && y; });
-            this.or = this.aggregate(function (x) { return x; }, false, function (x, y) { return x || y; });
         }
         TabledPredicate.prototype.getGenerator = function (row, sched) {
             var _this = this;
@@ -566,9 +559,265 @@ var __read = (this && this.__read) || function (o, n) {
                 return t;
             throw new Error('TabledPredicate.isNumber: expected a number');
         };
+        TabledPredicate.prototype.sum = function (row) {
+            return this.aggregate(TabledPredicate.isNumber, 0, function (x, y) { return x + y; })(row);
+        };
+        TabledPredicate.prototype.product = function (row) {
+            return this.aggregate(TabledPredicate.isNumber, 1, function (x, y) { return x * y; })(row);
+        };
+        TabledPredicate.prototype.min = function (row) {
+            return this.aggregate(TabledPredicate.isNumber, Number.POSITIVE_INFINITY, Math.min)(row);
+        };
+        TabledPredicate.prototype.max = function (row) {
+            return this.aggregate(TabledPredicate.isNumber, Number.NEGATIVE_INFINITY, Math.max)(row);
+        };
+        TabledPredicate.prototype.count = function (row) {
+            return this.aggregate(function (_) { return 1; }, 0, function (x, y) { return x + y; })(row);
+        };
+        TabledPredicate.prototype.and = function (row) {
+            return this.aggregate(function (x) { return x; }, true, function (x, y) { return x && y; })(row);
+        };
+        TabledPredicate.prototype.or = function (row) {
+            return this.aggregate(function (x) { return x; }, false, function (x, y) { return x || y; })(row);
+        };
         return TabledPredicate;
     }());
     exports.TabledPredicate = TabledPredicate;
+    var GroupGenerator = (function (_super) {
+        __extends(GroupGenerator, _super);
+        function GroupGenerator(inject, mult, scheduler) {
+            var _this = _super.call(this, scheduler) || this;
+            _this.inject = inject;
+            _this.mult = mult;
+            _this.answerSet = json_trie_1.JsonTrieTerm.create();
+            return _this;
+        }
+        GroupGenerator.create = function (inject, mult, body, sched, count, valVar, s0) {
+            var gen = new GroupGenerator(inject, mult, sched);
+            gen.push(function () { return body(gen)(s0)(function (s) { return gen.insertAnswer(count, valVar, s); }); });
+            return gen;
+        };
+        GroupGenerator.prototype.consumeToCompletion = function (k, onComplete) {
+            var _this = this;
+            if (this.isComplete) {
+                try {
+                    for (var _a = __values(this.answerSet.entries()), _b = _a.next(); !_b.done; _b = _a.next()) {
+                        var answer = _b.value;
+                        k(answer[0], answer[1]);
+                    }
+                }
+                catch (e_3_1) { e_3 = { error: e_3_1 }; }
+                finally {
+                    try {
+                        if (_b && !_b.done && (_c = _a.return)) _c.call(_a);
+                    }
+                    finally { if (e_3) throw e_3.error; }
+                }
+                onComplete();
+            }
+            else {
+                this.completionListeners.push(function () {
+                    try {
+                        for (var _a = __values(_this.answerSet.entries()), _b = _a.next(); !_b.done; _b = _a.next()) {
+                            var answer = _b.value;
+                            k(answer[0], answer[1]);
+                        }
+                    }
+                    catch (e_4_1) { e_4 = { error: e_4_1 }; }
+                    finally {
+                        try {
+                            if (_b && !_b.done && (_c = _a.return)) _c.call(_a);
+                        }
+                        finally { if (e_4) throw e_4.error; }
+                    }
+                    onComplete();
+                    var e_4, _c;
+                });
+            }
+            var e_3, _c;
+        };
+        GroupGenerator.prototype.scheduleResumes = function () {
+            return false;
+        };
+        GroupGenerator.prototype.scheduleNegativeResumes = function () {
+            var ncs = this.completionListeners;
+            if (ncs === null)
+                return;
+            var len = ncs.length;
+            for (var i = 0; i < len; ++i) {
+                ncs[i]();
+            }
+            this.completionListeners = null;
+        };
+        GroupGenerator.prototype.insertAnswer = function (count, valVar, sub) {
+            var _this = this;
+            var answer = new Array(count);
+            for (var i = 0; i < count; ++i) {
+                answer[i] = unify_1.groundJson(sub.lookupById(i), sub);
+            }
+            var val = unify_1.completelyGroundJson(valVar, sub);
+            this.answerSet.modify(answer, function (acc, exists) {
+                if (exists) {
+                    return _this.mult(acc, _this.inject(val));
+                }
+                else {
+                    return _this.inject(val);
+                }
+            });
+        };
+        GroupGenerator.prototype.complete = function () {
+            this.cleanup();
+        };
+        return GroupGenerator;
+    }(Generator));
+    var GroupedPredicateGroup = (function () {
+        function GroupedPredicateGroup(groups, body) {
+            this.groups = groups;
+            this.body = body;
+        }
+        GroupedPredicateGroup.isNumber = function (t) {
+            if (typeof t === 'number')
+                return t;
+            throw new Error('GroupedPredicateGroup.isNumber: expected a number');
+        };
+        GroupedPredicateGroup.prototype.aggregateInto = function (inject, unit, mult, agg) {
+            var _this = this;
+            var t1 = unify_1.refreshJson(this.groups, unify_1.Substitution.emptyPersistent());
+            var t = t1[1].freshVar();
+            var valVar = t[0];
+            var vsLen = t[0].id;
+            var rs = new Array(vsLen);
+            return function (gen) { return function (s) { return function (k) {
+                var generator = GroupGenerator.create(inject, mult, _this.body.apply(null, t1[0])(valVar), gen, vsLen, valVar, t[1]);
+                gen.dependNegativelyOn(generator);
+                var anyResults = false;
+                generator.consumeToCompletion(function (cs, acc) {
+                    anyResults = true;
+                    var grps = _this.groups;
+                    var s2 = s;
+                    for (var i = 0; i < vsLen; ++i) {
+                        var t_3 = unify_1.refreshJson(cs[i], s2, grps);
+                        s2 = t_3[1];
+                        rs[i] = t_3[0];
+                    }
+                    for (var i = 0; i < vsLen; ++i) {
+                        s2 = unify_1.unifyJson(grps[i], rs[i], s2);
+                    }
+                    s2 = unify_1.matchJson(agg, acc, s2);
+                    if (s2 !== null)
+                        k(s2);
+                }, function () {
+                    if (!anyResults) {
+                        var s2 = unify_1.matchJson(agg, unit, s);
+                        if (s2 !== null)
+                            k(s2);
+                    }
+                });
+                generator.execute();
+            }; }; };
+        };
+        GroupedPredicateGroup.prototype.sumInto = function (agg) {
+            return this.aggregateInto(GroupedPredicateGroup.isNumber, 0, function (x, y) { return x + y; }, agg);
+        };
+        GroupedPredicateGroup.prototype.productInto = function (agg) {
+            return this.aggregateInto(GroupedPredicateGroup.isNumber, 1, function (x, y) { return x * y; }, agg);
+        };
+        GroupedPredicateGroup.prototype.minInto = function (agg) {
+            return this.aggregateInto(GroupedPredicateGroup.isNumber, Number.POSITIVE_INFINITY, Math.min, agg);
+        };
+        GroupedPredicateGroup.prototype.maxInto = function (agg) {
+            return this.aggregateInto(GroupedPredicateGroup.isNumber, Number.NEGATIVE_INFINITY, Math.max, agg);
+        };
+        GroupedPredicateGroup.prototype.countInto = function (agg) {
+            return this.aggregateInto(function (_) { return 1; }, 0, function (x, y) { return x + y; }, agg);
+        };
+        GroupedPredicateGroup.prototype.andInto = function (agg) {
+            return this.aggregateInto(function (x) { return x; }, true, function (x, y) { return x && y; }, agg);
+        };
+        GroupedPredicateGroup.prototype.orInto = function (agg) {
+            return this.aggregateInto(function (x) { return x; }, false, function (x, y) { return x || y; }, agg);
+        };
+        return GroupedPredicateGroup;
+    }());
+    var GroupedPredicate = (function () {
+        function GroupedPredicate(body) {
+            this.body = body;
+            this.generators = json_trie_1.JsonTrieTerm.create();
+        }
+        GroupedPredicate.prototype.getGenerator = function (row, acc, sched) {
+            var _this = this;
+            var vs = null;
+            var isNew = false;
+            var g = this.generators.modifyWithVars(row, function (gen, varMap) {
+                vs = varMap.vars;
+                if (gen === void (0)) {
+                    var t = unify_1.refreshJson(row, unify_1.Substitution.emptyPersistent());
+                    isNew = true;
+                    return TableGenerator.create(_this.body.apply(null, t[0])(acc), sched, vs.length, t[1]);
+                }
+                else {
+                    return gen;
+                }
+            });
+            return [g, vs, isNew];
+        };
+        GroupedPredicate.prototype.match = function (row) {
+            var _this = this;
+            return function (gen) { return function (s0) { return function (k) {
+                var t1 = s0.freshVar();
+                var s = t1[1];
+                var t = _this.getGenerator(unify_1.groundJson(row, s), t1[0], gen);
+                var generator = t[0];
+                var vs = t[1];
+                var isNew = t[2];
+                var len = vs.length;
+                var rs = new Array(len);
+                gen.dependOn(generator);
+                generator.consume(function (cs) {
+                    var s2 = s;
+                    for (var i = 0; i < len; ++i) {
+                        var t_4 = unify_1.refreshJson(cs[i], s2, vs);
+                        s2 = t_4[1];
+                        rs[i] = t_4[0];
+                    }
+                    for (var i = 0; i < len; ++i) {
+                        s2 = unify_1.unifyJson(vs[i], rs[i], s2);
+                    }
+                    k(s2);
+                });
+                if (isNew)
+                    generator.execute();
+            }; }; };
+        };
+        GroupedPredicate.prototype.notMatch = function (row) {
+            var _this = this;
+            return function (gen) { return function (s0) { return function (k) {
+                var t1 = s0.freshVar();
+                var s = t1[1];
+                var t = _this.getGenerator(unify_1.groundJson(row, s), t1[0], gen);
+                var generator = t[0];
+                var vs = t[1];
+                var isNew = t[2];
+                if (vs.length !== 0)
+                    throw new Error('GroupedPredicate.notMatch: negation of non-ground atom (floundering)');
+                gen.dependNegativelyOn(generator);
+                generator.consumeNegatively(function () { return k(s); });
+                if (isNew)
+                    generator.execute();
+            }; }; };
+        };
+        GroupedPredicate.prototype.groupBy = function () {
+            var groups = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                groups[_i] = arguments[_i];
+            }
+            if (this.body.length !== groups.length)
+                throw new Error('GroupedPredicate.groupBy: number of arguments does not match number of groupings');
+            return new GroupedPredicateGroup(groups, this.body);
+        };
+        return GroupedPredicate;
+    }());
+    exports.GroupedPredicate = GroupedPredicate;
     var LatticeGenerator = (function (_super) {
         __extends(LatticeGenerator, _super);
         function LatticeGenerator(bottom, join, eq, earlyComplete, scheduler) {

@@ -573,7 +573,7 @@ export class JsonTrieTerm<A> {
      * @param f A function that will be given the old value or `undefined` if there was no old value.
      * @returns The result of the modification, i.e. the result of `f` on the found value or `undefined`.
      */
-    modify(key: JsonTerm, f: (a: A | undefined) => A): A {
+    modify(key: JsonTerm, f: (a: A | undefined, exists: boolean) => A): A {
         return JsonTrieTerm.modifyRec(key, f, this.trie, {count: 0});
     }
 
@@ -929,17 +929,17 @@ export class JsonTrieTerm<A> {
         }
     }
 
-    private static modifyRec<A>(key: JsonTerm, f: (a: A | undefined) => A, curr: any, varMap: {count: number, [index: number]: number}): any {
+    private static modifyRec<A>(key: JsonTerm, f: (a: A | undefined, exists: boolean) => A, curr: any, varMap: {count: number, [index: number]: number}): any {
         const type = typeof key;
         if(type === 'object') {
             if(key === null) {
-                return curr.null = f(curr.null);
+                return curr.null = f(curr.null, 'null' in curr);
             } else if(key instanceof Variable) {
                 let vId = varMap[key.id];
                 if(vId === void(0)) varMap[key.id] = vId = varMap.count++;
                 let node = curr.variable;
                 if(node === void(0)) curr.variable = node = {};
-                return node[vId] = f(node[vId]);
+                return node[vId] = f(node[vId], vId in node);
             } else if(key instanceof Array) {
                 let node = curr.array;
                 if(node === void(0)) curr.array = node = {};
@@ -947,7 +947,7 @@ export class JsonTrieTerm<A> {
                 for(let i = 0; i < len; ++i) {
                     node = JsonTrieTerm.modifyRec(key[i], emptyObjectUnless, node, varMap);
                 }
-                return node.empty = f(node.empty);
+                return node.empty = f(node.empty, 'empty' in node);
             } else { // it's an object
                 let node = curr.object;
                 if(node === void(0)) curr.object = node = {};
@@ -961,14 +961,14 @@ export class JsonTrieTerm<A> {
                     if(node3 === void(0)) node2[k] = node3 = {};
                     node = JsonTrieTerm.modifyRec(key[k], emptyObjectUnless, node3, varMap);
                 }
-                return node.empty = f(node.empty);
+                return node.empty = f(node.empty, 'empty' in node);
             }
         } else if(type === 'undefined') {
-            return curr.undefined = f(curr.undefined);
+            return curr.undefined = f(curr.undefined, 'undefined' in curr);
         } else {
             let node = curr[type];
             if(node === void(0)) curr[type] = node = {};
-            return node[key] = f(node[key]);
+            return node[key] = f(node[key], key in node);
         }
     }
 

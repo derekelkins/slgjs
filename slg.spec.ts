@@ -1,7 +1,7 @@
 import "jest"
 
 import { Variable, JsonTerm } from "./unify"
-import { Predicate, UntabledPredicate, TabledPredicate, EdbPredicate, TrieEdbPredicate,
+import { Predicate, UntabledPredicate, TabledPredicate, EdbPredicate, TrieEdbPredicate, GroupedPredicate,
          GrowingSetLattice, AnyLattice, MaxLattice, MinLattice,
          rule, clause, fresh, unify, conj, apply, looseUnify, toArrayQ } from "./slg"
 
@@ -52,7 +52,6 @@ describe('lattices', () => {
     // Monotonic aggregation to avoid unnecessary results; non-monotonic to pick the best answer afterwards.
     // Purely using non-monotonic aggregation would produce all the results and then find the shortest.
     // This will take forever if there is an infinite number of results.
-    /* TODO
     test('monotonic + non-monotonic shortest path, the best of both worlds', () => {
         const shortestPathLen: MinLattice = MinLattice.fromLP(([S, E], Q) => path.match([S, E, Q]));
         const edge: Predicate = new EdbPredicate([[1, 2, 1], [2, 3, 1], [1, 3, 10]]);
@@ -62,12 +61,12 @@ describe('lattices', () => {
                                edge.match([Y, Z, D2]), 
                                apply(([d1, d2]) => d1 + d2)([D1, D2], D),
                                shortestPathLen.join(D, SD).for([X, Z])]));
-        const result = toArrayQ(Q => clause((S, E, L) => [path.match([S, E, L]), unify(Q, [S, E, L])]));
+        const shortestPath = new GroupedPredicate((S, E) => D => path.match([S, E, D]));
+        const result = toArrayQ(Q => clause((S, E, D) => [shortestPath.groupBy(S, E).minInto(D), unify(Q, [S, E, D])]));
         expect(result).toEqual([
-            [1, 2, 1], [2, 3, 1], [1, 3, 2]
+            [1, 2, 1], [1, 3, 2], [2, 3, 1]
         ]);
     });
-    */
 });
 
 // TODO: This API is all wrong. We need a notion of "grouping" so we can say "for this group, the aggregate is..."
@@ -159,6 +158,114 @@ describe('non-monotonic aggregation', () => {
             Q => clause((X, Y) => [path.match([X, Y]), apply(([x, _]) => x < 0)([X, Y], Q)]));
         const result = toArrayQ(Q => fresh(S => p.or(S).into(Q)));
         expect(result).toEqual([false]);
+    });
+
+    test('grouped sum', () => {
+        const employees: Predicate = new EdbPredicate([
+            {name: 'harry', dept: 'sales', salary: 20},
+            {name: 'sally', dept: 'hr', salary: 20},
+            {name: 'jane', dept: 'sales', salary: 30}
+        ]);
+        const salaries: GroupedPredicate = new GroupedPredicate(
+            D => S => fresh(N => employees.match({name: N, dept: D, salary: S})));
+        const result = toArrayQ(Q => clause((D, TS) => [salaries.groupBy(D).sumInto(TS), unify(Q, [D, TS])]));
+        expect(result).toEqual([
+            ["sales", 50], ["hr", 20]
+        ]);
+    });
+
+    test('grouped sum over all', () => {
+        const employees: Predicate = new EdbPredicate([
+            {name: 'harry', dept: 'sales', salary: 20},
+            {name: 'sally', dept: 'hr', salary: 20},
+            {name: 'jane', dept: 'sales', salary: 30}
+        ]);
+        const salaries: GroupedPredicate = new GroupedPredicate(
+            () => S => fresh((N, D) => employees.match({name: N, dept: D, salary: S})));
+        const result = toArrayQ(Q => salaries.groupBy().sumInto(Q));
+        expect(result).toEqual([70]);
+    });
+
+    test('grouped product', () => {
+        const employees: Predicate = new EdbPredicate([
+            {name: 'harry', dept: 'sales', salary: 20},
+            {name: 'sally', dept: 'hr', salary: 20},
+            {name: 'jane', dept: 'sales', salary: 30}
+        ]);
+        const salaries: GroupedPredicate = new GroupedPredicate(
+            D => S => fresh(N => employees.match({name: N, dept: D, salary: S})));
+        const result = toArrayQ(Q => clause((D, TS) => [salaries.groupBy(D).productInto(TS), unify(Q, [D, TS])]));
+        expect(result).toEqual([
+            ["sales", 600], ["hr", 20]
+        ]);
+    });
+
+    test('grouped max', () => {
+        const employees: Predicate = new EdbPredicate([
+            {name: 'harry', dept: 'sales', salary: 20},
+            {name: 'sally', dept: 'hr', salary: 20},
+            {name: 'jane', dept: 'sales', salary: 30}
+        ]);
+        const salaries: GroupedPredicate = new GroupedPredicate(
+            D => S => fresh(N => employees.match({name: N, dept: D, salary: S})));
+        const result = toArrayQ(Q => clause((D, TS) => [salaries.groupBy(D).maxInto(TS), unify(Q, [D, TS])]));
+        expect(result).toEqual([
+            ["sales", 30], ["hr", 20]
+        ]);
+    });
+
+    test('grouped min', () => {
+        const employees: Predicate = new EdbPredicate([
+            {name: 'harry', dept: 'sales', salary: 20},
+            {name: 'sally', dept: 'hr', salary: 20},
+            {name: 'jane', dept: 'sales', salary: 30}
+        ]);
+        const salaries: GroupedPredicate = new GroupedPredicate(
+            D => S => fresh(N => employees.match({name: N, dept: D, salary: S})));
+        const result = toArrayQ(Q => clause((D, TS) => [salaries.groupBy(D).minInto(TS), unify(Q, [D, TS])]));
+        expect(result).toEqual([
+            ["sales", 20], ["hr", 20]
+        ]);
+    });
+
+    test('grouped and', () => {
+        const employees: Predicate = new EdbPredicate([
+            {name: 'harry', dept: 'sales', onVacation: true},
+            {name: 'sally', dept: 'hr', onVacation: false},
+            {name: 'jane', dept: 'sales', onVacation: true}
+        ]);
+        const vacationing: GroupedPredicate = new GroupedPredicate(
+            D => S => fresh(N => employees.match({name: N, dept: D, onVacation: S})));
+        const result = toArrayQ(Q => clause((D, TS) => [vacationing.groupBy(D).andInto(TS), unify(Q, [D, TS])]));
+        expect(result).toEqual([
+            ["sales", true], ["hr", false]
+        ]);
+    });
+
+    test('grouped or', () => {
+        const employees: Predicate = new EdbPredicate([
+            {name: 'harry', dept: 'sales', onVacation: true},
+            {name: 'sally', dept: 'hr', onVacation: false},
+            {name: 'jane', dept: 'sales', onVacation: false}
+        ]);
+        const vacationing: GroupedPredicate = new GroupedPredicate(
+            D => S => fresh(N => employees.match({name: N, dept: D, onVacation: S})));
+        const result = toArrayQ(Q => clause((D, TS) => [vacationing.groupBy(D).orInto(TS), unify(Q, [D, TS])]));
+        expect(result).toEqual([
+            ["sales", true], ["hr", false]
+        ]);
+    });
+
+    test('empty group sum', () => {
+        const employees: Predicate = new EdbPredicate([
+            {name: 'harry', dept: 'sales', salary: 20},
+            {name: 'sally', dept: 'hr', salary: 20},
+            {name: 'jane', dept: 'sales', salary: 30}
+        ]);
+        const salaries: GroupedPredicate = new GroupedPredicate(
+            D => S => fresh(N => employees.match({name: N, dept: D, salary: S})));
+        const result = toArrayQ(Q => clause(TS => [salaries.groupBy('management').sumInto(TS), unify(Q, TS)]));
+        expect(result).toEqual([0]);
     });
 });
 
