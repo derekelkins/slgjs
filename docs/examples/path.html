@@ -28,6 +28,9 @@ Paths (shake it loose):
 Subgoal Dependency Graph:
 <div id="sdgGraph" class="graphBox"></div>
 <script id="code" type="text/javascript">
+requirejs.config({enforceDefine: true, paths: { 
+    immutable: 'https://cdnjs.cloudflare.com/ajax/libs/immutable/3.8.1/immutable.min' 
+}});
 requirejs(['../out/slg'], function(slg) {
 function render(edges) {
     const edge = new slg.EdbPredicate(edges);
