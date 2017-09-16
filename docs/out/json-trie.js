@@ -1581,7 +1581,7 @@ var __values = (this && this.__values) || function (o) {
             var type = typeof key;
             if (type === 'object') {
                 if (key === null) {
-                    return curr.null = f(curr.null);
+                    return curr.null = f(curr.null, 'null' in curr);
                 }
                 else if (key instanceof unify_1.Variable) {
                     var vId = varMap[key.id];
@@ -1590,7 +1590,7 @@ var __values = (this && this.__values) || function (o) {
                     var node = curr.variable;
                     if (node === void (0))
                         curr.variable = node = {};
-                    return node[vId] = f(node[vId]);
+                    return node[vId] = f(node[vId], vId in node);
                 }
                 else if (key instanceof Array) {
                     var node = curr.array;
@@ -1600,7 +1600,7 @@ var __values = (this && this.__values) || function (o) {
                     for (var i = 0; i < len; ++i) {
                         node = JsonTrieTerm.modifyRec(key[i], emptyObjectUnless, node, varMap);
                     }
-                    return node.empty = f(node.empty);
+                    return node.empty = f(node.empty, 'empty' in node);
                 }
                 else {
                     var node = curr.object;
@@ -1618,17 +1618,17 @@ var __values = (this && this.__values) || function (o) {
                             node2[k] = node3 = {};
                         node = JsonTrieTerm.modifyRec(key[k], emptyObjectUnless, node3, varMap);
                     }
-                    return node.empty = f(node.empty);
+                    return node.empty = f(node.empty, 'empty' in node);
                 }
             }
             else if (type === 'undefined') {
-                return curr.undefined = f(curr.undefined);
+                return curr.undefined = f(curr.undefined, 'undefined' in curr);
             }
             else {
                 var node = curr[type];
                 if (node === void (0))
                     curr[type] = node = {};
-                return node[key] = f(node[key]);
+                return node[key] = f(node[key], key in node);
             }
         };
         JsonTrieTerm.modifyWithVarsRec = function (key, f, curr, varMap) {
