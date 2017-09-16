@@ -18,22 +18,6 @@ var __values = (this && this.__values) || function (o) {
         }
     };
 };
-var __read = (this && this.__read) || function (o, n) {
-    var m = typeof Symbol === "function" && o[Symbol.iterator];
-    if (!m) return o;
-    var i = m.call(o), r, ar = [], e;
-    try {
-        while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
-    }
-    catch (error) { e = { error: error }; }
-    finally {
-        try {
-            if (r && !r.done && (m = i["return"])) m.call(i);
-        }
-        finally { if (e) throw e.error; }
-    }
-    return ar;
-};
 (function (factory) {
     if (typeof module === "object" && typeof module.exports === "object") {
         var v = factory(require, exports);
@@ -1275,18 +1259,5 @@ var __read = (this && this.__read) || function (o, n) {
         return [sdgEdges, results];
     }
     exports.debugToArrayQ = debugToArrayQ;
-    var shortestPathLen = MinLattice.fromLP(function (_a, Q) {
-        var _b = __read(_a, 2), S = _b[0], E = _b[1];
-        return path.match([S, E, Q]);
-    });
-    var edge = new EdbPredicate([[1, 2], [2, 3], [3, 1]]);
-    var path = new TabledPredicate(function (_a) {
-        var _b = __read(_a, 3), X = _b[0], Z = _b[1], SD = _b[2];
-        return rule(function () { return [edge.match([X, Z]), unify(SD, 1)]; }, function (Y, D, D1) { return [path.match([X, Y, D1]),
-            edge.match([Y, Z]),
-            apply(function (x) { return x + 1; })(D1, D),
-            shortestPathLen.join(D, SD).for([X, Z])]; });
-    });
-    var result = toArrayQ(function (Q) { return clause(function (S, E, L) { return [path.match([S, E, L]), unify(Q, [S, E, L])]; }); });
 });
 //# sourceMappingURL=slg.js.map

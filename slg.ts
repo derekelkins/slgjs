@@ -1735,12 +1735,3 @@ class TermWrapper {
     ground(): LP<JsonTerm, JsonTerm> { return ground(this.term); }
 }
 */
-const shortestPathLen: MinLattice = MinLattice.fromLP(([S, E], Q) => path.match([S, E, Q]));
-const edge: Predicate = new EdbPredicate([[1, 2], [2, 3], [3, 1]]);
-const path: Predicate = new TabledPredicate(([X, Z, SD]) => rule(
-    ()         => [edge.match([X, Z]), unify(SD, 1)],
-    (Y, D, D1) => [path.match([X, Y, D1]), 
-                   edge.match([Y, Z]), 
-                   apply(x => x + 1)(D1, D),
-                   shortestPathLen.join(D, SD).for([X, Z])])); // Without this the program doesn't terminate.
-const result = toArrayQ(Q => clause((S, E, L) => [path.match([S, E, L]), unify(Q, [S, E, L])]));

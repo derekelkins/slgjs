@@ -77,6 +77,28 @@ var __read = (this && this.__read) || function (o, n) {
                 [1, 2, 1], [2, 3, 1], [1, 3, 10], [1, 3, 2]
             ]);
         });
+        test('monotonic + non-monotonic shortest path, the best of both worlds', function () {
+            var shortestPathLen = slg_1.MinLattice.fromLP(function (_a, Q) {
+                var _b = __read(_a, 2), S = _b[0], E = _b[1];
+                return path.match([S, E, Q]);
+            });
+            var edge = new slg_1.EdbPredicate([[1, 2, 1], [2, 3, 1], [1, 3, 10]]);
+            var path = new slg_1.TabledPredicate(function (_a) {
+                var _b = __read(_a, 3), X = _b[0], Z = _b[1], SD = _b[2];
+                return slg_1.rule(function () { return [edge.match([X, Z, SD])]; }, function (Y, D1, D2, D) { return [path.match([X, Y, D1]),
+                    edge.match([Y, Z, D2]),
+                    slg_1.apply(function (_a) {
+                        var _b = __read(_a, 2), d1 = _b[0], d2 = _b[1];
+                        return d1 + d2;
+                    })([D1, D2], D),
+                    shortestPathLen.join(D, SD).for([X, Z])]; });
+            });
+            var shortestPath = new slg_1.GroupedPredicate(function (S, E) { return function (D) { return path.match([S, E, D]); }; });
+            var result = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (S, E, D) { return [shortestPath.groupBy(S, E).minInto(D), slg_1.unify(Q, [S, E, D])]; }); });
+            expect(result).toEqual([
+                [1, 2, 1], [1, 3, 2], [2, 3, 1]
+            ]);
+        });
     });
     describe('non-monotonic aggregation', function () {
         test('non-ground results throw an error', function () {
@@ -254,6 +276,18 @@ var __read = (this && this.__read) || function (o, n) {
             var result = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (D, TS) { return [vacationing.groupBy(D).orInto(TS), slg_1.unify(Q, [D, TS])]; }); });
             expect(result).toEqual([
                 ["sales", true], ["hr", false]
+            ]);
+        });
+        test('grouped count', function () {
+            var employees = new slg_1.EdbPredicate([
+                { name: 'harry', dept: 'sales', onVacation: true },
+                { name: 'sally', dept: 'hr', onVacation: false },
+                { name: 'jane', dept: 'sales', onVacation: false }
+            ]);
+            var vacationing = new slg_1.GroupedPredicate(function (D) { return function (S) { return slg_1.fresh(function (N) { return employees.match({ name: N, dept: D, onVacation: S }); }); }; });
+            var result = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (D, TS) { return [vacationing.groupBy(D).countInto(TS), slg_1.unify(Q, [D, TS])]; }); });
+            expect(result).toEqual([
+                ["sales", 2], ["hr", 1]
             ]);
         });
         test('empty group sum', function () {
