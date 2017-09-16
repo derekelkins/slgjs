@@ -6,7 +6,7 @@ layout: default
 
 This provides a embedding of tabled logic programming in TypeScript/JavaScript.
 Currently, it supports LRD-stratified negation, monotonic aggregation via lattice
-variables, and non-monotonic aggregation. Adding non-stratified negation and
+terms, and non-monotonic aggregation. Adding non-stratified negation and
 aggregation is something I'm considering.
 
 The implementation techniques are similar to the SLG-WAM of the XSB Prolog
