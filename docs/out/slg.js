@@ -18,6 +18,22 @@ var __values = (this && this.__values) || function (o) {
         }
     };
 };
+var __read = (this && this.__read) || function (o, n) {
+    var m = typeof Symbol === "function" && o[Symbol.iterator];
+    if (!m) return o;
+    var i = m.call(o), r, ar = [], e;
+    try {
+        while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
+    }
+    catch (error) { e = { error: error }; }
+    finally {
+        try {
+            if (r && !r.done && (m = i["return"])) m.call(i);
+        }
+        finally { if (e) throw e.error; }
+    }
+    return ar;
+};
 (function (factory) {
     if (typeof module === "object" && typeof module.exports === "object") {
         var v = factory(require, exports);
@@ -514,34 +530,36 @@ var __values = (this && this.__values) || function (o) {
         };
         TabledPredicate.prototype.aggregate = function (inject, unit, mult) {
             var _this = this;
-            return function (row, result) { return function (gen) { return function (s) { return function (k) {
-                var t = _this.getGenerator(unify_1.groundJson(row, s), gen);
-                var generator = t[0];
-                var vs = t[1];
-                var isNew = t[2];
-                var len = vs.length;
-                var rs = new Array(len);
-                var agg = unit;
-                gen.dependNegativelyOn(generator);
-                generator.consumeToCompletion(function (cs) {
-                    var s2 = s;
-                    for (var i = 0; i < len; ++i) {
-                        var t_2 = unify_1.refreshJson(cs[i], s2, vs);
-                        s2 = t_2[1];
-                        rs[i] = t_2[0];
-                    }
-                    for (var i = 0; i < len; ++i) {
-                        s2 = unify_1.unifyJson(vs[i], rs[i], s2);
-                    }
-                    agg = mult(agg, inject(unify_1.completelyGroundJson(row, s2)));
-                }, function () {
-                    var s2 = unify_1.matchJson(result, agg, s);
-                    if (s2 !== null)
-                        k(s2);
-                });
-                if (isNew)
-                    generator.execute();
-            }; }; }; };
+            return function (row) {
+                return { into: function (result) { return function (gen) { return function (s) { return function (k) {
+                        var t = _this.getGenerator(unify_1.groundJson(row, s), gen);
+                        var generator = t[0];
+                        var vs = t[1];
+                        var isNew = t[2];
+                        var len = vs.length;
+                        var rs = new Array(len);
+                        var agg = unit;
+                        gen.dependNegativelyOn(generator);
+                        generator.consumeToCompletion(function (cs) {
+                            var s2 = s;
+                            for (var i = 0; i < len; ++i) {
+                                var t_2 = unify_1.refreshJson(cs[i], s2, vs);
+                                s2 = t_2[1];
+                                rs[i] = t_2[0];
+                            }
+                            for (var i = 0; i < len; ++i) {
+                                s2 = unify_1.unifyJson(vs[i], rs[i], s2);
+                            }
+                            agg = mult(agg, inject(unify_1.completelyGroundJson(row, s2)));
+                        }, function () {
+                            var s2 = unify_1.matchJson(result, agg, s);
+                            if (s2 !== null)
+                                k(s2);
+                        });
+                        if (isNew)
+                            generator.execute();
+                    }; }; }; } };
+            };
         };
         TabledPredicate.isNumber = function (t) {
             if (typeof t === 'number')
@@ -553,23 +571,22 @@ var __values = (this && this.__values) || function (o) {
     exports.TabledPredicate = TabledPredicate;
     var LatticeGenerator = (function (_super) {
         __extends(LatticeGenerator, _super);
-        function LatticeGenerator(unit, mult, eq, earlyComplete, scheduler) {
+        function LatticeGenerator(bottom, join, eq, earlyComplete, scheduler) {
             var _this = _super.call(this, scheduler) || this;
-            _this.unit = unit;
-            _this.mult = mult;
+            _this.join = join;
             _this.eq = eq;
             _this.earlyComplete = earlyComplete;
             _this.consumers = [];
-            _this.accumulator = unit;
+            _this.accumulator = bottom;
             return _this;
         }
-        LatticeGenerator.create = function (unit, mult, eq, body, sched) {
-            var gen = new LatticeGenerator(unit, mult, eq, function (_) { return false; }, sched);
+        LatticeGenerator.create = function (bottom, join, eq, body, sched) {
+            var gen = new LatticeGenerator(bottom, join, eq, function (_) { return false; }, sched);
             gen.push(function () { return body(gen)(unify_1.Substitution.emptyPersistent(1))(gen.updateAccumulator.bind(gen)); });
             return gen;
         };
-        LatticeGenerator.createWithEarlyComplete = function (unit, mult, eq, ec, body, sched) {
-            var gen = new LatticeGenerator(unit, mult, eq, ec, sched);
+        LatticeGenerator.createWithEarlyComplete = function (bottom, join, eq, ec, body, sched) {
+            var gen = new LatticeGenerator(bottom, join, eq, ec, sched);
             gen.push(function () { return body(gen)(unify_1.Substitution.emptyPersistent(1))(gen.updateAccumulator.bind(gen)); });
             return gen;
         };
@@ -578,7 +595,8 @@ var __values = (this && this.__values) || function (o) {
                 k(this.accumulator);
             }
             else {
-                this.consumers.push([this.unit, k]);
+                this.consumers.push([this.accumulator, k]);
+                k(this.accumulator);
             }
         };
         LatticeGenerator.prototype.scheduleNegativeResumes = function () {
@@ -591,7 +609,7 @@ var __values = (this && this.__values) || function (o) {
             for (var i = 0; i < len; ++i) {
                 var t = cs[i];
                 var old = t[0];
-                var l = t[0] = this.mult(old, this.accumulator);
+                var l = t[0] = this.join(old, this.accumulator);
                 if (!this.eq(old, l)) {
                     wereUnconsumed = true;
                     t[1](l);
@@ -600,7 +618,7 @@ var __values = (this && this.__values) || function (o) {
             return wereUnconsumed;
         };
         LatticeGenerator.prototype.updateAccumulator = function (newVal) {
-            this.accumulator = this.mult(this.accumulator, newVal);
+            this.accumulator = this.join(this.accumulator, newVal);
             if (this.earlyComplete(this.accumulator)) {
                 this.scheduleResumes();
                 this.complete();
@@ -613,255 +631,246 @@ var __values = (this && this.__values) || function (o) {
         };
         return LatticeGenerator;
     }(Generator));
-    var AnyLattice = (function () {
-        function AnyLattice(body) {
+    var BaseLattice = (function () {
+        function BaseLattice(body) {
             this.body = body;
-            this.generator = null;
+            this.generators = json_trie_1.JsonTrieTerm.create();
+        }
+        BaseLattice.prototype.join = function (In, Out) {
+            var _this = this;
+            return { for: function (row) { return _this.forThen(row, function (v, k, s, g) {
+                    var val = unify_1.completelyGroundJson(In, s);
+                    var s2 = unify_1.unifyJson(Out, g.join(v, val), s);
+                    if (s2 !== null)
+                        return k(s2);
+                }); } };
+        };
+        BaseLattice.prototype.getGenerator = function (row, sched) {
+            var _this = this;
+            var isNew = false;
+            var g = this.generators.modifyWithVars(row, function (gen, varMap) {
+                if (varMap.vars.length !== 0)
+                    throw new Error('Lattices can only handle fully groundable terms.');
+                if (gen === void (0)) {
+                    isNew = true;
+                    return _this.createGen(_this.body(row), sched);
+                }
+                else {
+                    return gen;
+                }
+            });
+            return [g, isNew];
+        };
+        BaseLattice.prototype.forThen = function (row, f) {
+            var _this = this;
+            return function (gen) { return function (s) { return function (k) {
+                var t = _this.getGenerator(unify_1.groundJson(row, s), gen);
+                var g = t[0];
+                var isNew = t[1];
+                gen.dependOn(g);
+                g.consume(function (x) { return f(x, k, s, g); });
+                if (isNew)
+                    g.execute();
+            }; }; };
+        };
+        return BaseLattice;
+    }());
+    var AnyLattice = (function (_super) {
+        __extends(AnyLattice, _super);
+        function AnyLattice(body) {
+            return _super.call(this, body) || this;
         }
         AnyLattice.orFn = function (x, y) { return x || y; };
         AnyLattice.eqFn = function (x, y) { return x === y; };
+        AnyLattice.fromLP = function (body) {
+            return new AnyLattice(function (row) {
+                var comp = fresh(function (Q) { return seq(body(row, Q), completelyGround(Q)); });
+                return function (gen) { return function (s) { return function (k) { return comp(gen)(s)(k); }; }; };
+            });
+        };
+        AnyLattice.prototype.createGen = function (body, scheduler) {
+            return LatticeGenerator.createWithEarlyComplete(false, AnyLattice.orFn, AnyLattice.eqFn, function (x) { return x; }, body, scheduler);
+        };
         AnyLattice.prototype.isTrue = function () {
             var _this = this;
-            return function (gen) { return function (s) { return function (k) {
-                var g = _this.generator;
-                if (g === null) {
-                    _this.generator = g = LatticeGenerator.createWithEarlyComplete(false, AnyLattice.orFn, AnyLattice.eqFn, function (x) { return x; }, _this.body, gen);
-                    gen.dependOn(g);
-                    g.consume(function (b) { return b ? k(s) : void (0); });
-                    g.execute();
-                }
-                else {
-                    gen.dependOn(g);
-                    g.consume(function (b) { return b ? k(s) : void (0); });
-                }
-            }; }; };
+            return { for: function (row) { return _this.forThen(row, function (b, k, s) { return b ? k(s) : void (0); }); } };
         };
         return AnyLattice;
-    }());
+    }(BaseLattice));
     exports.AnyLattice = AnyLattice;
-    var AllLattice = (function () {
+    var AllLattice = (function (_super) {
+        __extends(AllLattice, _super);
         function AllLattice(body) {
-            this.body = body;
-            this.generator = null;
+            return _super.call(this, body) || this;
         }
         AllLattice.andFn = function (x, y) { return x && y; };
         AllLattice.eqFn = function (x, y) { return x === y; };
+        AllLattice.fromLP = function (body) {
+            return new AllLattice(function (row) {
+                var comp = fresh(function (Q) { return seq(body(row, Q), completelyGround(Q)); });
+                return function (gen) { return function (s) { return function (k) { return comp(gen)(s)(k); }; }; };
+            });
+        };
+        AllLattice.prototype.createGen = function (body, scheduler) {
+            return LatticeGenerator.createWithEarlyComplete(true, AllLattice.andFn, AllLattice.eqFn, function (x) { return x; }, body, scheduler);
+        };
         AllLattice.prototype.isFalse = function () {
             var _this = this;
-            return function (gen) { return function (s) { return function (k) {
-                var g = _this.generator;
-                if (g === null) {
-                    _this.generator = g = LatticeGenerator.createWithEarlyComplete(true, AllLattice.andFn, AllLattice.eqFn, function (x) { return !x; }, _this.body, gen);
-                    gen.dependOn(g);
-                    g.consume(function (b) { return b ? void (0) : k(s); });
-                    g.execute();
-                }
-                else {
-                    gen.dependOn(g);
-                    g.consume(function (b) { return b ? void (0) : k(s); });
-                }
-            }; }; };
+            return { for: function (row) { return _this.forThen(row, function (b, k, s) { return b ? void (0) : k(s); }); } };
         };
         return AllLattice;
-    }());
+    }(BaseLattice));
     exports.AllLattice = AllLattice;
-    var GrowingSetLattice = (function () {
+    var GrowingSetLattice = (function (_super) {
+        __extends(GrowingSetLattice, _super);
         function GrowingSetLattice(body) {
-            this.body = body;
-            this.generator = null;
+            return _super.call(this, body) || this;
         }
         GrowingSetLattice.eqFn = function (x, y) { return x.equals(y); };
         GrowingSetLattice.fromLP = function (body) {
-            var comp = fresh(function (Q) { return seq(body(Q), completelyGround(Q)); });
-            return new GrowingSetLattice(function (gen) { return function (s) { return function (k) { return comp(gen)(s)(function (x) { return k(im.Set.of(x)); }); }; }; });
+            return new GrowingSetLattice(function (row) {
+                var comp = fresh(function (Q) { return seq(body(row, Q), completelyGround(Q)); });
+                return function (gen) { return function (s) { return function (k) { return comp(gen)(s)(function (x) { return k(im.Set.of(x)); }); }; }; };
+            });
+        };
+        GrowingSetLattice.prototype.createGen = function (body, scheduler) {
+            return LatticeGenerator.create(im.Set.of(), function (x, y) { return x.union(y); }, GrowingSetLattice.eqFn, body, scheduler);
         };
         GrowingSetLattice.prototype.contains = function (x) {
             var _this = this;
-            return new AnyLattice(function (gen) { return function (s) { return function (k) {
-                var g = _this.generator;
-                if (g === null) {
-                    _this.generator = g = LatticeGenerator.create(im.Set.of(), function (x, y) { return x.union(y); }, GrowingSetLattice.eqFn, _this.body, gen);
-                    gen.dependOn(g);
-                    g.consume(function (s) { return k(s.contains(x)); });
-                    g.execute();
-                }
-                else {
-                    gen.dependOn(g);
-                    g.consume(function (s) { return k(s.contains(x)); });
-                }
-            }; }; });
+            return new AnyLattice(function (row) { return _this.forThen(row, function (s, k, sub) { return k(s.contains(unify_1.completelyGroundJson(x, sub))); }); });
         };
         GrowingSetLattice.prototype.size = function () {
             var _this = this;
-            return new MaxLattice(function (gen) { return function (s) { return function (k) {
-                var g = _this.generator;
-                if (g === null) {
-                    _this.generator = g = LatticeGenerator.create(im.Set.of(), function (x, y) { return x.union(y); }, GrowingSetLattice.eqFn, _this.body, gen);
-                    gen.dependOn(g);
-                    g.consume(function (s) { return k(s.size); });
-                    g.execute();
-                }
-                else {
-                    gen.dependOn(g);
-                    g.consume(function (s) { return k(s.size); });
-                }
-            }; }; });
+            return new MaxLattice(function (row) { return _this.forThen(row, function (s, k, _) { return k(s.size); }); });
         };
         return GrowingSetLattice;
-    }());
+    }(BaseLattice));
     exports.GrowingSetLattice = GrowingSetLattice;
-    var MinLattice = (function () {
+    var MinLattice = (function (_super) {
+        __extends(MinLattice, _super);
         function MinLattice(body) {
-            this.body = body;
-            this.generator = null;
+            return _super.call(this, body) || this;
         }
         MinLattice.eqFn = function (x, y) { return x === y; };
+        MinLattice.fromLP = function (body) {
+            return new MinLattice(function (row) {
+                var comp = fresh(function (Q) { return seq(body(row, Q), completelyGround(Q)); });
+                return function (gen) { return function (s) { return function (k) { return comp(gen)(s)(k); }; }; };
+            });
+        };
+        MinLattice.prototype.createGen = function (body, scheduler) {
+            return LatticeGenerator.create(Number.POSITIVE_INFINITY, Math.min, MinLattice.eqFn, body, scheduler);
+        };
         MinLattice.prototype.lessThan = function (threshold) {
             var _this = this;
-            return new AnyLattice(function (gen) { return function (s) { return function (k) {
-                var g = _this.generator;
-                if (g === null) {
-                    _this.generator = g = LatticeGenerator.create(Number.POSITIVE_INFINITY, Math.min, MinLattice.eqFn, _this.body, gen);
-                    gen.dependOn(g);
-                    g.consume(function (n) { return k(n < threshold); });
-                    g.execute();
-                }
-                else {
-                    gen.dependOn(g);
-                    g.consume(function (n) { return k(n < threshold); });
-                }
-            }; }; });
+            return new AnyLattice(function (row) { return _this.forThen(row, function (n, k, s) {
+                var t = unify_1.groundJson(threshold, s);
+                if (typeof t !== 'number')
+                    throw new Error('MinLattice.lessThan: expected threshold to be a number');
+                return k(n < t);
+            }); });
         };
         MinLattice.prototype.lessThanOrEqualTo = function (threshold) {
             var _this = this;
-            return new AnyLattice(function (gen) { return function (s) { return function (k) {
-                var g = _this.generator;
-                if (g === null) {
-                    _this.generator = g = LatticeGenerator.create(Number.POSITIVE_INFINITY, Math.min, MinLattice.eqFn, _this.body, gen);
-                    gen.dependOn(g);
-                    g.consume(function (n) { return k(n <= threshold); });
-                    g.execute();
-                }
-                else {
-                    gen.dependOn(g);
-                    g.consume(function (n) { return k(n <= threshold); });
-                }
-            }; }; });
+            return new AnyLattice(function (row) { return _this.forThen(row, function (n, k, s) {
+                var t = unify_1.groundJson(threshold, s);
+                if (typeof t !== 'number')
+                    throw new Error('MinLattice.lessThanOrEqualTo: expected threshold to be a number');
+                return k(n <= t);
+            }); });
         };
         MinLattice.prototype.add = function (shift) {
             var _this = this;
-            return new MinLattice(function (gen) { return function (s) { return function (k) {
-                var g = _this.generator;
-                if (g === null) {
-                    _this.generator = g = LatticeGenerator.create(Number.POSITIVE_INFINITY, Math.min, MinLattice.eqFn, _this.body, gen);
-                    gen.dependOn(g);
-                    g.consume(function (n) { return k(n + shift); });
-                    g.execute();
-                }
-                else {
-                    gen.dependOn(g);
-                    g.consume(function (n) { return k(n + shift); });
-                }
-            }; }; });
+            return new MinLattice(function (row) { return _this.forThen(row, function (n, k, s) {
+                var t = unify_1.groundJson(shift, s);
+                if (typeof t !== 'number')
+                    throw new Error('MinLattice.add: expected shift to be a number');
+                return k(n + t);
+            }); });
         };
-        MinLattice.prototype.sub = function (shift) { return this.add(-shift); };
+        MinLattice.prototype.sub = function (shift) {
+            var _this = this;
+            return new MinLattice(function (row) { return _this.forThen(row, function (n, k, s) {
+                var t = unify_1.groundJson(shift, s);
+                if (typeof t !== 'number')
+                    throw new Error('MinLattice.sub: expected shift to be a number');
+                return k(n - t);
+            }); });
+        };
         MinLattice.prototype.negate = function () {
             var _this = this;
-            return new MaxLattice(function (gen) { return function (s) { return function (k) {
-                var g = _this.generator;
-                if (g === null) {
-                    _this.generator = g = LatticeGenerator.create(Number.POSITIVE_INFINITY, Math.min, MinLattice.eqFn, _this.body, gen);
-                    gen.dependOn(g);
-                    g.consume(function (n) { return k(-n); });
-                    g.execute();
-                }
-                else {
-                    gen.dependOn(g);
-                    g.consume(function (n) { return k(-n); });
-                }
-            }; }; });
+            return new MaxLattice(function (row) { return _this.forThen(row, function (n, k, _) { return k(-n); }); });
         };
         return MinLattice;
-    }());
+    }(BaseLattice));
     exports.MinLattice = MinLattice;
-    var MaxLattice = (function () {
+    var MaxLattice = (function (_super) {
+        __extends(MaxLattice, _super);
         function MaxLattice(body) {
-            this.body = body;
-            this.generator = null;
+            return _super.call(this, body) || this;
         }
         MaxLattice.eqFn = function (x, y) { return x === y; };
+        MaxLattice.fromLP = function (body) {
+            return new MaxLattice(function (row) {
+                var comp = fresh(function (Q) { return seq(body(row, Q), completelyGround(Q)); });
+                return function (gen) { return function (s) { return function (k) { return comp(gen)(s)(k); }; }; };
+            });
+        };
+        MaxLattice.prototype.createGen = function (body, scheduler) {
+            return LatticeGenerator.create(Number.NEGATIVE_INFINITY, Math.max, MaxLattice.eqFn, body, scheduler);
+        };
         MaxLattice.prototype.greaterThan = function (threshold) {
             var _this = this;
-            return new AnyLattice(function (gen) { return function (s) { return function (k) {
-                var g = _this.generator;
-                if (g === null) {
-                    _this.generator = g = LatticeGenerator.create(Number.NEGATIVE_INFINITY, Math.max, MaxLattice.eqFn, _this.body, gen);
-                    gen.dependOn(g);
-                    g.consume(function (n) { return k(n > threshold); });
-                    g.execute();
-                }
-                else {
-                    gen.dependOn(g);
-                    g.consume(function (n) { return k(n > threshold); });
-                }
-            }; }; });
+            return new AnyLattice(function (row) { return _this.forThen(row, function (n, k, s) {
+                var t = unify_1.groundJson(threshold, s);
+                if (typeof t !== 'number')
+                    throw new Error('MaxLattice.greaterThan: expected threshold to be a number');
+                return k(n > t);
+            }); });
         };
         MaxLattice.prototype.greaterThanOrEqualTo = function (threshold) {
             var _this = this;
-            return new AnyLattice(function (gen) { return function (s) { return function (k) {
-                var g = _this.generator;
-                if (g === null) {
-                    _this.generator = g = LatticeGenerator.create(Number.NEGATIVE_INFINITY, Math.max, MaxLattice.eqFn, _this.body, gen);
-                    gen.dependOn(g);
-                    g.consume(function (n) { return k(n >= threshold); });
-                    g.execute();
-                }
-                else {
-                    gen.dependOn(g);
-                    g.consume(function (n) { return k(n >= threshold); });
-                }
-            }; }; });
+            return new AnyLattice(function (row) { return _this.forThen(row, function (n, k, s) {
+                var t = unify_1.groundJson(threshold, s);
+                if (typeof t !== 'number')
+                    throw new Error('MaxLattice.greaterThanOrEqualTo: expected threshold to be a number');
+                return k(n >= t);
+            }); });
         };
         MaxLattice.prototype.add = function (shift) {
             var _this = this;
-            return new MaxLattice(function (gen) { return function (s) { return function (k) {
-                var g = _this.generator;
-                if (g === null) {
-                    _this.generator = g = LatticeGenerator.create(Number.NEGATIVE_INFINITY, Math.max, MaxLattice.eqFn, _this.body, gen);
-                    gen.dependOn(g);
-                    g.consume(function (n) { return k(n + shift); });
-                    g.execute();
-                }
-                else {
-                    gen.dependOn(g);
-                    g.consume(function (n) { return k(n + shift); });
-                }
-            }; }; });
+            return new MaxLattice(function (row) { return _this.forThen(row, function (n, k, s) {
+                var t = unify_1.groundJson(shift, s);
+                if (typeof t !== 'number')
+                    throw new Error('MaxLattice.add: expected shift to be a number');
+                return k(n + t);
+            }); });
         };
-        MaxLattice.prototype.sub = function (shift) { return this.add(-shift); };
+        MaxLattice.prototype.sub = function (shift) {
+            var _this = this;
+            return new MaxLattice(function (row) { return _this.forThen(row, function (n, k, s) {
+                var t = unify_1.groundJson(shift, s);
+                if (typeof t !== 'number')
+                    throw new Error('MaxLattice.sub: expected shift to be a number');
+                return k(n - t);
+            }); });
+        };
         MaxLattice.prototype.negate = function () {
             var _this = this;
-            return new MinLattice(function (gen) { return function (s) { return function (k) {
-                var g = _this.generator;
-                if (g === null) {
-                    _this.generator = g = LatticeGenerator.create(Number.NEGATIVE_INFINITY, Math.max, MaxLattice.eqFn, _this.body, gen);
-                    gen.dependOn(g);
-                    g.consume(function (n) { return k(-n); });
-                    g.execute();
-                }
-                else {
-                    gen.dependOn(g);
-                    g.consume(function (n) { return k(-n); });
-                }
-            }; }; });
+            return new MinLattice(function (row) { return _this.forThen(row, function (n, k, _) { return k(-n); }); });
         };
         return MaxLattice;
-    }());
+    }(BaseLattice));
     exports.MaxLattice = MaxLattice;
     function seq(m1, m2) {
         return function (gen) { return function (s) { return function (k) { return m1(gen)(s)(function (s) { return m2(gen)(s)(k); }); }; }; };
     }
     exports.seq = seq;
+    function fail() {
+        return function (gen) { return function (s) { return function (k) { return void (0); }; }; };
+    }
+    exports.fail = fail;
     function succeedWith(val) {
         return function (gen) { return function (s) { return function (k) { return k(val); }; }; };
     }
@@ -1017,5 +1026,18 @@ var __values = (this && this.__values) || function (o) {
         return [sdgEdges, results];
     }
     exports.debugToArrayQ = debugToArrayQ;
+    var shortestPathLen = MinLattice.fromLP(function (_a, Q) {
+        var _b = __read(_a, 2), S = _b[0], E = _b[1];
+        return path.match([S, E, Q]);
+    });
+    var edge = new EdbPredicate([[1, 2], [2, 3], [3, 1]]);
+    var path = new TabledPredicate(function (_a) {
+        var _b = __read(_a, 3), X = _b[0], Z = _b[1], SD = _b[2];
+        return rule(function () { return [edge.match([X, Z]), unify(SD, 1)]; }, function (Y, D, D1) { return [path.match([X, Y, D1]),
+            edge.match([Y, Z]),
+            apply(function (x) { return x + 1; })(D1, D),
+            shortestPathLen.join(D, SD).for([X, Z])]; });
+    });
+    var result = toArrayQ(function (Q) { return clause(function (S, E, L) { return [path.match([S, E, L]), unify(Q, [S, E, L])]; }); });
 });
 //# sourceMappingURL=slg.js.map

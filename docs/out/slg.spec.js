@@ -32,15 +32,56 @@ var __read = (this && this.__read) || function (o, n) {
         test('quorum example', function () {
             var quorumSize = 2;
             var vote = new slg_1.EdbPredicate(['A', 'B', 'C']);
-            var votes = slg_1.GrowingSetLattice.fromLP(function (Q) { return vote.match(Q); });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.conj(votes.size().greaterThanOrEqualTo(quorumSize).isTrue(), slg_1.unify(Q, true)); });
+            var votes = slg_1.GrowingSetLattice.fromLP(function (_, Q) { return vote.match(Q); });
+            var result = slg_1.toArrayQ(function (Q) { return slg_1.conj(votes.size().greaterThanOrEqualTo(quorumSize).isTrue().for(null), slg_1.unify(Q, true)); });
             expect(result).toEqual([true]);
+        });
+        test('monotonic shortest path, otherwise non-terminating', function () {
+            var shortestPathLen = slg_1.MinLattice.fromLP(function (_a, Q) {
+                var _b = __read(_a, 2), S = _b[0], E = _b[1];
+                return path.match([S, E, Q]);
+            });
+            var edge = new slg_1.EdbPredicate([[1, 2], [2, 3], [3, 1]]);
+            var path = new slg_1.TabledPredicate(function (_a) {
+                var _b = __read(_a, 3), X = _b[0], Z = _b[1], SD = _b[2];
+                return slg_1.rule(function () { return [edge.match([X, Z]), slg_1.unify(SD, 1)]; }, function (Y, D, D1) { return [path.match([X, Y, D1]),
+                    edge.match([Y, Z]),
+                    slg_1.apply(function (x) { return x + 1; })(D1, D),
+                    shortestPathLen.join(D, SD).for([X, Z])]; });
+            });
+            var result = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (S, E, L) { return [path.match([S, E, L]), slg_1.unify(Q, [S, E, L])]; }); });
+            expect(result).toEqual([
+                [1, 2, 1], [2, 3, 1], [3, 1, 1],
+                [1, 3, 2], [2, 1, 2], [3, 2, 2],
+                [1, 1, 3], [2, 2, 3], [3, 3, 3]
+            ]);
+        });
+        test('monotonic shortest path, illustrating difference with non-monotonic aggregation', function () {
+            var shortestPathLen = slg_1.MinLattice.fromLP(function (_a, Q) {
+                var _b = __read(_a, 2), S = _b[0], E = _b[1];
+                return path.match([S, E, Q]);
+            });
+            var edge = new slg_1.EdbPredicate([[1, 2, 1], [2, 3, 1], [1, 3, 10]]);
+            var path = new slg_1.TabledPredicate(function (_a) {
+                var _b = __read(_a, 3), X = _b[0], Z = _b[1], SD = _b[2];
+                return slg_1.rule(function () { return [edge.match([X, Z, SD])]; }, function (Y, D1, D2, D) { return [path.match([X, Y, D1]),
+                    edge.match([Y, Z, D2]),
+                    slg_1.apply(function (_a) {
+                        var _b = __read(_a, 2), d1 = _b[0], d2 = _b[1];
+                        return d1 + d2;
+                    })([D1, D2], D),
+                    shortestPathLen.join(D, SD).for([X, Z])]; });
+            });
+            var result = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (S, E, L) { return [path.match([S, E, L]), slg_1.unify(Q, [S, E, L])]; }); });
+            expect(result).toEqual([
+                [1, 2, 1], [2, 3, 1], [1, 3, 10], [1, 3, 2]
+            ]);
         });
     });
     describe('non-monotonic aggregation', function () {
         test('non-ground results throw an error', function () {
             var p = new slg_1.TabledPredicate(function (X) { return slg_1.fresh(function (Y) { return slg_1.unify(X, Y); }); });
-            expect(function () { return slg_1.toArrayQ(function (Q) { return slg_1.fresh(function (X) { return p.count(X, Q); }); }); }).toThrow('completelyGroundJson: term contains unbound variables');
+            expect(function () { return slg_1.toArrayQ(function (Q) { return slg_1.fresh(function (X) { return p.count(X).into(Q); }); }); }).toThrow('completelyGroundJson: term contains unbound variables');
         });
         test('sum', function () {
             var edge = new slg_1.EdbPredicate([[1, 2], [2, 3], [3, 1]]);
@@ -49,7 +90,7 @@ var __read = (this && this.__read) || function (o, n) {
                 return slg_1.rule(function () { return [edge.match([X, Z])]; }, function (Y) { return [path.match([X, Y]), path.match([Y, Z])]; });
             });
             var fst = new slg_1.TabledPredicate(function (X) { return slg_1.fresh(function (Y) { return path.match([X, Y]); }); });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.fresh(function (S) { return fst.sum(S, Q); }); });
+            var result = slg_1.toArrayQ(function (Q) { return slg_1.fresh(function (S) { return fst.sum(S).into(Q); }); });
             expect(result).toEqual([6]);
         });
         test('min', function () {
@@ -59,7 +100,7 @@ var __read = (this && this.__read) || function (o, n) {
                 return slg_1.rule(function () { return [edge.match([X, Z])]; }, function (Y) { return [path.match([X, Y]), path.match([Y, Z])]; });
             });
             var fst = new slg_1.TabledPredicate(function (X) { return slg_1.fresh(function (Y) { return path.match([X, Y]); }); });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.fresh(function (S) { return fst.min(S, Q); }); });
+            var result = slg_1.toArrayQ(function (Q) { return slg_1.fresh(function (S) { return fst.min(S).into(Q); }); });
             expect(result).toEqual([1]);
         });
         test('max', function () {
@@ -69,7 +110,7 @@ var __read = (this && this.__read) || function (o, n) {
                 return slg_1.rule(function () { return [edge.match([X, Z])]; }, function (Y) { return [path.match([X, Y]), path.match([Y, Z])]; });
             });
             var fst = new slg_1.TabledPredicate(function (X) { return slg_1.fresh(function (Y) { return path.match([X, Y]); }); });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.fresh(function (S) { return fst.max(S, Q); }); });
+            var result = slg_1.toArrayQ(function (Q) { return slg_1.fresh(function (S) { return fst.max(S).into(Q); }); });
             expect(result).toEqual([3]);
         });
         test('count', function () {
@@ -78,7 +119,7 @@ var __read = (this && this.__read) || function (o, n) {
                 var _b = __read(_a, 2), X = _b[0], Z = _b[1];
                 return slg_1.rule(function () { return [edge.match([X, Z])]; }, function (Y) { return [path.match([X, Y]), path.match([Y, Z])]; });
             });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.fresh(function (S, E) { return path.count([S, E], Q); }); });
+            var result = slg_1.toArrayQ(function (Q) { return slg_1.fresh(function (S, E) { return path.count([S, E]).into(Q); }); });
             expect(result).toEqual([9]);
         });
         test('and true', function () {
@@ -91,7 +132,7 @@ var __read = (this && this.__read) || function (o, n) {
                     var _b = __read(_a, 2), x = _b[0], _ = _b[1];
                     return x > 0;
                 })([X, Y], Q)]; }); });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.fresh(function (S) { return p.and(S, Q); }); });
+            var result = slg_1.toArrayQ(function (Q) { return slg_1.fresh(function (S) { return p.and(S).into(Q); }); });
             expect(result).toEqual([true]);
         });
         test('and false', function () {
@@ -104,7 +145,7 @@ var __read = (this && this.__read) || function (o, n) {
                     var _b = __read(_a, 2), x = _b[0], y = _b[1];
                     return x === y;
                 })([X, Y], Q)]; }); });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.fresh(function (S) { return p.and(S, Q); }); });
+            var result = slg_1.toArrayQ(function (Q) { return slg_1.fresh(function (S) { return p.and(S).into(Q); }); });
             expect(result).toEqual([false]);
         });
         test('or true', function () {
@@ -117,7 +158,7 @@ var __read = (this && this.__read) || function (o, n) {
                     var _b = __read(_a, 2), x = _b[0], y = _b[1];
                     return x === y;
                 })([X, Y], Q)]; }); });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.fresh(function (S) { return p.or(S, Q); }); });
+            var result = slg_1.toArrayQ(function (Q) { return slg_1.fresh(function (S) { return p.or(S).into(Q); }); });
             expect(result).toEqual([true]);
         });
         test('or false', function () {
@@ -130,7 +171,7 @@ var __read = (this && this.__read) || function (o, n) {
                     var _b = __read(_a, 2), x = _b[0], _ = _b[1];
                     return x < 0;
                 })([X, Y], Q)]; }); });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.fresh(function (S) { return p.or(S, Q); }); });
+            var result = slg_1.toArrayQ(function (Q) { return slg_1.fresh(function (S) { return p.or(S).into(Q); }); });
             expect(result).toEqual([false]);
         });
     });

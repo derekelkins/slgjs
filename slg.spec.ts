@@ -1,7 +1,8 @@
 import "jest"
 
 import { Variable, JsonTerm } from "./unify"
-import { Predicate, UntabledPredicate, TabledPredicate, EdbPredicate, TrieEdbPredicate, GrowingSetLattice, AnyLattice, MaxLattice,
+import { Predicate, UntabledPredicate, TabledPredicate, EdbPredicate, TrieEdbPredicate,
+         GrowingSetLattice, AnyLattice, MaxLattice, MinLattice,
          rule, clause, fresh, unify, conj, apply, looseUnify, toArrayQ } from "./slg"
 
 describe('lattices', () => {
@@ -10,16 +11,71 @@ describe('lattices', () => {
         // context. However, given a suitable amount recursion it would become interesting.
         const quorumSize = 2;
         const vote: Predicate = new EdbPredicate(['A', 'B', 'C']);
-        const votes: GrowingSetLattice = GrowingSetLattice.fromLP(Q => vote.match(Q));
-        const result = toArrayQ(Q => conj(votes.size().greaterThanOrEqualTo(quorumSize).isTrue(), unify(Q, true)));
+        const votes: GrowingSetLattice = GrowingSetLattice.fromLP((_, Q) => vote.match(Q));
+        const result = toArrayQ(Q => conj(votes.size().greaterThanOrEqualTo(quorumSize).isTrue().for(null), unify(Q, true)));
         expect(result).toEqual([true]);
     });
+
+    // This example begins to demonstrate the utility of the lattice variables.
+    test('monotonic shortest path, otherwise non-terminating', () => {
+        const shortestPathLen: MinLattice = MinLattice.fromLP(([S, E], Q) => path.match([S, E, Q]));
+        const edge: Predicate = new EdbPredicate([[1, 2], [2, 3], [3, 1]]);
+        const path: Predicate = new TabledPredicate(([X, Z, SD]) => rule(
+            ()         => [edge.match([X, Z]), unify(SD, 1)],
+            (Y, D, D1) => [path.match([X, Y, D1]), 
+                           edge.match([Y, Z]), 
+                           apply(x => x + 1)(D1, D),
+                           shortestPathLen.join(D, SD).for([X, Z])])); // Without this the program doesn't terminate.
+        const result = toArrayQ(Q => clause((S, E, L) => [path.match([S, E, L]), unify(Q, [S, E, L])]));
+        expect(result).toEqual([
+            [1, 2, 1], [2, 3, 1], [3, 1, 1],
+            [1, 3, 2], [2, 1, 2], [3, 2, 2],
+            [1, 1, 3], [2, 2, 3], [3, 3, 3]
+        ]);
+    });
+
+    test('monotonic shortest path, illustrating difference with non-monotonic aggregation', () => {
+        const shortestPathLen: MinLattice = MinLattice.fromLP(([S, E], Q) => path.match([S, E, Q]));
+        const edge: Predicate = new EdbPredicate([[1, 2, 1], [2, 3, 1], [1, 3, 10]]);
+        const path: Predicate = new TabledPredicate(([X, Z, SD]) => rule(
+            ()             => [edge.match([X, Z, SD])],
+            (Y, D1, D2, D) => [path.match([X, Y, D1]), 
+                               edge.match([Y, Z, D2]), 
+                               apply(([d1, d2]) => d1 + d2)([D1, D2], D),
+                               shortestPathLen.join(D, SD).for([X, Z])]));
+        const result = toArrayQ(Q => clause((S, E, L) => [path.match([S, E, L]), unify(Q, [S, E, L])]));
+        expect(result).toEqual([
+            [1, 2, 1], [2, 3, 1], [1, 3, 10], [1, 3, 2] // These extra answers are the price of monotonicity.
+        ]);
+    });
+
+    // Monotonic aggregation to avoid unnecessary results; non-monotonic to pick the best answer afterwards.
+    // Purely using non-monotonic aggregation would produce all the results and then find the shortest.
+    // This will take forever if there is an infinite number of results.
+    /* TODO
+    test('monotonic + non-monotonic shortest path, the best of both worlds', () => {
+        const shortestPathLen: MinLattice = MinLattice.fromLP(([S, E], Q) => path.match([S, E, Q]));
+        const edge: Predicate = new EdbPredicate([[1, 2, 1], [2, 3, 1], [1, 3, 10]]);
+        const path: Predicate = new TabledPredicate(([X, Z, SD]) => rule(
+            ()             => [edge.match([X, Z, SD])],
+            (Y, D1, D2, D) => [path.match([X, Y, D1]), 
+                               edge.match([Y, Z, D2]), 
+                               apply(([d1, d2]) => d1 + d2)([D1, D2], D),
+                               shortestPathLen.join(D, SD).for([X, Z])]));
+        const result = toArrayQ(Q => clause((S, E, L) => [path.match([S, E, L]), unify(Q, [S, E, L])]));
+        expect(result).toEqual([
+            [1, 2, 1], [2, 3, 1], [1, 3, 2]
+        ]);
+    });
+    */
 });
 
+// TODO: This API is all wrong. We need a notion of "grouping" so we can say "for this group, the aggregate is..."
+// Similar to the `for` in the lattice stuff.
 describe('non-monotonic aggregation', () => {
     test('non-ground results throw an error', () => {
         const p: TabledPredicate = new TabledPredicate(X => fresh(Y => unify(X, Y)));
-        expect(() => toArrayQ(Q => fresh(X => p.count(X, Q)))).toThrow('completelyGroundJson: term contains unbound variables');
+        expect(() => toArrayQ(Q => fresh(X => p.count(X).into(Q)))).toThrow('completelyGroundJson: term contains unbound variables');
     });
 
     test('sum', () => {
@@ -28,7 +84,7 @@ describe('non-monotonic aggregation', () => {
             () => [edge.match([X, Z])],
             Y  => [path.match([X, Y]), path.match([Y, Z])]));
         const fst: TabledPredicate = new TabledPredicate(X => fresh(Y => path.match([X, Y])));
-        const result = toArrayQ(Q => fresh(S => fst.sum(S, Q)));
+        const result = toArrayQ(Q => fresh(S => fst.sum(S).into(Q)));
         expect(result).toEqual([6]);
     });
 
@@ -38,7 +94,7 @@ describe('non-monotonic aggregation', () => {
             () => [edge.match([X, Z])],
             Y  => [path.match([X, Y]), path.match([Y, Z])]));
         const fst: TabledPredicate = new TabledPredicate(X => fresh(Y => path.match([X, Y])));
-        const result = toArrayQ(Q => fresh(S => fst.min(S, Q)));
+        const result = toArrayQ(Q => fresh(S => fst.min(S).into(Q)));
         expect(result).toEqual([1]);
     });
 
@@ -48,7 +104,7 @@ describe('non-monotonic aggregation', () => {
             () => [edge.match([X, Z])],
             Y  => [path.match([X, Y]), path.match([Y, Z])]));
         const fst: TabledPredicate = new TabledPredicate(X => fresh(Y => path.match([X, Y])));
-        const result = toArrayQ(Q => fresh(S => fst.max(S, Q)));
+        const result = toArrayQ(Q => fresh(S => fst.max(S).into(Q)));
         expect(result).toEqual([3]);
     });
 
@@ -57,7 +113,7 @@ describe('non-monotonic aggregation', () => {
         const path: TabledPredicate = new TabledPredicate(([X, Z]) => rule(
             () => [edge.match([X, Z])],
             Y  => [path.match([X, Y]), path.match([Y, Z])]));
-        const result = toArrayQ(Q => fresh((S, E) => path.count([S, E], Q)));
+        const result = toArrayQ(Q => fresh((S, E) => path.count([S, E]).into(Q)));
         expect(result).toEqual([9]);
     });
 
@@ -68,7 +124,7 @@ describe('non-monotonic aggregation', () => {
             Y  => [path.match([X, Y]), path.match([Y, Z])]));
         const p: TabledPredicate = new TabledPredicate(
             Q => clause((X, Y) => [path.match([X, Y]), apply(([x, _]) => x > 0)([X, Y], Q)]));
-        const result = toArrayQ(Q => fresh(S => p.and(S, Q)));
+        const result = toArrayQ(Q => fresh(S => p.and(S).into(Q)));
         expect(result).toEqual([true]);
     });
 
@@ -79,7 +135,7 @@ describe('non-monotonic aggregation', () => {
             Y  => [path.match([X, Y]), path.match([Y, Z])]));
         const p: TabledPredicate = new TabledPredicate(
             Q => clause((X, Y) => [path.match([X, Y]), apply(([x, y]) => x === y)([X, Y], Q)]));
-        const result = toArrayQ(Q => fresh(S => p.and(S, Q)));
+        const result = toArrayQ(Q => fresh(S => p.and(S).into(Q)));
         expect(result).toEqual([false]);
     });
 
@@ -90,7 +146,7 @@ describe('non-monotonic aggregation', () => {
             Y  => [path.match([X, Y]), path.match([Y, Z])]));
         const p: TabledPredicate = new TabledPredicate(
             Q => clause((X, Y) => [path.match([X, Y]), apply(([x, y]) => x === y)([X, Y], Q)]));
-        const result = toArrayQ(Q => fresh(S => p.or(S, Q)));
+        const result = toArrayQ(Q => fresh(S => p.or(S).into(Q)));
         expect(result).toEqual([true]);
     });
 
@@ -101,7 +157,7 @@ describe('non-monotonic aggregation', () => {
             Y  => [path.match([X, Y]), path.match([Y, Z])]));
         const p: TabledPredicate = new TabledPredicate(
             Q => clause((X, Y) => [path.match([X, Y]), apply(([x, _]) => x < 0)([X, Y], Q)]));
-        const result = toArrayQ(Q => fresh(S => p.or(S, Q)));
+        const result = toArrayQ(Q => fresh(S => p.or(S).into(Q)));
         expect(result).toEqual([false]);
     });
 });

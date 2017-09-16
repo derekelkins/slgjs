@@ -455,11 +455,15 @@ export interface Predicate {
     // notMatch(row: JsonTerm): LPTerm;
 }
 
+interface NonMonotonicPredicate extends Predicate {
+    notMatch(row: JsonTerm): LPTerm;
+}
+
 /**
  * A predicate representing a fixed set of data stored as a [[JsonTrie]]. This is
  * a form of indexing.
  */
-export class TrieEdbPredicate implements Predicate {
+export class TrieEdbPredicate implements NonMonotonicPredicate {
     /**
      * This just inserts the data into a trie and returns a predicate built upon it.
      * This will thus inherently eliminate duplicates.
@@ -509,7 +513,7 @@ export class TrieEdbPredicate implements Predicate {
 /**
  * A predicate representing a fixed set of data stored as an array.
  */
-export class EdbPredicate implements Predicate {
+export class EdbPredicate implements NonMonotonicPredicate {
     constructor(private readonly table: Array<Json>) {}
 
     match(row: JsonTerm): LPTerm {
@@ -595,7 +599,7 @@ export class UntabledPredicate implements Predicate {
  * tabled and untabled execution is ideal for performance, and relatively few predicates need to
  * be tabled to guarantee termination.)
  */
-export class TabledPredicate implements Predicate {
+export class TabledPredicate implements NonMonotonicPredicate {
     private readonly generators: JsonTrieTerm<TableGenerator> = JsonTrieTerm.create();
     constructor(private readonly body: (row: JsonTerm) => LPTerm) { }
 
@@ -694,8 +698,8 @@ export class TabledPredicate implements Predicate {
      * namely those which match `row`, while the resulting aggregate will be unified against `agg` which
      * typically will be a [[Variable]] to hold the result aggregate.
      */
-    aggregate<M>(inject: (t: Json) => M, unit: M, mult: (x: M, y: M) => M): (row: JsonTerm, agg: JsonTerm) => LPTerm { 
-        return (row, result) => gen => s => k => {
+    aggregate<M>(inject: (t: Json) => M, unit: M, mult: (x: M, y: M) => M): (row: JsonTerm) => {into: (agg: JsonTerm) => LPTerm} { 
+        return row => { return {into: result => gen => s => k => {
             // TODO: Can I add back the groundingModifyWithVars to eliminate this groundJson?
             const t = this.getGenerator(groundJson(row, s), gen);
             const generator = t[0];
@@ -721,7 +725,7 @@ export class TabledPredicate implements Predicate {
                 if(s2 !== null) k(s2);
             });
             if(isNew) generator.execute();
-        };
+        }};};
     }
 
     private static isNumber(t: JsonTerm): number {
@@ -734,73 +738,101 @@ export class TabledPredicate implements Predicate {
      *
      * This is built on [[aggregate]] and has the same restrictions.
      */
-    sum: (row: JsonTerm, agg: JsonTerm) => LPTerm = this.aggregate<number>(TabledPredicate.isNumber, 0, (x, y) => x+y);
+    sum: (row: JsonTerm) => {into: (agg: JsonTerm) => LPTerm} = this.aggregate<number>(TabledPredicate.isNumber, 0, (x, y) => x+y);
 
     /**
      * Calculates the product over the elements. They are required to be numbers.
      *
      * This is built on [[aggregate]] and has the same restrictions.
      */
-    product: (row: JsonTerm, agg: JsonTerm) => LPTerm = this.aggregate<number>(TabledPredicate.isNumber, 1, (x, y) => x*y);
+    product: (row: JsonTerm) => {into: (agg: JsonTerm) => LPTerm} = this.aggregate<number>(TabledPredicate.isNumber, 1, (x, y) => x*y);
 
     /**
      * Finds the minimum of the elements. They are required to be numbers.
      *
      * This is built on [[aggregate]] and has the same restrictions.
      */
-    min: (row: JsonTerm, agg: JsonTerm) => LPTerm = this.aggregate<number>(TabledPredicate.isNumber, Number.POSITIVE_INFINITY, Math.min);
+    min: (row: JsonTerm) => {into: (agg: JsonTerm) => LPTerm} = this.aggregate<number>(TabledPredicate.isNumber, Number.POSITIVE_INFINITY, Math.min);
 
     /**
      * Finds the maximum of the elements. They are required to be numbers.
      *
      * This is built on [[aggregate]] and has the same restrictions.
      */
-    max: (row: JsonTerm, agg: JsonTerm) => LPTerm = this.aggregate<number>(TabledPredicate.isNumber, Number.NEGATIVE_INFINITY, Math.max);
+    max: (row: JsonTerm) => {into: (agg: JsonTerm) => LPTerm} = this.aggregate<number>(TabledPredicate.isNumber, Number.NEGATIVE_INFINITY, Math.max);
 
     /**
      * Calculates the disjunction of the elements.
      *
      * This is built on [[aggregate]] and has the same restrictions.
      */
-    count: (row: JsonTerm, agg: JsonTerm) => LPTerm = this.aggregate<Json>(_ => 1, 0, (x, y) => x+y);
+    count: (row: JsonTerm) => {into: (agg: JsonTerm) => LPTerm} = this.aggregate<Json>(_ => 1, 0, (x, y) => x+y);
 
     /**
      * Calculates the conjunction of the elements.
      *
      * This is built on [[aggregate]] and has the same restrictions.
      */
-    and: (row: JsonTerm, agg: JsonTerm) => LPTerm = this.aggregate<Json>(x => x, true, (x, y) => x && y);
+    and: (row: JsonTerm) => {into: (agg: JsonTerm) => LPTerm} = this.aggregate<Json>(x => x, true, (x, y) => x && y);
 
     /**
      * Calculates the disjunction of the elements.
      *
      * This is built on [[aggregate]] and has the same restrictions.
      */
-    or: (row: JsonTerm, agg: JsonTerm) => LPTerm = this.aggregate<Json>(x => x, false, (x, y) => x || y);
+    or: (row: JsonTerm) => {into: (agg: JsonTerm) => LPTerm} = this.aggregate<Json>(x => x, false, (x, y) => x || y);
 }
+
+/*
+export class GroupedPredicate {
+    private readonly generators: JsonTrieTerm<TableGenerator> = JsonTrieTerm.create();
+    constructor(private readonly body: (...groups: Array<Variable>) => (row: Variable) => LPTerm) { }
+
+    private getGenerator(row: JsonTerm, sched: Scheduler): [TableGenerator, Array<Variable>, boolean] {
+        let vs: any = null;
+        let isNew = false;
+        const g = this.generators.modifyWithVars(row, (gen, varMap: VarMap) => {
+            vs = varMap.vars;
+            if(gen === void(0)) {
+                const t = refreshJson(row, Substitution.emptyPersistent()); 
+                isNew = true;
+                return TableGenerator.create(this.body(t[0]), sched, vs.length, t[1]);
+            } else {
+                return gen;
+            }
+        });
+        return [g, vs, isNew];
+    }
+
+    groupBy(...groups: Array<JsonTerm>): Something {
+        
+    }
+}
+*/
 
 class LatticeGenerator<L> extends Generator {
     private consumers: Array<[L, (acc: L) => void]> | null = [];
     private accumulator: L;
 
+    // bottom and join form a join semi-lattice.
     private constructor(
-      private readonly unit: L, 
-      private readonly mult: (x: L, y: L) => L,
-      private readonly eq: (x: L, y: L) => boolean,
+      bottom: L, 
+      readonly join: (x: L, y: L) => L,
+      readonly eq: (x: L, y: L) => boolean,
       private readonly earlyComplete: (x: L) => boolean,
       scheduler: Scheduler) {
         super(scheduler);
-        this.accumulator = unit;
+        this.accumulator = bottom;
     }
 
-    static create<L>(unit: L, mult: (x: L, y:L) => L, eq: (x: L, y: L) => boolean, body: LP<JsonTerm, L>, sched: Scheduler): LatticeGenerator<L> {
-        const gen = new LatticeGenerator(unit, mult, eq, _ => false, sched);
+    static create<L>(bottom: L, join: (x: L, y:L) => L, eq: (x: L, y: L) => boolean, body: LP<JsonTerm, L>, sched: Scheduler): LatticeGenerator<L> {
+        const gen = new LatticeGenerator(bottom, join, eq, _ => false, sched);
         gen.push(() => body(gen)(Substitution.emptyPersistent(1))(gen.updateAccumulator.bind(gen)));
         return gen;
     }
 
-    static createWithEarlyComplete<L>(unit: L, mult: (x: L, y:L) => L, eq: (x: L, y: L) => boolean, ec: (x: L) => boolean, body: LP<JsonTerm, L>, sched: Scheduler): LatticeGenerator<L> {
-        const gen = new LatticeGenerator(unit, mult, eq, ec, sched);
+    static createWithEarlyComplete<L>(bottom: L, join: (x: L, y:L) => L, eq: (x: L, y: L) => boolean, ec: (x: L) => boolean, body: LP<JsonTerm, L>, sched: Scheduler): LatticeGenerator<L> {
+        const gen = new LatticeGenerator(bottom, join, eq, ec, sched);
         gen.push(() => body(gen)(Substitution.emptyPersistent(1))(gen.updateAccumulator.bind(gen)));
         return gen;
     }
@@ -809,7 +841,8 @@ class LatticeGenerator<L> extends Generator {
         if(this.isComplete) {
             k(this.accumulator);
         } else {
-            (<Array<[L, (acc: L) => void]>>this.consumers).push([this.unit, k]);
+            (<Array<[L, (acc: L) => void]>>this.consumers).push([this.accumulator, k]);
+            k(this.accumulator);
         }
     }
 
@@ -831,7 +864,7 @@ class LatticeGenerator<L> extends Generator {
         for(let i = 0; i < len; ++i) {
             const t = cs[i];
             const old = t[0];
-            const l = t[0] = this.mult(old, this.accumulator);
+            const l = t[0] = this.join(old, this.accumulator);
             if(!this.eq(old, l)) {
                 wereUnconsumed = true;
                 t[1](l);
@@ -841,7 +874,7 @@ class LatticeGenerator<L> extends Generator {
     }
 
     private updateAccumulator(newVal: L): void {
-        this.accumulator = this.mult(this.accumulator, newVal);
+        this.accumulator = this.join(this.accumulator, newVal);
         if(this.earlyComplete(this.accumulator)) { 
             this.scheduleResumes();
             this.complete();
@@ -855,244 +888,281 @@ class LatticeGenerator<L> extends Generator {
     }
 }
 
-/**
- * TODO
- */
-export class AnyLattice {
-    private static orFn(x: boolean, y: boolean): boolean { return x || y; }
-    private static eqFn(x: boolean, y: boolean): boolean { return x === y; }
-    private generator: LatticeGenerator<boolean> | null = null;
+abstract class BaseLattice<L> {
+    private readonly generators: JsonTrieTerm<LatticeGenerator<L>> = JsonTrieTerm.create();
 
-    constructor(private readonly body: LP<JsonTerm, boolean>) { }
+    protected constructor(private readonly body: (row: JsonTerm) => LP<JsonTerm, L>) { }
 
-    isTrue(): LPTerm {
-        return gen => s => k => {
-            let g = this.generator;
-            if(g === null) {
-                this.generator = g = LatticeGenerator.createWithEarlyComplete(false, AnyLattice.orFn, AnyLattice.eqFn, x => x, this.body, gen);
-                gen.dependOn(g);
-                g.consume(b => b ? k(s) : void(0));
-                g.execute();
-            } else {
-                gen.dependOn(g);
-                g.consume(b => b ? k(s) : void(0));
-            }
-        };
-    }
-}
+    protected abstract createGen(body: LP<JsonTerm, L>, scheduler: Scheduler): LatticeGenerator<L>;
 
-/**
- * TODO
- */
-export class AllLattice {
-    private static andFn(x: boolean, y: boolean): boolean { return x && y; }
-    private static eqFn(x: boolean, y: boolean): boolean { return x === y; }
-    private generator: LatticeGenerator<boolean> | null = null;
-
-    constructor(private readonly body: LP<JsonTerm, boolean>) { }
-
-    isFalse(): LPTerm {
-        return gen => s => k => {
-            let g = this.generator;
-            if(g === null) {
-                this.generator = g = LatticeGenerator.createWithEarlyComplete(true, AllLattice.andFn, AllLattice.eqFn, x => !x, this.body, gen);
-                gen.dependOn(g);
-                g.consume(b => b ? void(0): k(s));
-                g.execute();
-            } else {
-                gen.dependOn(g);
-                g.consume(b => b ? void(0): k(s));
-            }
-        };
-    }
-}
-
-/**
- * TODO
- */
-export class GrowingSetLattice {
-    private static eqFn(x: im.Set<Json>, y: im.Set<Json>): boolean { return x.equals(y); }
-    private generator: LatticeGenerator<im.Set<Json>> | null = null;
-
-    constructor(private readonly body: LP<JsonTerm, im.Set<Json>>) { }
-
-    static fromLP(body: (q: Variable) => LPTerm): GrowingSetLattice { 
-        const comp = fresh(Q => seq(body(Q), completelyGround(Q)));
-        return new GrowingSetLattice(gen => s => k => comp(gen)(s)(x => k(im.Set.of(x))));
+    join(In: JsonTerm, Out: JsonTerm): {for: (row: JsonTerm) => LPTerm} {
+        return {for: row => this.forThen(row, (v, k, s, g) => {
+            const val = completelyGroundJson(In, s);
+            const s2 = unifyJson(Out, g.join(v, val), s);
+            if(s2 !== null) return k(s2);
+        })};
     }
 
-    contains(x: Json): AnyLattice {
-        return new AnyLattice(gen => s => k => {
-            let g = this.generator;
-            if(g === null) {
-                this.generator = g = LatticeGenerator.create(im.Set.of(), (x: im.Set<Json>, y: im.Set<Json>) => x.union(y), GrowingSetLattice.eqFn, this.body, gen);
-                gen.dependOn(g);
-                g.consume(s => k(s.contains(x)));
-                g.execute();
+    /*
+    is(V: JsonTerm): {for: (row: JsonTerm) => LPTerm} {
+        return {for: row => this.forThen(row, (v, k, s, g) => {
+            const val = groundJson(V, s);
+            if(val instanceof Variable) return k(s.bind(val, v));
+            if(g.eq(g.join(val, v), v)) k(s); // succeed if val <= v in the ordering induced by the lattice
+        })};
+    }
+    */
+
+    private getGenerator(row: JsonTerm, sched: Scheduler): [LatticeGenerator<L>, boolean] {
+        let isNew = false;
+        const g = this.generators.modifyWithVars(row, (gen, varMap: VarMap) => {
+            if(varMap.vars.length !== 0) throw new Error('Lattices can only handle fully groundable terms.');
+            if(gen === void(0)) {
+                isNew = true;
+                return this.createGen(this.body(row), sched);
             } else {
-                gen.dependOn(g);
-                g.consume(s => k(s.contains(x)));
+                return gen;
             }
         });
+        return [g, isNew];
+    }
+
+    protected forThen<A>(row: JsonTerm, f: (x: L, k: (x: A) => void, s: Substitution<JsonTerm>, g: LatticeGenerator<L>) => void): LP<JsonTerm, A> {
+        return gen => s => k => {
+            const t = this.getGenerator(groundJson(row, s), gen);
+            const g = t[0];
+            const isNew = t[1];
+            gen.dependOn(g);
+            g.consume(x => f(x, k, s, g));
+            if(isNew) g.execute();
+        };
+    }
+}
+
+
+/**
+ * TODO
+ */
+export class AnyLattice extends BaseLattice<boolean> {
+    private static orFn(x: boolean, y: boolean): boolean { return x || y; }
+    private static eqFn(x: boolean, y: boolean): boolean { return x === y; }
+
+    constructor(body: (row: JsonTerm) => LP<JsonTerm, boolean>) { super(body); }
+
+    static fromLP(body: (row: JsonTerm, q: Variable) => LPTerm): AnyLattice { 
+        return new AnyLattice(row => {
+            const comp = fresh(Q => seq(body(row, Q), completelyGround(Q)));
+            return gen => s => k => comp(gen)(s)(k);
+        });
+    }
+
+    protected createGen(body: LP<JsonTerm, boolean>, scheduler: Scheduler): LatticeGenerator<boolean> {
+        return LatticeGenerator.createWithEarlyComplete(false, AnyLattice.orFn, AnyLattice.eqFn, x => x, body, scheduler);
+    }
+
+    isTrue(): {for: (row: JsonTerm) => LPTerm} {
+        return {for: row => this.forThen(row, (b, k, s) => b ? k(s) : void(0))};
+    }
+}
+
+/**
+ * TODO
+ */
+export class AllLattice extends BaseLattice<boolean> {
+    private static andFn(x: boolean, y: boolean): boolean { return x && y; }
+    private static eqFn(x: boolean, y: boolean): boolean { return x === y; }
+
+    constructor(body: (row: JsonTerm) => LP<JsonTerm, boolean>) { super(body); }
+
+    static fromLP(body: (row: JsonTerm, q: Variable) => LPTerm): AllLattice { 
+        return new AllLattice(row => {
+            const comp = fresh(Q => seq(body(row, Q), completelyGround(Q)));
+            return gen => s => k => comp(gen)(s)(k);
+        });
+    }
+
+    protected createGen(body: LP<JsonTerm, boolean>, scheduler: Scheduler): LatticeGenerator<boolean> {
+        return LatticeGenerator.createWithEarlyComplete(true, AllLattice.andFn, AllLattice.eqFn, x => x, body, scheduler);
+    }
+
+    isFalse(): {for: (row: JsonTerm) => LPTerm} {
+        return {for: row => this.forThen(row, (b, k, s) => b ? void(0) : k(s))};
+    }
+}
+
+/**
+ * TODO
+ */
+export class GrowingSetLattice extends BaseLattice<im.Set<Json>> {
+    private static eqFn(x: im.Set<Json>, y: im.Set<Json>): boolean { return x.equals(y); }
+
+    constructor(body: (row: JsonTerm) => LP<JsonTerm, im.Set<Json>>) { super(body); }
+
+    static fromLP(body: (row: JsonTerm, q: Variable) => LPTerm): GrowingSetLattice { 
+        return new GrowingSetLattice(row => {
+            const comp = fresh(Q => seq(body(row, Q), completelyGround(Q)));
+            return gen => s => k => comp(gen)(s)(x => k(im.Set.of(x)));
+        });
+    }
+
+    protected createGen(body: LP<JsonTerm, im.Set<Json>>, scheduler: Scheduler): LatticeGenerator<im.Set<Json>> {
+        return LatticeGenerator.create(im.Set.of(), (x: im.Set<Json>, y: im.Set<Json>) => x.union(y), GrowingSetLattice.eqFn, body, scheduler);
+    }
+
+    /**
+     * TODO
+     * @param x A [[JsonTerm]] that grounds to a term with no unbound variables.
+     */
+    contains(x: JsonTerm): AnyLattice {
+        return new AnyLattice(row => this.forThen<boolean>(row, (s, k, sub) => k(s.contains(completelyGroundJson(x, sub)))));
     }
 
     size(): MaxLattice {
-        return new MaxLattice(gen => s => k => {
-            let g = this.generator;
-            if(g === null) {
-                this.generator = g = LatticeGenerator.create(im.Set.of(), (x: im.Set<Json>, y: im.Set<Json>) => x.union(y), GrowingSetLattice.eqFn, this.body, gen);
-                gen.dependOn(g);
-                g.consume(s => k(s.size));
-                g.execute();
-            } else {
-                gen.dependOn(g);
-                g.consume(s => k(s.size));
-            }
-        });
+        return new MaxLattice(row => this.forThen<number>(row, (s, k, _) => k(s.size)));
     }
 }
 
 /**
  * TODO
  */
-export class MinLattice {
+export class MinLattice extends BaseLattice<number> {
     private static eqFn(x: number, y: number): boolean { return x === y; }
-    private generator: LatticeGenerator<number> | null = null;
 
-    constructor(private readonly body: LP<JsonTerm, number>) { }
+    constructor(body: (row: JsonTerm) => LP<JsonTerm, number>) { super(body); }
 
-    lessThan(threshold: number): AnyLattice {
-        return new AnyLattice(gen => s => k => {
-            let g = this.generator;
-            if(g === null) {
-                this.generator = g = LatticeGenerator.create(Number.POSITIVE_INFINITY, Math.min, MinLattice.eqFn, this.body, gen);
-                gen.dependOn(g);
-                g.consume(n => k(n < threshold));
-                g.execute();
-            } else {
-                gen.dependOn(g);
-                g.consume(n => k(n < threshold));
-            }
+    static fromLP(body: (row: JsonTerm, q: Variable) => LPTerm): MinLattice { 
+        return new MinLattice(row => {
+            const comp = fresh(Q => seq(body(row, Q), completelyGround(Q)));
+            return gen => s => k => comp(gen)(s)(k);
         });
     }
 
-    lessThanOrEqualTo(threshold: number): AnyLattice {
-        return new AnyLattice(gen => s => k => {
-            let g = this.generator;
-            if(g === null) {
-                this.generator = g = LatticeGenerator.create(Number.POSITIVE_INFINITY, Math.min, MinLattice.eqFn, this.body, gen);
-                gen.dependOn(g);
-                g.consume(n => k(n <= threshold));
-                g.execute();
-            } else {
-                gen.dependOn(g);
-                g.consume(n => k(n <= threshold));
-            }
-        });
+    protected createGen(body: LP<JsonTerm, number>, scheduler: Scheduler): LatticeGenerator<number> {
+        return LatticeGenerator.create(Number.POSITIVE_INFINITY, Math.min, MinLattice.eqFn, body, scheduler);
     }
 
-    add(shift: number): MinLattice {
-        return new MinLattice(gen => s => k => {
-            let g = this.generator;
-            if(g === null) {
-                this.generator = g = LatticeGenerator.create(Number.POSITIVE_INFINITY, Math.min, MinLattice.eqFn, this.body, gen);
-                gen.dependOn(g);
-                g.consume(n => k(n + shift));
-                g.execute();
-            } else {
-                gen.dependOn(g);
-                g.consume(n => k(n + shift));
-            }
-        });
+    /**
+     * TODO
+     * @param threshold A [[JsonTerm]] that grounds to a number.
+     */
+    lessThan(threshold: JsonTerm): AnyLattice {
+        return new AnyLattice(row => this.forThen(row, (n, k, s) => {
+            const t = groundJson(threshold, s);
+            if(typeof t !== 'number') throw new Error('MinLattice.lessThan: expected threshold to be a number');
+            return k(n < t);
+        }));
     }
 
-    sub(shift: number): MinLattice { return this.add(-shift); }
+    /**
+     * TODO
+     * @param threshold A [[JsonTerm]] that grounds to a number.
+     */
+    lessThanOrEqualTo(threshold: JsonTerm): AnyLattice {
+        return new AnyLattice(row => this.forThen(row, (n, k, s) => {
+            const t = groundJson(threshold, s);
+            if(typeof t !== 'number') throw new Error('MinLattice.lessThanOrEqualTo: expected threshold to be a number');
+            return k(n <= t);
+        }));
+    }
+
+    /**
+     * TODO
+     * @param shift A [[JsonTerm]] that grounds to a number.
+     */
+    add(shift: JsonTerm): MinLattice {
+        return new MinLattice(row => this.forThen(row, (n, k, s) => {
+            const t = groundJson(shift, s);
+            if(typeof t !== 'number') throw new Error('MinLattice.add: expected shift to be a number');
+            return k(n + t);
+        }));
+    }
+
+    /**
+     * TODO
+     * @param shift A [[JsonTerm]] that grounds to a number.
+     */
+    sub(shift: JsonTerm): MinLattice {
+        return new MinLattice(row => this.forThen(row, (n, k, s) => {
+            const t = groundJson(shift, s);
+            if(typeof t !== 'number') throw new Error('MinLattice.sub: expected shift to be a number');
+            return k(n - t);
+        }));
+    }
 
     negate(): MaxLattice {
-        return new MaxLattice(gen => s => k => {
-            let g = this.generator;
-            if(g === null) {
-                this.generator = g = LatticeGenerator.create(Number.POSITIVE_INFINITY, Math.min, MinLattice.eqFn, this.body, gen);
-                gen.dependOn(g);
-                g.consume(n => k(-n));
-                g.execute();
-            } else {
-                gen.dependOn(g);
-                g.consume(n => k(-n));
-            }
-        });
+        return new MaxLattice(row => this.forThen(row, (n, k, _) => k(-n)));
     }
 }
 
 /**
  * TODO
  */
-export class MaxLattice {
+export class MaxLattice extends BaseLattice<number> {
     private static eqFn(x: number, y: number): boolean { return x === y; }
-    private generator: LatticeGenerator<number> | null = null;
 
-    constructor(private readonly body: LP<JsonTerm, number>) { }
+    constructor(body: (row: JsonTerm) => LP<JsonTerm, number>) { super(body); }
 
-    greaterThan(threshold: number): AnyLattice {
-        return new AnyLattice(gen => s => k => {
-            let g = this.generator;
-            if(g === null) {
-                this.generator = g = LatticeGenerator.create(Number.NEGATIVE_INFINITY, Math.max, MaxLattice.eqFn, this.body, gen);
-                gen.dependOn(g);
-                g.consume(n => k(n > threshold));
-                g.execute();
-            } else {
-                gen.dependOn(g);
-                g.consume(n => k(n > threshold));
-            }
+    static fromLP(body: (row: JsonTerm, q: Variable) => LPTerm): MaxLattice { 
+        return new MaxLattice(row => {
+            const comp = fresh(Q => seq(body(row, Q), completelyGround(Q)));
+            return gen => s => k => comp(gen)(s)(k);
         });
     }
 
-    greaterThanOrEqualTo(threshold: number): AnyLattice {
-        return new AnyLattice(gen => s => k => {
-            let g = this.generator;
-            if(g === null) {
-                this.generator = g = LatticeGenerator.create(Number.NEGATIVE_INFINITY, Math.max, MaxLattice.eqFn, this.body, gen);
-                gen.dependOn(g);
-                g.consume(n => k(n >= threshold));
-                g.execute();
-            } else {
-                gen.dependOn(g);
-                g.consume(n => k(n >= threshold));
-            }
-        });
+    protected createGen(body: LP<JsonTerm, number>, scheduler: Scheduler): LatticeGenerator<number> {
+        return LatticeGenerator.create(Number.NEGATIVE_INFINITY, Math.max, MaxLattice.eqFn, body, scheduler);
     }
 
-    add(shift: number): MaxLattice {
-        return new MaxLattice(gen => s => k => {
-            let g = this.generator;
-            if(g === null) {
-                this.generator = g = LatticeGenerator.create(Number.NEGATIVE_INFINITY, Math.max, MaxLattice.eqFn, this.body, gen);
-                gen.dependOn(g);
-                g.consume(n => k(n + shift));
-                g.execute();
-            } else {
-                gen.dependOn(g);
-                g.consume(n => k(n + shift));
-            }
-        });
+    /**
+     * TODO
+     * @param threshold A [[JsonTerm]] that grounds to a number.
+     */
+    greaterThan(threshold: JsonTerm): AnyLattice {
+        return new AnyLattice(row => this.forThen(row, (n, k, s) => {
+            const t = groundJson(threshold, s);
+            if(typeof t !== 'number') throw new Error('MaxLattice.greaterThan: expected threshold to be a number');
+            return k(n > t);
+        }));
     }
 
-    sub(shift: number): MaxLattice { return this.add(-shift); }
+    /**
+     * TODO
+     * @param threshold A [[JsonTerm]] that grounds to a number.
+     */
+    greaterThanOrEqualTo(threshold: JsonTerm): AnyLattice {
+        return new AnyLattice(row => this.forThen(row, (n, k, s) => {
+            const t = groundJson(threshold, s);
+            if(typeof t !== 'number') throw new Error('MaxLattice.greaterThanOrEqualTo: expected threshold to be a number');
+            return k(n >= t);
+        }));
+    }
+
+    /**
+     * TODO
+     * @param shift A [[JsonTerm]] that grounds to a number.
+     */
+    add(shift: JsonTerm): MaxLattice {
+        return new MaxLattice(row => this.forThen(row, (n, k, s) => {
+            const t = groundJson(shift, s);
+            if(typeof t !== 'number') throw new Error('MaxLattice.add: expected shift to be a number');
+            return k(n + t);
+        }));
+    }
+
+    /**
+     * TODO
+     * @param shift A [[JsonTerm]] that grounds to a number.
+     */
+    sub(shift: JsonTerm): MaxLattice {
+        return new MaxLattice(row => this.forThen(row, (n, k, s) => {
+            const t = groundJson(shift, s);
+            if(typeof t !== 'number') throw new Error('MaxLattice.sub: expected shift to be a number');
+            return k(n - t);
+        }));
+    }
 
     negate(): MinLattice {
-        return new MinLattice(gen => s => k => {
-            let g = this.generator;
-            if(g === null) {
-                this.generator = g = LatticeGenerator.create(Number.NEGATIVE_INFINITY, Math.max, MaxLattice.eqFn, this.body, gen);
-                gen.dependOn(g);
-                g.consume(n => k(-n));
-                g.execute();
-            } else {
-                gen.dependOn(g);
-                g.consume(n => k(-n));
-            }
-        });
+        return new MinLattice(row => this.forThen(row, (n, k, _) => k(-n)));
     }
 }
 
@@ -1102,6 +1172,13 @@ export class MaxLattice {
  */
 export function seq<V, A>(m1: LPSub<V>, m2: LP<V, A>): LP<V, A> {
     return gen => s => k => m1(gen)(s)(s => m2(gen)(s)(k))
+}
+
+/**
+ * Computation that always fails.
+ */
+export function fail<V, A>(): LP<V, A> {
+    return gen => s => k => void(0);
 }
 
 /**
@@ -1363,3 +1440,12 @@ class TermWrapper {
     ground(): LP<JsonTerm, JsonTerm> { return ground(this.term); }
 }
 */
+const shortestPathLen: MinLattice = MinLattice.fromLP(([S, E], Q) => path.match([S, E, Q]));
+const edge: Predicate = new EdbPredicate([[1, 2], [2, 3], [3, 1]]);
+const path: Predicate = new TabledPredicate(([X, Z, SD]) => rule(
+    ()         => [edge.match([X, Z]), unify(SD, 1)],
+    (Y, D, D1) => [path.match([X, Y, D1]), 
+                   edge.match([Y, Z]), 
+                   apply(x => x + 1)(D1, D),
+                   shortestPathLen.join(D, SD).for([X, Z])])); // Without this the program doesn't terminate.
+const result = toArrayQ(Q => clause((S, E, L) => [path.match([S, E, L]), unify(Q, [S, E, L])]));
