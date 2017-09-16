@@ -27,10 +27,12 @@ Paths (shake it loose):
 <div id="pathGraph" class="graphBox"></div>
 Subgoal Dependency Graph:
 <div id="sdgGraph" class="graphBox"></div>
-<script id="code" type="text/javascript">
+<script type="text/javascript">
 requirejs.config({enforceDefine: true, paths: { 
     immutable: 'https://cdnjs.cloudflare.com/ajax/libs/immutable/3.8.1/immutable.min' 
 }});
+</script>
+<script id="code" type="text/javascript">
 requirejs(['../out/slg'], function(slg) {
 function render(edges) {
     const edge = new slg.EdbPredicate(edges);
@@ -45,7 +47,7 @@ function render(edges) {
 
     const edgeEdges = slg.toArrayQ(Q => slg.clause((S, E, D) => [edge.match([S, E, D]), slg.unify(Q, {from: S, to: E, label: D})]));
     const [sdgEdges, pathEdges] = slg.debugToArrayQ(Q => slg.clause((S, E, D) => [shortestPath.groupBy(S, E).minInto(D), 
-                                                                                 slg.unify(Q, {from: S, to: E, label: D})]));
+                                                                                  slg.unify(Q, {from: S, to: E, label: D})]));
 
     // Graph rendering stuff.
 
