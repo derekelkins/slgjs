@@ -1,8 +1,9 @@
 import "jest"
 
 import { Variable, JsonTerm } from "./unify"
-import { Predicate, UntabledPredicate, TabledPredicate, EdbPredicate, TrieEdbPredicate, GroupedPredicate,
+import { Predicate, UntabledPredicate, TabledPredicate, TrieEdbPredicate, GroupedPredicate,
          GrowingSetLattice, AnyLattice, MaxLattice, MinLattice,
+         facts, tabled, untabled, grouped,
          rule, clause, fresh, unify, conj, apply, looseUnify, toArrayQ } from "./slg"
 
 describe('lattices', () => {
@@ -10,7 +11,7 @@ describe('lattices', () => {
         // This example was originally from an incremental context. It's not that interesting in a batch
         // context. However, given a suitable amount recursion it would become interesting.
         const quorumSize = 2;
-        const vote: Predicate = new EdbPredicate(['A', 'B', 'C']);
+        const vote: Predicate = facts(['A', 'B', 'C']);
         const votes: GrowingSetLattice = GrowingSetLattice.fromLP((_, Q) => vote.match(Q));
         const result = toArrayQ(Q => conj(votes.size().greaterThanOrEqualTo(quorumSize).isTrue().for(null), unify(Q, true)));
         expect(result).toEqual([true]);
@@ -19,8 +20,8 @@ describe('lattices', () => {
     // This example begins to demonstrate the utility of the lattice variables.
     test('monotonic shortest path, otherwise non-terminating', () => {
         const shortestPathLen: MinLattice = MinLattice.fromLP(([S, E], Q) => path.match([S, E, Q]));
-        const edge: Predicate = new EdbPredicate([[1, 2], [2, 3], [3, 1]]);
-        const path: Predicate = new TabledPredicate(([X, Z, SD]) => rule(
+        const edge: Predicate = facts([[1, 2], [2, 3], [3, 1]]);
+        const path: Predicate = tabled(([X, Z, SD]) => rule(
             ()         => [edge.match([X, Z]), unify(SD, 1)],
             (Y, D, D1) => [path.match([X, Y, D1]), 
                            edge.match([Y, Z]), 
@@ -36,8 +37,8 @@ describe('lattices', () => {
 
     test('monotonic shortest path, illustrating difference with non-monotonic aggregation', () => {
         const shortestPathLen: MinLattice = MinLattice.fromLP(([S, E], Q) => path.match([S, E, Q]));
-        const edge: Predicate = new EdbPredicate([[1, 2, 1], [2, 3, 1], [1, 3, 10]]);
-        const path: Predicate = new TabledPredicate(([X, Z, SD]) => rule(
+        const edge: Predicate = facts([[1, 2, 1], [2, 3, 1], [1, 3, 10]]);
+        const path: Predicate = tabled(([X, Z, SD]) => rule(
             ()             => [edge.match([X, Z, SD])],
             (Y, D1, D2, D) => [path.match([X, Y, D1]), 
                                edge.match([Y, Z, D2]), 
@@ -54,14 +55,14 @@ describe('lattices', () => {
     // This will take forever if there is an infinite number of results.
     test('monotonic + non-monotonic shortest path, the best of both worlds', () => {
         const shortestPathLen: MinLattice = MinLattice.fromLP(([S, E], Q) => path.match([S, E, Q]));
-        const edge: Predicate = new EdbPredicate([[1, 2, 1], [2, 3, 1], [1, 3, 10]]);
-        const path: Predicate = new TabledPredicate(([X, Z, SD]) => rule(
+        const edge: Predicate = facts([[1, 2, 1], [2, 3, 1], [1, 3, 10]]);
+        const path: Predicate = tabled(([X, Z, SD]) => rule(
             ()             => [edge.match([X, Z, SD])],
             (Y, D1, D2, D) => [path.match([X, Y, D1]), 
                                edge.match([Y, Z, D2]), 
                                apply(([d1, d2]) => d1 + d2)([D1, D2], D),
                                shortestPathLen.join(D, SD).for([X, Z])]));
-        const shortestPath = new GroupedPredicate((S, E) => D => path.match([S, E, D]));
+        const shortestPath = grouped((S, E) => D => path.match([S, E, D]));
         const result = toArrayQ(Q => clause((S, E, D) => [shortestPath.groupBy(S, E).minInto(D), unify(Q, [S, E, D])]));
         expect(result).toEqual([
             [1, 2, 1], [1, 3, 2], [2, 3, 1]
@@ -73,43 +74,43 @@ describe('lattices', () => {
 // Similar to the `for` in the lattice stuff.
 describe('non-monotonic aggregation', () => {
     test('non-ground results throw an error', () => {
-        const p: TabledPredicate = new TabledPredicate(X => fresh(Y => unify(X, Y)));
+        const p: TabledPredicate = tabled(X => fresh(Y => unify(X, Y)));
         expect(() => toArrayQ(Q => fresh(X => p.count(X).into(Q)))).toThrow('completelyGroundJson: term contains unbound variables');
     });
 
     test('sum', () => {
-        const edge: Predicate = new EdbPredicate([[1, 2], [2, 3], [3, 1]]);
-        const path: Predicate = new TabledPredicate(([X, Z]) => rule(
+        const edge: Predicate = facts([[1, 2], [2, 3], [3, 1]]);
+        const path: Predicate = tabled(([X, Z]) => rule(
             () => [edge.match([X, Z])],
             Y  => [path.match([X, Y]), path.match([Y, Z])]));
-        const fst: TabledPredicate = new TabledPredicate(X => fresh(Y => path.match([X, Y])));
+        const fst: TabledPredicate = tabled(X => fresh(Y => path.match([X, Y])));
         const result = toArrayQ(Q => fresh(S => fst.sum(S).into(Q)));
         expect(result).toEqual([6]);
     });
 
     test('min', () => {
-        const edge: Predicate = new EdbPredicate([[1, 2], [2, 3], [3, 1]]);
-        const path: Predicate = new TabledPredicate(([X, Z]) => rule(
+        const edge: Predicate = facts([[1, 2], [2, 3], [3, 1]]);
+        const path: Predicate = tabled(([X, Z]) => rule(
             () => [edge.match([X, Z])],
             Y  => [path.match([X, Y]), path.match([Y, Z])]));
-        const fst: TabledPredicate = new TabledPredicate(X => fresh(Y => path.match([X, Y])));
+        const fst: TabledPredicate = tabled(X => fresh(Y => path.match([X, Y])));
         const result = toArrayQ(Q => fresh(S => fst.min(S).into(Q)));
         expect(result).toEqual([1]);
     });
 
     test('max', () => {
-        const edge: Predicate = new EdbPredicate([[1, 2], [2, 3], [3, 1]]);
-        const path: Predicate = new TabledPredicate(([X, Z]) => rule(
+        const edge: Predicate = facts([[1, 2], [2, 3], [3, 1]]);
+        const path: Predicate = tabled(([X, Z]) => rule(
             () => [edge.match([X, Z])],
             Y  => [path.match([X, Y]), path.match([Y, Z])]));
-        const fst: TabledPredicate = new TabledPredicate(X => fresh(Y => path.match([X, Y])));
+        const fst: TabledPredicate = tabled(X => fresh(Y => path.match([X, Y])));
         const result = toArrayQ(Q => fresh(S => fst.max(S).into(Q)));
         expect(result).toEqual([3]);
     });
 
     test('count', () => {
-        const edge: Predicate = new EdbPredicate([[1, 2], [2, 3], [3, 1]]);
-        const path: TabledPredicate = new TabledPredicate(([X, Z]) => rule(
+        const edge: Predicate = facts([[1, 2], [2, 3], [3, 1]]);
+        const path: TabledPredicate = tabled(([X, Z]) => rule(
             () => [edge.match([X, Z])],
             Y  => [path.match([X, Y]), path.match([Y, Z])]));
         const result = toArrayQ(Q => fresh((S, E) => path.count([S, E]).into(Q)));
@@ -117,56 +118,56 @@ describe('non-monotonic aggregation', () => {
     });
 
     test('and true', () => {
-        const edge: Predicate = new EdbPredicate([[1, 2], [2, 3], [3, 1]]);
-        const path: Predicate = new TabledPredicate(([X, Z]) => rule(
+        const edge: Predicate = facts([[1, 2], [2, 3], [3, 1]]);
+        const path: Predicate = tabled(([X, Z]) => rule(
             () => [edge.match([X, Z])],
             Y  => [path.match([X, Y]), path.match([Y, Z])]));
-        const p: TabledPredicate = new TabledPredicate(
+        const p: TabledPredicate = tabled(
             Q => clause((X, Y) => [path.match([X, Y]), apply(([x, _]) => x > 0)([X, Y], Q)]));
         const result = toArrayQ(Q => fresh(S => p.and(S).into(Q)));
         expect(result).toEqual([true]);
     });
 
     test('and false', () => {
-        const edge: Predicate = new EdbPredicate([[1, 2], [2, 3], [3, 1]]);
-        const path: Predicate = new TabledPredicate(([X, Z]) => rule(
+        const edge: Predicate = facts([[1, 2], [2, 3], [3, 1]]);
+        const path: Predicate = tabled(([X, Z]) => rule(
             () => [edge.match([X, Z])],
             Y  => [path.match([X, Y]), path.match([Y, Z])]));
-        const p: TabledPredicate = new TabledPredicate(
+        const p: TabledPredicate = tabled(
             Q => clause((X, Y) => [path.match([X, Y]), apply(([x, y]) => x === y)([X, Y], Q)]));
         const result = toArrayQ(Q => fresh(S => p.and(S).into(Q)));
         expect(result).toEqual([false]);
     });
 
     test('or true', () => {
-        const edge: Predicate = new EdbPredicate([[1, 2], [2, 3], [3, 1]]);
-        const path: Predicate = new TabledPredicate(([X, Z]) => rule(
+        const edge: Predicate = facts([[1, 2], [2, 3], [3, 1]]);
+        const path: Predicate = tabled(([X, Z]) => rule(
             () => [edge.match([X, Z])],
             Y  => [path.match([X, Y]), path.match([Y, Z])]));
-        const p: TabledPredicate = new TabledPredicate(
+        const p: TabledPredicate = tabled(
             Q => clause((X, Y) => [path.match([X, Y]), apply(([x, y]) => x === y)([X, Y], Q)]));
         const result = toArrayQ(Q => fresh(S => p.or(S).into(Q)));
         expect(result).toEqual([true]);
     });
 
     test('or false', () => {
-        const edge: Predicate = new EdbPredicate([[1, 2], [2, 3], [3, 1]]);
-        const path: Predicate = new TabledPredicate(([X, Z]) => rule(
+        const edge: Predicate = facts([[1, 2], [2, 3], [3, 1]]);
+        const path: Predicate = tabled(([X, Z]) => rule(
             () => [edge.match([X, Z])],
             Y  => [path.match([X, Y]), path.match([Y, Z])]));
-        const p: TabledPredicate = new TabledPredicate(
+        const p: TabledPredicate = tabled(
             Q => clause((X, Y) => [path.match([X, Y]), apply(([x, _]) => x < 0)([X, Y], Q)]));
         const result = toArrayQ(Q => fresh(S => p.or(S).into(Q)));
         expect(result).toEqual([false]);
     });
 
     test('grouped sum', () => {
-        const employees: Predicate = new EdbPredicate([
+        const employees: Predicate = facts([
             {name: 'harry', dept: 'sales', salary: 20},
             {name: 'sally', dept: 'hr', salary: 20},
             {name: 'jane', dept: 'sales', salary: 30}
         ]);
-        const salaries: GroupedPredicate = new GroupedPredicate(
+        const salaries: GroupedPredicate = grouped(
             D => S => fresh(N => employees.match({name: N, dept: D, salary: S})));
         const result = toArrayQ(Q => clause((D, TS) => [salaries.groupBy(D).sumInto(TS), unify(Q, [D, TS])]));
         expect(result).toEqual([
@@ -175,24 +176,24 @@ describe('non-monotonic aggregation', () => {
     });
 
     test('grouped sum over all', () => {
-        const employees: Predicate = new EdbPredicate([
+        const employees: Predicate = facts([
             {name: 'harry', dept: 'sales', salary: 20},
             {name: 'sally', dept: 'hr', salary: 20},
             {name: 'jane', dept: 'sales', salary: 30}
         ]);
-        const salaries: GroupedPredicate = new GroupedPredicate(
+        const salaries: GroupedPredicate = grouped(
             () => S => fresh((N, D) => employees.match({name: N, dept: D, salary: S})));
         const result = toArrayQ(Q => salaries.groupBy().sumInto(Q));
         expect(result).toEqual([70]);
     });
 
     test('grouped product', () => {
-        const employees: Predicate = new EdbPredicate([
+        const employees: Predicate = facts([
             {name: 'harry', dept: 'sales', salary: 20},
             {name: 'sally', dept: 'hr', salary: 20},
             {name: 'jane', dept: 'sales', salary: 30}
         ]);
-        const salaries: GroupedPredicate = new GroupedPredicate(
+        const salaries: GroupedPredicate = grouped(
             D => S => fresh(N => employees.match({name: N, dept: D, salary: S})));
         const result = toArrayQ(Q => clause((D, TS) => [salaries.groupBy(D).productInto(TS), unify(Q, [D, TS])]));
         expect(result).toEqual([
@@ -201,12 +202,12 @@ describe('non-monotonic aggregation', () => {
     });
 
     test('grouped max', () => {
-        const employees: Predicate = new EdbPredicate([
+        const employees: Predicate = facts([
             {name: 'harry', dept: 'sales', salary: 20},
             {name: 'sally', dept: 'hr', salary: 20},
             {name: 'jane', dept: 'sales', salary: 30}
         ]);
-        const salaries: GroupedPredicate = new GroupedPredicate(
+        const salaries: GroupedPredicate = grouped(
             D => S => fresh(N => employees.match({name: N, dept: D, salary: S})));
         const result = toArrayQ(Q => clause((D, TS) => [salaries.groupBy(D).maxInto(TS), unify(Q, [D, TS])]));
         expect(result).toEqual([
@@ -215,12 +216,12 @@ describe('non-monotonic aggregation', () => {
     });
 
     test('grouped min', () => {
-        const employees: Predicate = new EdbPredicate([
+        const employees: Predicate = facts([
             {name: 'harry', dept: 'sales', salary: 20},
             {name: 'sally', dept: 'hr', salary: 20},
             {name: 'jane', dept: 'sales', salary: 30}
         ]);
-        const salaries: GroupedPredicate = new GroupedPredicate(
+        const salaries: GroupedPredicate = grouped(
             D => S => fresh(N => employees.match({name: N, dept: D, salary: S})));
         const result = toArrayQ(Q => clause((D, TS) => [salaries.groupBy(D).minInto(TS), unify(Q, [D, TS])]));
         expect(result).toEqual([
@@ -229,12 +230,12 @@ describe('non-monotonic aggregation', () => {
     });
 
     test('grouped and', () => {
-        const employees: Predicate = new EdbPredicate([
+        const employees: Predicate = facts([
             {name: 'harry', dept: 'sales', onVacation: true},
             {name: 'sally', dept: 'hr', onVacation: false},
             {name: 'jane', dept: 'sales', onVacation: true}
         ]);
-        const vacationing: GroupedPredicate = new GroupedPredicate(
+        const vacationing: GroupedPredicate = grouped(
             D => S => fresh(N => employees.match({name: N, dept: D, onVacation: S})));
         const result = toArrayQ(Q => clause((D, TS) => [vacationing.groupBy(D).andInto(TS), unify(Q, [D, TS])]));
         expect(result).toEqual([
@@ -243,12 +244,12 @@ describe('non-monotonic aggregation', () => {
     });
 
     test('grouped or', () => {
-        const employees: Predicate = new EdbPredicate([
+        const employees: Predicate = facts([
             {name: 'harry', dept: 'sales', onVacation: true},
             {name: 'sally', dept: 'hr', onVacation: false},
             {name: 'jane', dept: 'sales', onVacation: false}
         ]);
-        const vacationing: GroupedPredicate = new GroupedPredicate(
+        const vacationing: GroupedPredicate = grouped(
             D => S => fresh(N => employees.match({name: N, dept: D, onVacation: S})));
         const result = toArrayQ(Q => clause((D, TS) => [vacationing.groupBy(D).orInto(TS), unify(Q, [D, TS])]));
         expect(result).toEqual([
@@ -257,12 +258,12 @@ describe('non-monotonic aggregation', () => {
     });
 
     test('grouped count', () => {
-        const employees: Predicate = new EdbPredicate([
+        const employees: Predicate = facts([
             {name: 'harry', dept: 'sales', onVacation: true},
             {name: 'sally', dept: 'hr', onVacation: false},
             {name: 'jane', dept: 'sales', onVacation: false}
         ]);
-        const vacationing: GroupedPredicate = new GroupedPredicate(
+        const vacationing: GroupedPredicate = grouped(
             D => S => fresh(N => employees.match({name: N, dept: D, onVacation: S})));
         const result = toArrayQ(Q => clause((D, TS) => [vacationing.groupBy(D).countInto(TS), unify(Q, [D, TS])]));
         expect(result).toEqual([
@@ -271,12 +272,12 @@ describe('non-monotonic aggregation', () => {
     });
 
     test('empty group sum', () => {
-        const employees: Predicate = new EdbPredicate([
+        const employees: Predicate = facts([
             {name: 'harry', dept: 'sales', salary: 20},
             {name: 'sally', dept: 'hr', salary: 20},
             {name: 'jane', dept: 'sales', salary: 30}
         ]);
-        const salaries: GroupedPredicate = new GroupedPredicate(
+        const salaries: GroupedPredicate = grouped(
             D => S => fresh(N => employees.match({name: N, dept: D, salary: S})));
         const result = toArrayQ(Q => clause(TS => [salaries.groupBy('management').sumInto(TS), unify(Q, TS)]));
         expect(result).toEqual([0]);
@@ -291,13 +292,13 @@ describe('LRD-stratified negation', () => {
         // s :- not p, not q, not r.
         //
         // ?- s. succeeds
-        const p: TabledPredicate = new TabledPredicate(X => rule(
+        const p: TabledPredicate = tabled(X => rule(
             () => [q.match(X), r.notMatch(X), s.notMatch(X)]));
-        const q: TabledPredicate = new TabledPredicate(X => rule(
+        const q: TabledPredicate = tabled(X => rule(
             () => [r.match(X), p.notMatch(X)]));
-        const r: TabledPredicate = new TabledPredicate(X => rule(
+        const r: TabledPredicate = tabled(X => rule(
             () => [p.match(X), q.notMatch(X)]));
-        const s: TabledPredicate = new TabledPredicate(X => rule(
+        const s: TabledPredicate = tabled(X => rule(
             () => [p.notMatch(X), q.notMatch(X), r.notMatch(X)]));
         const results = toArrayQ(Q => conj(s.match(null), unify(Q, true)));
         expect(results).toEqual([true]);
@@ -311,19 +312,19 @@ describe('LRD-stratified negation', () => {
         //
         // ?- s. fails under LRD-stratification but should succeed unrestricted
         // dynamic stratification.
-        const p: TabledPredicate = new TabledPredicate(X => rule(
+        const p: TabledPredicate = tabled(X => rule(
             () => [s.notMatch(X), r.notMatch(X), q.match(X)]));
-        const q: TabledPredicate = new TabledPredicate(X => rule(
+        const q: TabledPredicate = tabled(X => rule(
             () => [r.match(X), p.notMatch(X)]));
-        const r: TabledPredicate = new TabledPredicate(X => rule(
+        const r: TabledPredicate = tabled(X => rule(
             () => [p.match(X), q.notMatch(X)]));
-        const s: TabledPredicate = new TabledPredicate(X => rule(
+        const s: TabledPredicate = tabled(X => rule(
             () => [p.notMatch(X), q.notMatch(X), r.notMatch(X)]));
         expect(() => toArrayQ(Q => conj(s.match(null), unify(Q, true)))).toThrow();
     });
 
     test('floundering', () => {
-        const p: TabledPredicate = new TabledPredicate(X => rule(
+        const p: TabledPredicate = tabled(X => rule(
             () => []));
         expect(() => toArrayQ(Q => conj(p.notMatch(Q), unify(Q, true)))).toThrow('TabledPredicate.notMatch: negation of non-ground atom (floundering)');
     });
@@ -342,7 +343,7 @@ describe('LRD-stratified negation', () => {
         //
         // p(e) :- p(c).
         // p(e) :- not p(b), not p(e).
-        const p: TabledPredicate = new TabledPredicate(X => rule(
+        const p: TabledPredicate = tabled(X => rule(
             () => [unify(X, 'a'), p.match('b'), p.notMatch('d')],
             () => [unify(X, 'b'), p.match('c')],
             () => [unify(X, 'b'), p.notMatch('d')],
@@ -359,7 +360,7 @@ describe('LRD-stratified negation', () => {
 
 describe('traditional Prolog append example', () => {
     test('untabled (which is preferable for this)', () => {
-        const append: Predicate = new UntabledPredicate(([Xs, Ys, Zs]: JsonTerm) => rule(
+        const append: Predicate = untabled(([Xs, Ys, Zs]: JsonTerm) => rule(
             () =>
                 [unify([], Xs), unify(Ys, Zs)],
             (X1, Xs1, Zs1) =>  
@@ -385,7 +386,7 @@ describe('traditional Prolog append example', () => {
 
 
     test('tabled (which is not recommended for this, but should still work)', () => {
-        const append: Predicate = new TabledPredicate(([Xs, Ys, Zs]: JsonTerm) => rule(
+        const append: Predicate = tabled(([Xs, Ys, Zs]: JsonTerm) => rule(
             () =>
                 [unify([], Xs), unify(Ys, Zs)],
             (X1, Xs1, Zs1) =>  
@@ -412,8 +413,8 @@ describe('traditional Prolog append example', () => {
 
 describe('transitive closure', () => {
     test('chain, double recursive, edges first', () => {
-        const edge: Predicate = new EdbPredicate([[1, 2], [2, 3], [3, 4]]);
-        const path: Predicate = new TabledPredicate(row => rule(
+        const edge: Predicate = facts([[1, 2], [2, 3], [3, 4]]);
+        const path: Predicate = tabled(row => rule(
             () => [edge.match(row)],
             Y  => [path.match([row[0], Y]), path.match([Y, row[1]])]));
         const result = toArrayQ(Q => clause((S, E) => [path.match([S, E]), unify(Q, [S, E])]));
@@ -422,8 +423,8 @@ describe('transitive closure', () => {
         ]);
     });
     test('chain, double recursive, edges second', () => {
-        const edge: Predicate = new EdbPredicate([[1, 2], [2, 3], [3, 4]]);
-        const path: Predicate = new TabledPredicate(row => rule(
+        const edge: Predicate = facts([[1, 2], [2, 3], [3, 4]]);
+        const path: Predicate = tabled(row => rule(
             Y  => [path.match([row[0], Y]), path.match([Y, row[1]])],
             () => [edge.match(row)]));
         const result = toArrayQ(Q => clause((S, E) => [path.match([S, E]), unify(Q, [S, E])]));
@@ -432,8 +433,8 @@ describe('transitive closure', () => {
         ]);
     });
     test('chain, left recursive, edges first', () => {
-        const edge: Predicate = new EdbPredicate([[1, 2], [2, 3], [3, 4]]);
-        const path: Predicate = new TabledPredicate(row => rule(
+        const edge: Predicate = facts([[1, 2], [2, 3], [3, 4]]);
+        const path: Predicate = tabled(row => rule(
             () => [edge.match(row)],
             Y  => [path.match([row[0], Y]), edge.match([Y, row[1]])]));
         const result = toArrayQ(Q => clause((S, E) => [path.match([S, E]), unify(Q, [S, E])]));
@@ -442,8 +443,8 @@ describe('transitive closure', () => {
         ]);
     });
     test('chain, left recursive, edges second', () => {
-        const edge: Predicate = new EdbPredicate([[1, 2], [2, 3], [3, 4]]);
-        const path: Predicate = new TabledPredicate(row => rule(
+        const edge: Predicate = facts([[1, 2], [2, 3], [3, 4]]);
+        const path: Predicate = tabled(row => rule(
             Y  => [path.match([row[0], Y]), edge.match([Y, row[1]])],
             () => [edge.match(row)]));
         const result = toArrayQ(Q => clause((S, E) => [path.match([S, E]), unify(Q, [S, E])]));
@@ -452,8 +453,8 @@ describe('transitive closure', () => {
         ]);
     });
     test('chain, right recursive, edges first', () => {
-        const edge: Predicate = new EdbPredicate([[1, 2], [2, 3], [3, 4]]);
-        const path: Predicate = new TabledPredicate(row => rule(
+        const edge: Predicate = facts([[1, 2], [2, 3], [3, 4]]);
+        const path: Predicate = tabled(row => rule(
             () => [edge.match(row)],
             Y  => [edge.match([row[0], Y]), path.match([Y, row[1]])]));
         const result = toArrayQ(Q => clause((S, E) => [path.match([S, E]), unify(Q, [S, E])]));
@@ -462,8 +463,8 @@ describe('transitive closure', () => {
         ]);
     });
     test('chain, right recursive, edges second', () => {
-        const edge: Predicate = new EdbPredicate([[1, 2], [2, 3], [3, 4]]);
-        const path: Predicate = new TabledPredicate(row => rule(
+        const edge: Predicate = facts([[1, 2], [2, 3], [3, 4]]);
+        const path: Predicate = tabled(row => rule(
             Y  => [edge.match([row[0], Y]), path.match([Y, row[1]])],
             () => [edge.match(row)]));
         const result = toArrayQ(Q => clause((S, E) => [path.match([S, E]), unify(Q, [S, E])]));
@@ -473,8 +474,8 @@ describe('transitive closure', () => {
     });
 
     test('cycle, double recursive, edges first', () => {
-        const edge: Predicate = new EdbPredicate([[1, 2], [2, 3], [3, 1]]);
-        const path: Predicate = new TabledPredicate(row => rule(
+        const edge: Predicate = facts([[1, 2], [2, 3], [3, 1]]);
+        const path: Predicate = tabled(row => rule(
             () => [edge.match(row)],
             Y  => [path.match([row[0], Y]), path.match([Y, row[1]])]));
         const result = toArrayQ(Q => clause((S, E) => [path.match([S, E]), unify(Q, [S, E])]));
@@ -483,8 +484,8 @@ describe('transitive closure', () => {
         ]);
     });
     test('cycle, double recursive, edges second', () => {
-        const edge: Predicate = new EdbPredicate([[1, 2], [2, 3], [3, 1]]);
-        const path: Predicate = new TabledPredicate(row => rule(
+        const edge: Predicate = facts([[1, 2], [2, 3], [3, 1]]);
+        const path: Predicate = tabled(row => rule(
             Y  => [path.match([row[0], Y]), path.match([Y, row[1]])],
             () => [edge.match(row)]));
         const result = toArrayQ(Q => clause((S, E) => [path.match([S, E]), unify(Q, [S, E])]));
@@ -493,8 +494,8 @@ describe('transitive closure', () => {
         ]);
     });
     test('cycle, left recursive, edges first', () => {
-        const edge: Predicate = new EdbPredicate([[1, 2], [2, 3], [3, 1]]);
-        const path: Predicate = new TabledPredicate(row => rule(
+        const edge: Predicate = facts([[1, 2], [2, 3], [3, 1]]);
+        const path: Predicate = tabled(row => rule(
             () => [edge.match(row)],
             Y  => [path.match([row[0], Y]), edge.match([Y, row[1]])]));
         const result = toArrayQ(Q => clause((S, E) => [path.match([S, E]), unify(Q, [S, E])]));
@@ -503,8 +504,8 @@ describe('transitive closure', () => {
         ]);
     });
     test('cycle, left recursive, edges second', () => {
-        const edge: Predicate = new EdbPredicate([[1, 2], [2, 3], [3, 1]]);
-        const path: Predicate = new TabledPredicate(row => rule(
+        const edge: Predicate = facts([[1, 2], [2, 3], [3, 1]]);
+        const path: Predicate = tabled(row => rule(
             Y  => [path.match([row[0], Y]), edge.match([Y, row[1]])],
             () => [edge.match(row)]));
         const result = toArrayQ(Q => clause((S, E) => [path.match([S, E]), unify(Q, [S, E])]));
@@ -513,8 +514,8 @@ describe('transitive closure', () => {
         ]);
     });
     test('cycle, right recursive, edges first', () => {
-        const edge: Predicate = new EdbPredicate([[1, 2], [2, 3], [3, 1]]);
-        const path: Predicate = new TabledPredicate(row => rule(
+        const edge: Predicate = facts([[1, 2], [2, 3], [3, 1]]);
+        const path: Predicate = tabled(row => rule(
             () => [edge.match(row)],
             Y  => [edge.match([row[0], Y]), path.match([Y, row[1]])]));
         const result = toArrayQ(Q => clause((S, E) => [path.match([S, E]), unify(Q, [S, E])]));
@@ -523,8 +524,8 @@ describe('transitive closure', () => {
         ]);
     });
     test('cycle, right recursive, edges second', () => {
-        const edge: Predicate = new EdbPredicate([[1, 2], [2, 3], [3, 1]]);
-        const path: Predicate = new TabledPredicate(row => rule(
+        const edge: Predicate = facts([[1, 2], [2, 3], [3, 1]]);
+        const path: Predicate = tabled(row => rule(
             Y  => [edge.match([row[0], Y]), path.match([Y, row[1]])],
             () => [edge.match(row)]));
         const result = toArrayQ(Q => clause((S, E) => [path.match([S, E]), unify(Q, [S, E])]));
@@ -534,7 +535,7 @@ describe('transitive closure', () => {
     });
 
     // Transitive closure returning path.
-    //const path: Predicate = new TabledPredicate(([X, Z, P]) => rule(
+    //const path: Predicate = tabled(([X, Z, P]) => rule(
     //    (P2, Y)  => [path.match([X, Y, P2]), edge.match([Y, Z]), unify(P, [Z, P2])],
     //    () => [edge.match([X, Z]), unify(P, [Z, [X, []]])]));
     //runLP(sched, fresh((S, E, P) => { const Row = [S, E, P]; return seq(path5.match(Row), ground(Row)); }), a => console.dir(a, {depth: null}));
@@ -542,23 +543,23 @@ describe('transitive closure', () => {
 });
 
 test('trivial unsupported positive loop', () => {
-    const r: Predicate = new TabledPredicate(row => rule(
+    const r: Predicate = tabled(row => rule(
         () => [r.match(row)]));
     const result = toArrayQ(Q => r.match(null));
     expect(result).toEqual([]);
 });
 
 test('slightly less trivial unsupported positive loop', () => {
-    const p: Predicate = new TabledPredicate(row => rule(
+    const p: Predicate = tabled(row => rule(
         () => [q.match(row)]));
-    const q: Predicate = new TabledPredicate(row => rule(
+    const q: Predicate = tabled(row => rule(
         () => [p.match(row)]));
     const result = toArrayQ(Q => p.match(null));
     expect(result).toEqual([]);
 });
 
 test('looseUnify success', () => {
-    const objects: Predicate = new EdbPredicate([
+    const objects: Predicate = facts([
         {foo: 1, bar: 2},
         {foo: 3, bar: 4}]);
     const result = toArrayQ(Q => clause(X => [objects.match(X), looseUnify({foo: Q}, X)]));
@@ -573,13 +574,13 @@ test('trapped subgoal', () => {
     // r(c).
     // r(X) :- p(X, Y).
     // ?- p(X, Y).
-    const p: Predicate = new TabledPredicate(([X, Y]) => rule(
+    const p: Predicate = tabled(([X, Y]) => rule(
         () => [q.match(X), r.match(Y)],
         () => [unify([X, Y], ['c', 'a'])]));
-    const q: Predicate = new TabledPredicate(X => rule(
+    const q: Predicate = tabled(X => rule(
         () => [unify(X, 'a')],
         () => [unify(X, 'b')]));
-    const r: Predicate = new TabledPredicate(X => rule(
+    const r: Predicate = tabled(X => rule(
         () => [unify(X, 'c')],
         Y  => [p.match([X, Y])]));
     const result = toArrayQ(Q => clause((X, Y) => [p.match([X, Y]), unify(Q, [X, Y])]));
@@ -590,19 +591,19 @@ test('trapped subgoal', () => {
 
 describe('tests for independence of variables between consumers and generators', () => {
     test('', () => {
-        const vp: Predicate = new TabledPredicate(X => rule(() => []));
+        const vp: Predicate = tabled(X => rule(() => []));
         const [[y, x]] = toArrayQ(Q => clause((Y, X) => [unify(1, X), vp.match(X), unify(Q, [Y, X])]));
         expect(y).toBeInstanceOf(Variable);
         expect(x).toBe(1);
     });
     test('', () => {
-        const vp: Predicate = new TabledPredicate(X => rule(() => []));
+        const vp: Predicate = tabled(X => rule(() => []));
         const [[y, x]] = toArrayQ(Q => clause((Y, X) => [vp.match(X), unify(1, Y), unify(Q, [Y, X])]));
         expect(x).toBeInstanceOf(Variable);
         expect(y).toBe(1);
     });
     test('', () => {
-        const vp: Predicate = new TabledPredicate(X => rule(() => []));
+        const vp: Predicate = tabled(X => rule(() => []));
         const [[y, x]] = toArrayQ(Q => clause((Y, X) => [vp.match(X), unify(1, X), unify(Q, [Y, X])]));
         expect(y).toBeInstanceOf(Variable);
         expect(x).toBe(1);
@@ -792,7 +793,7 @@ describe('same generation', () => {
     test.skip('large example with TrieEdbPredicate', () => {
         const cyl: Predicate = TrieEdbPredicate.fromArray(largeSgExampleData);
 
-        const sg: Predicate = new TabledPredicate(([X, Y]) => rule(
+        const sg: Predicate = tabled(([X, Y]) => rule(
             () => [unify(X, Y)],
             Z  => [cyl.match([X, Z]), sg.match([Z, Z]), cyl.match([Y, Z])]));
         const result = toArrayQ(Q => clause((S, E) => [sg.match([S, E]), unify(Q, [S, E])]));
@@ -1218,9 +1219,9 @@ describe('same generation', () => {
     });
 
     test.skip('large example with EdbPredicate', () => {
-        const cyl: Predicate = new EdbPredicate(largeSgExampleData);
+        const cyl: Predicate = facts(largeSgExampleData);
 
-        const sg: Predicate = new TabledPredicate(([X, Y]) => rule(
+        const sg: Predicate = tabled(([X, Y]) => rule(
             () => [unify(X, Y)],
             Z  => [cyl.match([X, Z]), sg.match([Z, Z]), cyl.match([Y, Z])]));
         const result = toArrayQ(Q => clause((S, E) => [sg.match([S, E]), unify(Q, [S, E])]));
@@ -1646,7 +1647,7 @@ describe('same generation', () => {
     });
 
     test('small example', () => {
-        const cyl: Predicate = new EdbPredicate([
+        const cyl: Predicate = facts([
             ['dorothy','george'],
             ['evelyn', 'george'],
             ['bertrand','dorothy'],
@@ -1654,7 +1655,7 @@ describe('same generation', () => {
             ['hilary','ann'],
             ['charles','everlyn']]);
 
-        const sg: Predicate = new TabledPredicate(([X, Y]) => rule(
+        const sg: Predicate = tabled(([X, Y]) => rule(
             () => [unify(X, Y)],
             Z  => [cyl.match([X, Z]), sg.match([Z, Z]), cyl.match([Y, Z])]));
         const result = toArrayQ(Q => clause((S, E) => [sg.match([S, E]), unify(Q, [S, E])]));

@@ -35,15 +35,15 @@ requirejs.config({enforceDefine: true, paths: {
 <script id="code" type="text/javascript">
 requirejs(['../out/slg'], function(slg) {
 function render(edges) {
-    const edge = new slg.EdbPredicate(edges);
+    const edge = slg.facts(edges);
     const shortestPathLen = slg.MinLattice.fromLP(([S, E], Q) => path.match([S, E, Q]));
-    const path = new slg.TabledPredicate(([X, Z, SD]) => slg.rule(
+    const path = slg.tabled(([X, Z, SD]) => slg.rule(
         ()             => [edge.match([X, Z, SD])],
         (Y, D1, D2, D) => [path.match([X, Y, D1]), 
                            edge.match([Y, Z, D2]), 
                            slg.apply(([d1, d2]) => d1 + d2)([D1, D2], D),
                            shortestPathLen.join(D, SD).for([X, Z])]));
-    const shortestPath = new slg.GroupedPredicate((S, E) => D => path.match([S, E, D]));
+    const shortestPath = slg.grouped((S, E) => D => path.match([S, E, D]));
 
     const edgeEdges = slg.toArrayQ(Q => slg.clause((S, E, D) => [edge.match([S, E, D]), slg.unify(Q, {from: S, to: E, label: D})]));
     const [sdgEdges, pathEdges] = slg.debugToArrayQ(Q => slg.clause((S, E, D) => [shortestPath.groupBy(S, E).minInto(D), 

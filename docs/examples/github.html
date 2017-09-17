@@ -19,8 +19,8 @@ requirejs.config({enforceDefine: true, paths: {
 requirejs(['../out/slg'], function(slg) {
 fetch('https://api.github.com/repos/derekelkins/agda-vim/commits', {headers:{Accept: 'application/vnd.github.v3+json'}}).then(response => response.json().then(commitData => {
 //fetch('https://api.github.com/repos/derekelkins/agda-vim/comments', {headers:{Accept: 'application/vnd.github.v3+json'}}).then(response => response.json().then(commentsData => {
-const commits = new slg.EdbPredicate(commitData);
-//const comments = new slg.EdbPredicate(commentsData);
+const commits = slg.facts(commitData);
+//const comments = slg.facts(commentsData);
 const ul = document.getElementById('result');
 slg.runQ(Q => slg.clause((SHA, Msg, CommentBody) => [
         commits.looseMatch({sha: SHA, commit: {message: Msg}}), 

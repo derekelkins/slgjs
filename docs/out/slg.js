@@ -1259,5 +1259,21 @@ var __values = (this && this.__values) || function (o) {
         return [sdgEdges, results];
     }
     exports.debugToArrayQ = debugToArrayQ;
+    function facts(table) {
+        return new EdbPredicate(table);
+    }
+    exports.facts = facts;
+    function tabled(body) {
+        return new TabledPredicate(body);
+    }
+    exports.tabled = tabled;
+    function untabled(body) {
+        return new UntabledPredicate(body);
+    }
+    exports.untabled = untabled;
+    function grouped(body) {
+        return new GroupedPredicate(body);
+    }
+    exports.grouped = grouped;
 });
 //# sourceMappingURL=slg.js.map

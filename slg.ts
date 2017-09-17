@@ -1141,14 +1141,25 @@ class LatticeGenerator<L> extends Generator {
         }
     }
 
+    /*
+    onCompleted(onComplete: (acc: L) => void): void {
+        if(this.isComplete) {
+            onComplete(this.accumulator);
+        } else {
+            (<Array<() => void>>this.completionListeners).push(() => onComplete(this.accumulator));
+        }
+    }
+    */
+
     protected scheduleNegativeResumes(): void {
-        // NOTE: We don't have negative consumers.
-        // const ncs = this.completionListeners;
-        // if(ncs === null) return; // This has already been called.
-        // const len = ncs.length;
-        // for(let i = 0; i < len; ++i) {
-        //     ncs[i]();
-        // }
+        /*
+        const ncs = this.completionListeners;
+        if(ncs === null) return; // This has already been called.
+        const len = ncs.length;
+        for(let i = 0; i < len; ++i) {
+            ncs[i]();
+        }
+        */
         this.completionListeners = null;
     }
 
@@ -1199,14 +1210,22 @@ abstract class BaseLattice<L> {
     }
 
     /*
+     * Non-monotonic. This returns the supremum, i.e. least upper bound in the order induced by
+     * the lattice, of the results produced by `body`.
     is(V: JsonTerm): {for: (row: JsonTerm) => LPTerm} {
-        return {for: row => this.forThen(row, (v, k, s, g) => {
-            const val = groundJson(V, s);
-            if(val instanceof Variable) return k(s.bind(val, v));
-            if(g.eq(g.join(val, v), v)) k(s); // succeed if val <= v in the ordering induced by the lattice
-        })};
+        return {for: row => gen => s => k => {
+            const t = this.getGenerator(groundJson(row, s), gen);
+            const g = t[0];
+            const isNew = t[1];
+            gen.dependOn(g);
+            g.onCompleted(x => {
+                const s2 = unifyJson(V, x, s);
+                if(s2 !== null) k(s2);
+            });
+            if(isNew) g.execute();
+        }};
     }
-    */
+     */
 
     private getGenerator(row: JsonTerm, sched: Scheduler): [LatticeGenerator<L>, boolean] {
         let isNew = false;
@@ -1233,7 +1252,6 @@ abstract class BaseLattice<L> {
         };
     }
 }
-
 
 /**
  * TODO
@@ -1631,7 +1649,7 @@ export function looseUnify(x: JsonTerm, y: JsonTerm): LPTerm {
 /**
  * A [[disj]]unction of [[clause]]s. The result looks roughly like a Prolog-style rule, e.g.
  * ```
- * const append: Predicate = new UntabledPredicate(([Xs, Ys, Zs]: JsonTerm) => rule(
+ * const append: Predicate = untabled(([Xs, Ys, Zs]: JsonTerm) => rule(
  *     () =>
  *         [unify([], Xs), unify(Ys, Zs)],
  *     (X1, Xs1, Zs1) =>  
@@ -1705,6 +1723,34 @@ export function debugToArrayQ(body: (q: Variable) => LPTerm): [Array<[number, nu
     const results: Array<JsonTerm> = [];
     const sdgEdges = debugRunQ(body, a => results.push(a));
     return [sdgEdges, results];
+}
+
+/**
+ * Convenience wrapper around [[EdbPredicate.constructor]].
+ */
+export function facts(table: Array<Json>): EdbPredicate {
+    return new EdbPredicate(table);
+}
+
+/**
+ * Convenience wrapper around [[TabledPredicate.constructor]].
+ */
+export function tabled(body: (row: JsonTerm) => LPTerm): TabledPredicate {
+    return new TabledPredicate(body);
+}
+
+/**
+ * Convenience wrapper around [[UntabledPredicate.constructor]].
+ */
+export function untabled(body: (row: JsonTerm) => LPTerm) { 
+    return new UntabledPredicate(body);
+}
+
+/**
+ * Convenience wrapper around [[GroupedPredicate.constructor]].
+ */
+export function grouped(body: (...groups: Array<Variable>) => (row: Variable) => LPTerm) {
+    return new GroupedPredicate(body);
 }
 
 /*
