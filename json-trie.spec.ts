@@ -1,7 +1,7 @@
 // import { Gen } from "./jsqc"
 // import "./ts-jsqc"
 
-import { Variable, Substitution } from "./unify"
+import { Variable, Substitution, Json, JsonTerm } from "./unify"
 import { JsonTrieTerm, JsonTrie } from "./json-trie"
 import "jest"
 
@@ -68,6 +68,12 @@ describe('JsonTrie tests', () => {
         expect(rows.length).toBe(10);
     });
 
+    test('correct number of entries, entriesCont', () => {
+        const rows: Array<Json> = [];
+        trie.entriesCont(row => { rows.push(row); });
+        expect(rows.length).toBe(10);
+    });
+
     test('match object pattern', () => {
         const matches = [];
         const [[X, Y], sub] = Substitution.emptyPersistent().fresh(2);
@@ -82,7 +88,6 @@ describe('JsonTrie tests', () => {
     test('match array pattern', () => {
         const matches = [];
         const [[X, Y], sub] = Substitution.emptyPersistent().fresh(2);
-        matches.length = 0;
         for(const s of trie.match([X, Y], sub)) { 
             matches.push([s.lookup(X), s.lookup(Y)]); 
         }
@@ -97,10 +102,44 @@ describe('JsonTrie tests', () => {
     test('match nonlinear pattern', () => {
         const matches = [];
         const [[X, Y], sub] = Substitution.emptyPersistent().fresh(2);
-        matches.length = 0;
         for(const s of trie.match({foo: {start: X, end: Y}, end: Y}, sub)) { 
             matches.push([s.lookup(X), s.lookup(Y)]); 
         }
+        expect(matches).toEqual([
+            [1, 3]
+        ]);
+    });
+    test('matchCont object pattern', () => {
+        const matches: Array<[Json, Json]> = [];
+        const [[X, Y], sub] = Substitution.emptyPersistent().fresh(2);
+        trie.matchCont({start: X, end: Y}, sub, s => {
+            matches.push([s.lookup(X), s.lookup(Y)]);
+        });
+        expect(matches).toEqual([ // TODO: Note order isn't guaranteed.
+            [1, 2],
+            [1, 3]
+        ]);
+    });
+    test('matchCont array pattern', () => {
+        const matches: Array<[Json, Json]> = [];
+        const [[X, Y], sub] = Substitution.emptyPersistent().fresh(2);
+        trie.matchCont([X, Y], sub, s => {
+            matches.push([s.lookup(X), s.lookup(Y)]); 
+        });
+        expect(matches).toEqual([ // TODO: Note order isn't guaranteed.
+            [null, {end: 2, start: 1}], 
+            [null, {end: 3, start: 1}], 
+            ['foo', {end: 3, start: 1}], 
+            [1, 2], 
+            [1, 3]
+        ]);
+    });
+    test('matchCont nonlinear pattern', () => {
+        const matches: Array<[Json, Json]> = [];
+        const [[X, Y], sub] = Substitution.emptyPersistent().fresh(2);
+        trie.matchCont({foo: {start: X, end: Y}, end: Y}, sub, s => {
+            matches.push([s.lookup(X), s.lookup(Y)]); 
+        });
         expect(matches).toEqual([
             [1, 3]
         ]);
@@ -181,6 +220,12 @@ describe('JsonTrieTerm tests', () => {
     test('correct number of entries', () => {
         const rows = [];
         for(const row of trie.entries()) { rows.push(row); }
+        expect(rows.length).toBe(9);
+    });
+
+    test('correct number of entries, entriesCont', () => {
+        const rows: Array<Json> = [];
+        trie.entriesCont(row => { rows.push(row); });
         expect(rows.length).toBe(9);
     });
 });

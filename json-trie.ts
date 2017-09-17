@@ -16,7 +16,7 @@ function convert(type: "boolean" | "number" | "string", val: string): Json {
  * @param A The type of values
  */
 export class JsonTrie<A> {
-    private constructor(private readonly trie: any = {}) {}
+    private constructor(private trie: any = {}) {}
 
     /**
      * Create a [[JsonTrie]] from a JSON representation of its contents. `json` should not be modified
@@ -65,6 +65,13 @@ export class JsonTrie<A> {
      */
     modify(key: Json, f: (a: A | undefined) => A): A {
         return JsonTrie.modifyRec(key, f, this.trie);
+    }
+
+    /**
+     * Empties the trie.
+     */
+    clear(): void {
+        this.trie = {};
     }
 
     /**
@@ -120,6 +127,18 @@ export class JsonTrie<A> {
     }
 
     /**
+     * Behaves as:
+     * ```
+     * for(const [key, val] of this.entries()) {
+     *      k(key, val);
+     * }
+     * ```
+     */
+    entriesCont(k: (key: Json, val: A) => void): void {
+        return JsonTrie.rowContRec(this.trie, k);
+    }
+
+    /**
      * Given a [[JsonTerm]] with potentially some unbound variables in the substitution `sub`,
      * this returns a sequence of extended [[Substitution]]s binding the unbound variables to
      * the corresponding parts of the keys in the [[JsonTrie]].
@@ -148,6 +167,19 @@ export class JsonTrie<A> {
      */
     matchWithValue(key: JsonTerm, sub: Substitution<JsonTerm>): Iterable<[A, Substitution<JsonTerm>]> {
         return JsonTrie.matchRec(key, sub, this.trie);
+    }
+
+    /**
+     * Conceptually,
+     * ```
+     * for(const [val, sub] of this.matchWithValue(key, sub)) {
+     *      k(sub, val);
+     * }
+     * ```
+     * except more efficient.
+     */
+    matchCont(key: JsonTerm, sub: Substitution<JsonTerm>, k: (s: Substitution<JsonTerm>, value: A) => void): void {
+        return JsonTrie.matchContRec(key, sub, this.trie, k);
     }
 
     private static *matchRecArray(key: Array<JsonTerm>, i: number, sub: Substitution<JsonTerm>, curr: any): Iterable<[any, Substitution<JsonTerm>]> {
@@ -211,6 +243,65 @@ export class JsonTrie<A> {
         }
     }
 
+    private static matchContRecArray(key: Array<JsonTerm>, i: number, sub: Substitution<JsonTerm>, curr: any, k: (s: Substitution<JsonTerm>, v: any) => void): void {
+        if(i < key.length) {
+            return JsonTrie.matchContRec(key[i], sub, curr, (s, v) => {
+                return JsonTrie.matchContRecArray(key, i+1, s, v, k);
+            });
+        } else {
+            if('empty' in curr) return k(sub, curr.empty);
+        }
+    }
+
+    private static matchContRecObject(key: JsonTerm, keys: Array<string>, i: number, sub: Substitution<JsonTerm>, curr: any, k: (s: Substitution<JsonTerm>, v: any) => void): void {
+        if(i < keys.length) {
+            let node = curr.more;
+            if(node === void(0)) return;
+            const ki = keys[i];
+            node = node[ki];
+            if(node === void(0)) return;
+            return JsonTrie.matchContRec(key[ki], sub, node, (s, v) => {
+                return JsonTrie.matchContRecObject(key, keys, i+1, s, v, k);
+            });
+        } else {
+            if('empty' in curr) return k(sub, curr.empty);
+        }
+    }
+
+    private static matchContRec(key: JsonTerm, sub: Substitution<JsonTerm>, curr: any, k: (s: Substitution<JsonTerm>, v: any) => void): void {
+        const type = typeof key;
+        if(type === 'object') {
+            if(key === null) { 
+                if('null' in curr) return k(sub, curr.null);
+            } else if(key instanceof Variable) {
+                const v = sub.lookupAsVar(key);
+                if(v instanceof Variable) { // it's unbound
+                    return JsonTrie.rowContRec(curr, (x, val) => k(sub.bind(v, x), val));
+                } else {
+                    return JsonTrie.matchContRec(v, sub, curr, k);
+                }
+            } else if(key instanceof Array) {
+                let node = curr.array;
+                if(node !== void(0)) {
+                    return JsonTrie.matchContRecArray(key, 0, sub, node, k);
+                }
+            } else { // it's an object
+                let node = curr.object;
+                if(node !== void(0)) {
+                    const keys = Object.keys(key).sort();
+                    return JsonTrie.matchContRecObject(key, keys, 0, sub, node, k);
+                }
+            }
+        } else if(type === 'undefined') {
+            if('undefined' in curr) return k(sub, curr.undefined);
+        } else {
+            const node = curr[type];
+            if(node !== void(0)) {
+                if(key in node) return k(sub, node[key]);
+            }
+        }
+    }
+
     private static *rowRecObject(curr: any, result: Array<[string, Json]>): Iterable<[Json, any]> {
         if('empty' in curr) {
             const obj: Json = {};
@@ -226,14 +317,14 @@ export class JsonTrie<A> {
             for(const type in node) {
                 switch(type) {
                     case 'array':
-                        for(const t of JsonTrie.rowRecArray(node.array, []) ){
+                        for(const t of JsonTrie.rowRecArray(node.array, [])) {
                             result.push([k, t[0]]);
                             yield* JsonTrie.rowRecObject(t[1], result);
                             result.pop();
                         }
                         break;
                     case 'object':
-                        for(const t of JsonTrie.rowRecObject(node.object, []) ){
+                        for(const t of JsonTrie.rowRecObject(node.object, [])) {
                             result.push([k, t[0]]);
                             yield* JsonTrie.rowRecObject(t[1], result);
                             result.pop();
@@ -270,14 +361,14 @@ export class JsonTrie<A> {
                     yield [result.slice(), curr.empty];
                     break;
                 case 'array':
-                    for(const t of JsonTrie.rowRecArray(curr.array, []) ){
+                    for(const t of JsonTrie.rowRecArray(curr.array, [])) {
                         result.push(t[0]);
                         yield* JsonTrie.rowRecArray(t[1], result);
                         result.pop();
                     }
                     break;
                 case 'object':
-                    for(const t of JsonTrie.rowRecObject(curr.object, []) ){
+                    for(const t of JsonTrie.rowRecObject(curr.object, [])) {
                         result.push(t[0]);
                         yield* JsonTrie.rowRecArray(t[1], result);
                         result.pop();
@@ -327,6 +418,127 @@ export class JsonTrie<A> {
                     const valNode = curr[type];
                     for(const k in valNode) {
                         yield [convert(type, k), valNode[k]];
+                    }
+            }
+        }
+    }
+
+    private static rowContRecObject(curr: any, result: Array<[string, Json]>, cont: (key: Json, v: any) => void): void {
+        if('empty' in curr) {
+            const obj: Json = {};
+            for(const t of result) {
+                obj[t[0]] = t[1];
+            }
+            cont(obj, curr.empty);
+        }
+        const moreNode = curr.more;
+        if(moreNode === void(0)) return;
+        for(const k in moreNode) {
+            const node = moreNode[k];
+            for(const type in node) {
+                switch(type) {
+                    case 'array':
+                        JsonTrie.rowContRecArray(node.array, [], (key, v) => {
+                            result.push([k, key]);
+                            JsonTrie.rowContRecObject(v, result, cont);
+                            result.pop();
+                        });
+                        break;
+                    case 'object':
+                        JsonTrie.rowContRecObject(node.object, [], (key, v) => {
+                            result.push([k, key]);
+                            JsonTrie.rowContRecObject(v, result, cont);
+                            result.pop();
+                        });
+                        break;
+                    case 'null':
+                        result.push([k, null]);
+                        JsonTrie.rowContRecObject(node.null, result, cont);
+                        result.pop();
+                        break;
+                    case 'undefined':
+                        result.push([k, void(0)]);
+                        JsonTrie.rowContRecObject(node.undefined, result, cont);
+                        result.pop();
+                        break;
+                    case 'number':
+                    case 'boolean':
+                    case 'string':
+                        const valNode = node[type];
+                        for(const k2 in valNode) {
+                            result.push([k, convert(type, k2)]);
+                            JsonTrie.rowContRecObject(valNode[k2], result, cont);
+                            result.pop();
+                        }
+                }
+            }
+        }
+    }
+
+    private static rowContRecArray(curr: any, result: Array<Json>, cont: (key: Json, v: any) => void): void {
+        for(const type in curr) {
+            switch(type) {
+                case 'empty':
+                    cont(result.slice(), curr.empty);
+                    break;
+                case 'array':
+                    JsonTrie.rowContRecArray(curr.array, [], (k, v) => {
+                        result.push(k);
+                        JsonTrie.rowContRecArray(v, result, cont);
+                        result.pop();
+                    });
+                    break;
+                case 'object':
+                    JsonTrie.rowContRecObject(curr.object, [], (k, v) => {
+                        result.push(k);
+                        JsonTrie.rowContRecArray(v, result, cont);
+                        result.pop();
+                    });
+                    break;
+                case 'null':
+                    result.push(null);
+                    JsonTrie.rowContRecArray(curr.null, result, cont);
+                    result.pop();
+                    break;
+                case 'undefined':
+                    result.push(void(0));
+                    JsonTrie.rowContRecArray(curr.undefined, result, cont);
+                    result.pop();
+                    break;
+                case 'number':
+                case 'boolean':
+                case 'string':
+                    const valNode = curr[type];
+                    for(const k in valNode) {
+                        result.push(convert(type, k));
+                        JsonTrie.rowContRecArray(valNode[k], result, cont);
+                        result.pop();
+                    }
+            }
+        }
+    }
+
+    private static rowContRec(curr: any, cont: (key: Json, v: any) => void): void {
+        for(const type in curr) {
+            switch(type) {
+                case 'array':
+                    JsonTrie.rowContRecArray(curr.array, [], cont);
+                    break;
+                case 'object':
+                    JsonTrie.rowContRecObject(curr.object, [], cont);
+                    break;
+                case 'null':
+                    cont(null, curr.null);
+                    break;
+                case 'undefined':
+                    cont(void(0), curr.undefined);
+                    break;
+                case 'number':
+                case 'boolean':
+                case 'string':
+                    const valNode = curr[type];
+                    for(const k in valNode) {
+                        cont(convert(type, k), valNode[k]);
                     }
             }
         }
@@ -517,7 +729,7 @@ export type VarMap = {vars: Array<Variable>, [index: number]: number};
  * @param A The type of values
  */
 export class JsonTrieTerm<A> {
-    private constructor(private readonly trie: any = {}) {}
+    private constructor(private trie: any = {}) {}
 
     /**
      * Create a [[JsonTrieTerm]] from a JSON representation of its contents. `json` should not be modified
@@ -594,6 +806,13 @@ export class JsonTrieTerm<A> {
     }
 
     /**
+     * Empties the trie.
+     */
+    clear(): void {
+        this.trie = {};
+    }
+
+    /**
      * Checks whether the `key` is in the [[JsonTrieTerm]]. This is independent of the value stored.
      * The key comparison is a variant check. See [[JsonTrieTerm]] for an explanation.
      * @param key The [[JsonTerm]] key to check.
@@ -647,6 +866,18 @@ export class JsonTrieTerm<A> {
         return JsonTrieTerm.rowRec(this.trie);
     }
 
+    /**
+     * Behaves as:
+     * ```
+     * for(const [key, val] of this.entries()) {
+     *      k(key, val);
+     * }
+     * ```
+     */
+    entriesCont(k: (key: JsonTerm, val: A) => void): void {
+        return JsonTrieTerm.rowContRec(this.trie, k);
+    }
+
     private static *rowRecObject(curr: any, result: Array<[string, JsonTerm]>): Iterable<[JsonTerm, any]> {
         if('empty' in curr) {
             const obj: JsonTerm = {};
@@ -662,14 +893,14 @@ export class JsonTrieTerm<A> {
             for(const type in node) {
                 switch(type) {
                     case 'array':
-                        for(const t of JsonTrieTerm.rowRecArray(node.array, []) ){
+                        for(const t of JsonTrieTerm.rowRecArray(node.array, [])) {
                             result.push([k, t[0]]);
                             yield* JsonTrieTerm.rowRecObject(t[1], result);
                             result.pop();
                         }
                         break;
                     case 'object':
-                        for(const t of JsonTrieTerm.rowRecObject(node.object, []) ){
+                        for(const t of JsonTrieTerm.rowRecObject(node.object, [])) {
                             result.push([k, t[0]]);
                             yield* JsonTrieTerm.rowRecObject(t[1], result);
                             result.pop();
@@ -709,14 +940,14 @@ export class JsonTrieTerm<A> {
                     yield [result.slice(), curr.empty];
                     break;
                 case 'array':
-                    for(const t of JsonTrieTerm.rowRecArray(curr.array, []) ){
+                    for(const t of JsonTrieTerm.rowRecArray(curr.array, [])) {
                         result.push(t[0]);
                         yield* JsonTrieTerm.rowRecArray(t[1], result);
                         result.pop();
                     }
                     break;
                 case 'object':
-                    for(const t of JsonTrieTerm.rowRecObject(curr.object, []) ){
+                    for(const t of JsonTrieTerm.rowRecObject(curr.object, [])) {
                         result.push(t[0]);
                         yield* JsonTrieTerm.rowRecArray(t[1], result);
                         result.pop();
@@ -770,6 +1001,136 @@ export class JsonTrieTerm<A> {
                     const valNode = curr[type];
                     for(const k in valNode) {
                         yield [JsonTrieTerm.convert(type, k), valNode[k]];
+                    }
+                    break;
+                // default: // ignore
+            }
+        }
+    }
+
+    private static rowContRecObject(curr: any, result: Array<[string, JsonTerm]>, cont: (key: JsonTerm, val: any) => void): void {
+        if('empty' in curr) {
+            const obj: JsonTerm = {};
+            for(const t of result) {
+                obj[t[0]] = t[1];
+            }
+            cont(obj, curr.empty);
+        }
+        const moreNode = curr.more;
+        if(moreNode === void(0)) return;
+        for(const k in moreNode) {
+            const node = moreNode[k];
+            for(const type in node) {
+                switch(type) {
+                    case 'array':
+                        JsonTrieTerm.rowContRecArray(node.array, [], (key, val) => {
+                            result.push([k, key]);
+                            JsonTrieTerm.rowContRecObject(val, result, cont);
+                            result.pop();
+                        });
+                        break;
+                    case 'object':
+                        JsonTrieTerm.rowContRecObject(node.object, [], (key, val) => {
+                            result.push([k, key]);
+                            JsonTrieTerm.rowContRecObject(val, result, cont);
+                            result.pop();
+                        });
+                        break;
+                    case 'null':
+                        result.push([k, null]);
+                        JsonTrieTerm.rowContRecObject(node.null, result, cont);
+                        result.pop();
+                        break;
+                    case 'undefined':
+                        result.push([k, void(0)]);
+                        JsonTrieTerm.rowContRecObject(node.undefined, result, cont);
+                        result.pop();
+                        break;
+                    case 'number':
+                    case 'string':
+                    case 'boolean':
+                    case 'variable':
+                        const valNode = node[type];
+                        for(const k2 in valNode) {
+                            result.push([k, JsonTrieTerm.convert(type, k2)]);
+                            JsonTrieTerm.rowContRecObject(valNode[k2], result, cont);
+                            result.pop();
+                        }
+                        break;
+                    // default: // ignore
+                }
+            }
+        }
+    }
+
+    private static rowContRecArray(curr: any, result: Array<JsonTerm>, cont: (key: JsonTerm, val: any) => void): void {
+        for(const type in curr) {
+            switch(type) {
+                case 'empty':
+                    cont(result.slice(), curr.empty);
+                    break;
+                case 'array':
+                    JsonTrieTerm.rowContRecArray(curr.array, [], (key, val) => {
+                        result.push(key);
+                        JsonTrieTerm.rowContRecArray(val, result, cont);
+                        result.pop();
+                    });
+                    break;
+                case 'object':
+                    JsonTrieTerm.rowContRecObject(curr.object, [], (key, val) => {
+                        result.push(key);
+                        JsonTrieTerm.rowContRecArray(val, result, cont);
+                        result.pop();
+                    });
+                    break;
+                case 'null':
+                    result.push(null);
+                    JsonTrieTerm.rowContRecArray(curr.null, result, cont);
+                    result.pop();
+                    break;
+                case 'undefined':
+                    result.push(void(0));
+                    JsonTrieTerm.rowContRecArray(curr.undefined, result, cont);
+                    result.pop();
+                    break;
+                case 'number':
+                case 'string':
+                case 'boolean':
+                case 'variable':
+                    const valNode = curr[type];
+                    for(const k in valNode) {
+                        result.push(JsonTrieTerm.convert(type, k));
+                        JsonTrieTerm.rowContRecArray(valNode[k], result, cont);
+                        result.pop();
+                    }
+                    break;
+                //default: // ignore
+            }
+        }
+    }
+
+    private static rowContRec(curr: any, cont: (key: JsonTerm, val: any) => void): void {
+        for(const type in curr) {
+            switch(type) {
+                case 'array':
+                    JsonTrieTerm.rowContRecArray(curr.array, [], cont);
+                    break;
+                case 'object':
+                    JsonTrieTerm.rowContRecObject(curr.object, [], cont);
+                    break;
+                case 'null':
+                    cont(null, curr.null);
+                    break;
+                case 'undefined':
+                    cont(void(0), curr.undefined);
+                    break;
+                case 'number':
+                case 'string':
+                case 'boolean':
+                case 'variable':
+                    const valNode = curr[type];
+                    for(const k in valNode) {
+                        cont(JsonTrieTerm.convert(type, k), valNode[k]);
                     }
                     break;
                 // default: // ignore

@@ -79,6 +79,9 @@ var __values = (this && this.__values) || function (o) {
         JsonTrie.prototype.modify = function (key, f) {
             return JsonTrie.modifyRec(key, f, this.trie);
         };
+        JsonTrie.prototype.clear = function () {
+            this.trie = {};
+        };
         JsonTrie.prototype.contains = function (key) {
             return JsonTrie.containsRec(key, this.trie);
         };
@@ -154,6 +157,9 @@ var __values = (this && this.__values) || function (o) {
         JsonTrie.prototype.entries = function () {
             return JsonTrie.rowRec(this.trie);
         };
+        JsonTrie.prototype.entriesCont = function (k) {
+            return JsonTrie.rowContRec(this.trie, k);
+        };
         JsonTrie.prototype.match = function (key, sub) {
             var _a, _b, t, e_3_1, e_3, _c;
             return __generator(this, function (_d) {
@@ -189,6 +195,9 @@ var __values = (this && this.__values) || function (o) {
         };
         JsonTrie.prototype.matchWithValue = function (key, sub) {
             return JsonTrie.matchRec(key, sub, this.trie);
+        };
+        JsonTrie.prototype.matchCont = function (key, sub, k) {
+            return JsonTrie.matchContRec(key, sub, this.trie, k);
         };
         JsonTrie.matchRecArray = function (key, i, sub, curr) {
             var _a, _b, t, e_4_1, e_4, _c;
@@ -370,6 +379,77 @@ var __values = (this && this.__values) || function (o) {
                     case 26: return [2];
                 }
             });
+        };
+        JsonTrie.matchContRecArray = function (key, i, sub, curr, k) {
+            if (i < key.length) {
+                return JsonTrie.matchContRec(key[i], sub, curr, function (s, v) {
+                    return JsonTrie.matchContRecArray(key, i + 1, s, v, k);
+                });
+            }
+            else {
+                if ('empty' in curr)
+                    return k(sub, curr.empty);
+            }
+        };
+        JsonTrie.matchContRecObject = function (key, keys, i, sub, curr, k) {
+            if (i < keys.length) {
+                var node = curr.more;
+                if (node === void (0))
+                    return;
+                var ki = keys[i];
+                node = node[ki];
+                if (node === void (0))
+                    return;
+                return JsonTrie.matchContRec(key[ki], sub, node, function (s, v) {
+                    return JsonTrie.matchContRecObject(key, keys, i + 1, s, v, k);
+                });
+            }
+            else {
+                if ('empty' in curr)
+                    return k(sub, curr.empty);
+            }
+        };
+        JsonTrie.matchContRec = function (key, sub, curr, k) {
+            var type = typeof key;
+            if (type === 'object') {
+                if (key === null) {
+                    if ('null' in curr)
+                        return k(sub, curr.null);
+                }
+                else if (key instanceof unify_1.Variable) {
+                    var v_1 = sub.lookupAsVar(key);
+                    if (v_1 instanceof unify_1.Variable) {
+                        return JsonTrie.rowContRec(curr, function (x, val) { return k(sub.bind(v_1, x), val); });
+                    }
+                    else {
+                        return JsonTrie.matchContRec(v_1, sub, curr, k);
+                    }
+                }
+                else if (key instanceof Array) {
+                    var node = curr.array;
+                    if (node !== void (0)) {
+                        return JsonTrie.matchContRecArray(key, 0, sub, node, k);
+                    }
+                }
+                else {
+                    var node = curr.object;
+                    if (node !== void (0)) {
+                        var keys = Object.keys(key).sort();
+                        return JsonTrie.matchContRecObject(key, keys, 0, sub, node, k);
+                    }
+                }
+            }
+            else if (type === 'undefined') {
+                if ('undefined' in curr)
+                    return k(sub, curr.undefined);
+            }
+            else {
+                var node = curr[type];
+                if (node !== void (0)) {
+                    if (key in node)
+                        return k(sub, node[key]);
+                }
+            }
         };
         JsonTrie.rowRecObject = function (curr, result) {
             var obj, result_1, result_1_1, t, moreNode, _a, _b, _i, k, node, _c, _d, _e, type, _f, _g, _h, t, e_7_1, _j, _k, t, e_8_1, valNode, _l, _m, _o, k2, e_9, _p, e_7, _q, e_8, _r;
@@ -715,6 +795,139 @@ var __values = (this && this.__values) || function (o) {
                 }
             });
         };
+        JsonTrie.rowContRecObject = function (curr, result, cont) {
+            if ('empty' in curr) {
+                var obj = {};
+                try {
+                    for (var result_2 = __values(result), result_2_1 = result_2.next(); !result_2_1.done; result_2_1 = result_2.next()) {
+                        var t = result_2_1.value;
+                        obj[t[0]] = t[1];
+                    }
+                }
+                catch (e_12_1) { e_12 = { error: e_12_1 }; }
+                finally {
+                    try {
+                        if (result_2_1 && !result_2_1.done && (_a = result_2.return)) _a.call(result_2);
+                    }
+                    finally { if (e_12) throw e_12.error; }
+                }
+                cont(obj, curr.empty);
+            }
+            var moreNode = curr.more;
+            if (moreNode === void (0))
+                return;
+            var _loop_1 = function (k) {
+                var node = moreNode[k];
+                for (var type in node) {
+                    switch (type) {
+                        case 'array':
+                            JsonTrie.rowContRecArray(node.array, [], function (key, v) {
+                                result.push([k, key]);
+                                JsonTrie.rowContRecObject(v, result, cont);
+                                result.pop();
+                            });
+                            break;
+                        case 'object':
+                            JsonTrie.rowContRecObject(node.object, [], function (key, v) {
+                                result.push([k, key]);
+                                JsonTrie.rowContRecObject(v, result, cont);
+                                result.pop();
+                            });
+                            break;
+                        case 'null':
+                            result.push([k, null]);
+                            JsonTrie.rowContRecObject(node.null, result, cont);
+                            result.pop();
+                            break;
+                        case 'undefined':
+                            result.push([k, void (0)]);
+                            JsonTrie.rowContRecObject(node.undefined, result, cont);
+                            result.pop();
+                            break;
+                        case 'number':
+                        case 'boolean':
+                        case 'string':
+                            var valNode = node[type];
+                            for (var k2 in valNode) {
+                                result.push([k, convert(type, k2)]);
+                                JsonTrie.rowContRecObject(valNode[k2], result, cont);
+                                result.pop();
+                            }
+                    }
+                }
+            };
+            for (var k in moreNode) {
+                _loop_1(k);
+            }
+            var e_12, _a;
+        };
+        JsonTrie.rowContRecArray = function (curr, result, cont) {
+            for (var type in curr) {
+                switch (type) {
+                    case 'empty':
+                        cont(result.slice(), curr.empty);
+                        break;
+                    case 'array':
+                        JsonTrie.rowContRecArray(curr.array, [], function (k, v) {
+                            result.push(k);
+                            JsonTrie.rowContRecArray(v, result, cont);
+                            result.pop();
+                        });
+                        break;
+                    case 'object':
+                        JsonTrie.rowContRecObject(curr.object, [], function (k, v) {
+                            result.push(k);
+                            JsonTrie.rowContRecArray(v, result, cont);
+                            result.pop();
+                        });
+                        break;
+                    case 'null':
+                        result.push(null);
+                        JsonTrie.rowContRecArray(curr.null, result, cont);
+                        result.pop();
+                        break;
+                    case 'undefined':
+                        result.push(void (0));
+                        JsonTrie.rowContRecArray(curr.undefined, result, cont);
+                        result.pop();
+                        break;
+                    case 'number':
+                    case 'boolean':
+                    case 'string':
+                        var valNode = curr[type];
+                        for (var k in valNode) {
+                            result.push(convert(type, k));
+                            JsonTrie.rowContRecArray(valNode[k], result, cont);
+                            result.pop();
+                        }
+                }
+            }
+        };
+        JsonTrie.rowContRec = function (curr, cont) {
+            for (var type in curr) {
+                switch (type) {
+                    case 'array':
+                        JsonTrie.rowContRecArray(curr.array, [], cont);
+                        break;
+                    case 'object':
+                        JsonTrie.rowContRecObject(curr.object, [], cont);
+                        break;
+                    case 'null':
+                        cont(null, curr.null);
+                        break;
+                    case 'undefined':
+                        cont(void (0), curr.undefined);
+                        break;
+                    case 'number':
+                    case 'boolean':
+                    case 'string':
+                        var valNode = curr[type];
+                        for (var k in valNode) {
+                            cont(convert(type, k), valNode[k]);
+                        }
+                }
+            }
+        };
         JsonTrie.lookupRec = function (key, curr) {
             var type = typeof key;
             if (type === 'object') {
@@ -959,6 +1172,9 @@ var __values = (this && this.__values) || function (o) {
         JsonTrieTerm.prototype.modifyWithVars = function (key, f) {
             return JsonTrieTerm.modifyWithVarsRec(key, f, this.trie, { vars: [] });
         };
+        JsonTrieTerm.prototype.clear = function () {
+            this.trie = {};
+        };
         JsonTrieTerm.prototype.contains = function (key) {
             return JsonTrieTerm.containsRec(key, this.trie, { count: 0 });
         };
@@ -966,39 +1182,6 @@ var __values = (this && this.__values) || function (o) {
             return JsonTrieTerm.lookupRec(key, this.trie, { count: 0 });
         };
         JsonTrieTerm.prototype.keys = function () {
-            var _a, _b, t, e_12_1, e_12, _c;
-            return __generator(this, function (_d) {
-                switch (_d.label) {
-                    case 0:
-                        _d.trys.push([0, 5, 6, 7]);
-                        _a = __values(JsonTrieTerm.rowRec(this.trie)), _b = _a.next();
-                        _d.label = 1;
-                    case 1:
-                        if (!!_b.done) return [3, 4];
-                        t = _b.value;
-                        return [4, t[0]];
-                    case 2:
-                        _d.sent();
-                        _d.label = 3;
-                    case 3:
-                        _b = _a.next();
-                        return [3, 1];
-                    case 4: return [3, 7];
-                    case 5:
-                        e_12_1 = _d.sent();
-                        e_12 = { error: e_12_1 };
-                        return [3, 7];
-                    case 6:
-                        try {
-                            if (_b && !_b.done && (_c = _a.return)) _c.call(_a);
-                        }
-                        finally { if (e_12) throw e_12.error; }
-                        return [7];
-                    case 7: return [2];
-                }
-            });
-        };
-        JsonTrieTerm.prototype.values = function () {
             var _a, _b, t, e_13_1, e_13, _c;
             return __generator(this, function (_d) {
                 switch (_d.label) {
@@ -1009,7 +1192,7 @@ var __values = (this && this.__values) || function (o) {
                     case 1:
                         if (!!_b.done) return [3, 4];
                         t = _b.value;
-                        return [4, t[1]];
+                        return [4, t[0]];
                     case 2:
                         _d.sent();
                         _d.label = 3;
@@ -1031,28 +1214,64 @@ var __values = (this && this.__values) || function (o) {
                 }
             });
         };
+        JsonTrieTerm.prototype.values = function () {
+            var _a, _b, t, e_14_1, e_14, _c;
+            return __generator(this, function (_d) {
+                switch (_d.label) {
+                    case 0:
+                        _d.trys.push([0, 5, 6, 7]);
+                        _a = __values(JsonTrieTerm.rowRec(this.trie)), _b = _a.next();
+                        _d.label = 1;
+                    case 1:
+                        if (!!_b.done) return [3, 4];
+                        t = _b.value;
+                        return [4, t[1]];
+                    case 2:
+                        _d.sent();
+                        _d.label = 3;
+                    case 3:
+                        _b = _a.next();
+                        return [3, 1];
+                    case 4: return [3, 7];
+                    case 5:
+                        e_14_1 = _d.sent();
+                        e_14 = { error: e_14_1 };
+                        return [3, 7];
+                    case 6:
+                        try {
+                            if (_b && !_b.done && (_c = _a.return)) _c.call(_a);
+                        }
+                        finally { if (e_14) throw e_14.error; }
+                        return [7];
+                    case 7: return [2];
+                }
+            });
+        };
         JsonTrieTerm.prototype.entries = function () {
             return JsonTrieTerm.rowRec(this.trie);
         };
+        JsonTrieTerm.prototype.entriesCont = function (k) {
+            return JsonTrieTerm.rowContRec(this.trie, k);
+        };
         JsonTrieTerm.rowRecObject = function (curr, result) {
-            var obj, result_2, result_2_1, t, moreNode, _a, _b, _i, k, node, _c, _d, _e, type, _f, _g, _h, t, e_14_1, _j, _k, t, e_15_1, valNode, _l, _m, _o, k2, e_16, _p, e_14, _q, e_15, _r;
+            var obj, result_3, result_3_1, t, moreNode, _a, _b, _i, k, node, _c, _d, _e, type, _f, _g, _h, t, e_15_1, _j, _k, t, e_16_1, valNode, _l, _m, _o, k2, e_17, _p, e_15, _q, e_16, _r;
             return __generator(this, function (_s) {
                 switch (_s.label) {
                     case 0:
                         if (!('empty' in curr)) return [3, 2];
                         obj = {};
                         try {
-                            for (result_2 = __values(result), result_2_1 = result_2.next(); !result_2_1.done; result_2_1 = result_2.next()) {
-                                t = result_2_1.value;
+                            for (result_3 = __values(result), result_3_1 = result_3.next(); !result_3_1.done; result_3_1 = result_3.next()) {
+                                t = result_3_1.value;
                                 obj[t[0]] = t[1];
                             }
                         }
-                        catch (e_16_1) { e_16 = { error: e_16_1 }; }
+                        catch (e_17_1) { e_17 = { error: e_17_1 }; }
                         finally {
                             try {
-                                if (result_2_1 && !result_2_1.done && (_p = result_2.return)) _p.call(result_2);
+                                if (result_3_1 && !result_3_1.done && (_p = result_3.return)) _p.call(result_3);
                             }
-                            finally { if (e_16) throw e_16.error; }
+                            finally { if (e_17) throw e_17.error; }
                         }
                         return [4, [obj, curr.empty]];
                     case 1:
@@ -1109,14 +1328,14 @@ var __values = (this && this.__values) || function (o) {
                         return [3, 6];
                     case 9: return [3, 12];
                     case 10:
-                        e_14_1 = _s.sent();
-                        e_14 = { error: e_14_1 };
+                        e_15_1 = _s.sent();
+                        e_15 = { error: e_15_1 };
                         return [3, 12];
                     case 11:
                         try {
                             if (_h && !_h.done && (_q = _g.return)) _q.call(_g);
                         }
-                        finally { if (e_14) throw e_14.error; }
+                        finally { if (e_15) throw e_15.error; }
                         return [7];
                     case 12: return [3, 30];
                     case 13:
@@ -1137,14 +1356,14 @@ var __values = (this && this.__values) || function (o) {
                         return [3, 14];
                     case 17: return [3, 20];
                     case 18:
-                        e_15_1 = _s.sent();
-                        e_15 = { error: e_15_1 };
+                        e_16_1 = _s.sent();
+                        e_16 = { error: e_16_1 };
                         return [3, 20];
                     case 19:
                         try {
                             if (_k && !_k.done && (_r = _j.return)) _r.call(_j);
                         }
-                        finally { if (e_15) throw e_15.error; }
+                        finally { if (e_16) throw e_16.error; }
                         return [7];
                     case 20: return [3, 30];
                     case 21:
@@ -1192,7 +1411,7 @@ var __values = (this && this.__values) || function (o) {
             });
         };
         JsonTrieTerm.rowRecArray = function (curr, result) {
-            var _a, _b, _i, type, _c, _d, _e, t, e_17_1, _f, _g, t, e_18_1, valNode, _h, _j, _k, k, e_17, _l, e_18, _m;
+            var _a, _b, _i, type, _c, _d, _e, t, e_18_1, _f, _g, t, e_19_1, valNode, _h, _j, _k, k, e_18, _l, e_19, _m;
             return __generator(this, function (_o) {
                 switch (_o.label) {
                     case 0:
@@ -1239,14 +1458,14 @@ var __values = (this && this.__values) || function (o) {
                         return [3, 5];
                     case 8: return [3, 11];
                     case 9:
-                        e_17_1 = _o.sent();
-                        e_17 = { error: e_17_1 };
+                        e_18_1 = _o.sent();
+                        e_18 = { error: e_18_1 };
                         return [3, 11];
                     case 10:
                         try {
                             if (_e && !_e.done && (_l = _d.return)) _l.call(_d);
                         }
-                        finally { if (e_17) throw e_17.error; }
+                        finally { if (e_18) throw e_18.error; }
                         return [7];
                     case 11: return [3, 29];
                     case 12:
@@ -1267,14 +1486,14 @@ var __values = (this && this.__values) || function (o) {
                         return [3, 13];
                     case 16: return [3, 19];
                     case 17:
-                        e_18_1 = _o.sent();
-                        e_18 = { error: e_18_1 };
+                        e_19_1 = _o.sent();
+                        e_19 = { error: e_19_1 };
                         return [3, 19];
                     case 18:
                         try {
                             if (_g && !_g.done && (_m = _f.return)) _m.call(_f);
                         }
-                        finally { if (e_18) throw e_18.error; }
+                        finally { if (e_19) throw e_19.error; }
                         return [7];
                     case 19: return [3, 29];
                     case 20:
@@ -1383,6 +1602,145 @@ var __values = (this && this.__values) || function (o) {
                     case 16: return [2];
                 }
             });
+        };
+        JsonTrieTerm.rowContRecObject = function (curr, result, cont) {
+            if ('empty' in curr) {
+                var obj = {};
+                try {
+                    for (var result_4 = __values(result), result_4_1 = result_4.next(); !result_4_1.done; result_4_1 = result_4.next()) {
+                        var t = result_4_1.value;
+                        obj[t[0]] = t[1];
+                    }
+                }
+                catch (e_20_1) { e_20 = { error: e_20_1 }; }
+                finally {
+                    try {
+                        if (result_4_1 && !result_4_1.done && (_a = result_4.return)) _a.call(result_4);
+                    }
+                    finally { if (e_20) throw e_20.error; }
+                }
+                cont(obj, curr.empty);
+            }
+            var moreNode = curr.more;
+            if (moreNode === void (0))
+                return;
+            var _loop_2 = function (k) {
+                var node = moreNode[k];
+                for (var type in node) {
+                    switch (type) {
+                        case 'array':
+                            JsonTrieTerm.rowContRecArray(node.array, [], function (key, val) {
+                                result.push([k, key]);
+                                JsonTrieTerm.rowContRecObject(val, result, cont);
+                                result.pop();
+                            });
+                            break;
+                        case 'object':
+                            JsonTrieTerm.rowContRecObject(node.object, [], function (key, val) {
+                                result.push([k, key]);
+                                JsonTrieTerm.rowContRecObject(val, result, cont);
+                                result.pop();
+                            });
+                            break;
+                        case 'null':
+                            result.push([k, null]);
+                            JsonTrieTerm.rowContRecObject(node.null, result, cont);
+                            result.pop();
+                            break;
+                        case 'undefined':
+                            result.push([k, void (0)]);
+                            JsonTrieTerm.rowContRecObject(node.undefined, result, cont);
+                            result.pop();
+                            break;
+                        case 'number':
+                        case 'string':
+                        case 'boolean':
+                        case 'variable':
+                            var valNode = node[type];
+                            for (var k2 in valNode) {
+                                result.push([k, JsonTrieTerm.convert(type, k2)]);
+                                JsonTrieTerm.rowContRecObject(valNode[k2], result, cont);
+                                result.pop();
+                            }
+                            break;
+                    }
+                }
+            };
+            for (var k in moreNode) {
+                _loop_2(k);
+            }
+            var e_20, _a;
+        };
+        JsonTrieTerm.rowContRecArray = function (curr, result, cont) {
+            for (var type in curr) {
+                switch (type) {
+                    case 'empty':
+                        cont(result.slice(), curr.empty);
+                        break;
+                    case 'array':
+                        JsonTrieTerm.rowContRecArray(curr.array, [], function (key, val) {
+                            result.push(key);
+                            JsonTrieTerm.rowContRecArray(val, result, cont);
+                            result.pop();
+                        });
+                        break;
+                    case 'object':
+                        JsonTrieTerm.rowContRecObject(curr.object, [], function (key, val) {
+                            result.push(key);
+                            JsonTrieTerm.rowContRecArray(val, result, cont);
+                            result.pop();
+                        });
+                        break;
+                    case 'null':
+                        result.push(null);
+                        JsonTrieTerm.rowContRecArray(curr.null, result, cont);
+                        result.pop();
+                        break;
+                    case 'undefined':
+                        result.push(void (0));
+                        JsonTrieTerm.rowContRecArray(curr.undefined, result, cont);
+                        result.pop();
+                        break;
+                    case 'number':
+                    case 'string':
+                    case 'boolean':
+                    case 'variable':
+                        var valNode = curr[type];
+                        for (var k in valNode) {
+                            result.push(JsonTrieTerm.convert(type, k));
+                            JsonTrieTerm.rowContRecArray(valNode[k], result, cont);
+                            result.pop();
+                        }
+                        break;
+                }
+            }
+        };
+        JsonTrieTerm.rowContRec = function (curr, cont) {
+            for (var type in curr) {
+                switch (type) {
+                    case 'array':
+                        JsonTrieTerm.rowContRecArray(curr.array, [], cont);
+                        break;
+                    case 'object':
+                        JsonTrieTerm.rowContRecObject(curr.object, [], cont);
+                        break;
+                    case 'null':
+                        cont(null, curr.null);
+                        break;
+                    case 'undefined':
+                        cont(void (0), curr.undefined);
+                        break;
+                    case 'number':
+                    case 'string':
+                    case 'boolean':
+                    case 'variable':
+                        var valNode = curr[type];
+                        for (var k in valNode) {
+                            cont(JsonTrieTerm.convert(type, k), valNode[k]);
+                        }
+                        break;
+                }
+            }
         };
         JsonTrieTerm.lookupRec = function (key, curr, varMap) {
             var type = typeof key;

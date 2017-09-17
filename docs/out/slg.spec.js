@@ -718,7 +718,7 @@ var __read = (this && this.__read) || function (o, n) {
             [549, 556], [549, 574], [550, 575], [550, 555], [551, 558], [551, 569],
             [552, 569], [552, 564]
         ];
-        test.skip('large example with TrieEdbPredicate', function () {
+        test('large example with TrieEdbPredicate', function () {
             var cyl = slg_1.TrieEdbPredicate.fromArray(largeSgExampleData);
             var sg = slg_1.tabled(function (_a) {
                 var _b = __read(_a, 2), X = _b[0], Y = _b[1];
@@ -1145,7 +1145,7 @@ var __read = (this && this.__read) || function (o, n) {
                 [552, 552], [552, 532], [552, 537], [552, 551]
             ]);
         });
-        test.skip('large example with EdbPredicate', function () {
+        test('large example with EdbPredicate', function () {
             var cyl = slg_1.facts(largeSgExampleData);
             var sg = slg_1.tabled(function (_a) {
                 var _b = __read(_a, 2), X = _b[0], Y = _b[1];

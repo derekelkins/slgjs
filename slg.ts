@@ -486,11 +486,12 @@ export class TrieEdbPredicate implements NonMonotonicPredicate {
     constructor(private readonly trie: JsonTrie<any>) {}
 
     match(row: JsonTerm): LPTerm {
-        return gen => s => k => {
-            for(let s2 of this.trie.match(row, s)) {
-                k(s2);
-            }
-        };
+        return gen => s => k =>  this.trie.matchCont(row, s, k);
+        // return gen => s => k => {
+        //     for(let s2 of this.trie.match(row, s)) {
+        //         k(s2);
+        //     }
+        // };
     }
 
     /**
@@ -501,6 +502,13 @@ export class TrieEdbPredicate implements NonMonotonicPredicate {
      * @return A computation succeeding only if `row` is **not** in the extension of the predicate.
      */
     notMatch(row: JsonTerm): LPTerm {
+        // return gen => s => k => {
+        //     try {
+        //         return this.trie.matchCont(row, s, () => { throw 'Abort iteration.'; });
+        //     } catch { // TODO
+        //         return k(s);
+        //     }
+        // };
         return gen => s => k => {
             for(let s2 of this.trie.match(row, s)) {
                 return;
@@ -891,15 +899,11 @@ class GroupGenerator<M> extends Generator {
 
     consumeToCompletion(k: (cs: Array<JsonTerm>, acc: M) => void, onComplete: () => void): void {
         if(this.isComplete) {
-            for(let answer of this.answerSet.entries()) {
-                k(answer[0], answer[1]);
-            }
+            this.answerSet.entriesCont(k);
             onComplete();
         } else {
             (<Array<() => void>>this.completionListeners).push(() => {
-                for(let answer of this.answerSet.entries()) {
-                    k(answer[0], answer[1]);
-                }
+                this.answerSet.entriesCont(k);
                 onComplete();
             });
         }

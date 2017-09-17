@@ -101,6 +101,11 @@ var __read = (this && this.__read) || function (o, n) {
             expect(rows.length).toBe(10);
             var e_1, _c;
         });
+        test('correct number of entries, entriesCont', function () {
+            var rows = [];
+            trie.entriesCont(function (row) { rows.push(row); });
+            expect(rows.length).toBe(10);
+        });
         test('match object pattern', function () {
             var matches = [];
             var _a = __read(unify_1.Substitution.emptyPersistent().fresh(2), 2), _b = __read(_a[0], 2), X = _b[0], Y = _b[1], sub = _a[1];
@@ -126,7 +131,6 @@ var __read = (this && this.__read) || function (o, n) {
         test('match array pattern', function () {
             var matches = [];
             var _a = __read(unify_1.Substitution.emptyPersistent().fresh(2), 2), _b = __read(_a[0], 2), X = _b[0], Y = _b[1], sub = _a[1];
-            matches.length = 0;
             try {
                 for (var _c = __values(trie.match([X, Y], sub)), _d = _c.next(); !_d.done; _d = _c.next()) {
                     var s = _d.value;
@@ -152,7 +156,6 @@ var __read = (this && this.__read) || function (o, n) {
         test('match nonlinear pattern', function () {
             var matches = [];
             var _a = __read(unify_1.Substitution.emptyPersistent().fresh(2), 2), _b = __read(_a[0], 2), X = _b[0], Y = _b[1], sub = _a[1];
-            matches.length = 0;
             try {
                 for (var _c = __values(trie.match({ foo: { start: X, end: Y }, end: Y }, sub)), _d = _c.next(); !_d.done; _d = _c.next()) {
                     var s = _d.value;
@@ -170,6 +173,41 @@ var __read = (this && this.__read) || function (o, n) {
                 [1, 3]
             ]);
             var e_4, _e;
+        });
+        test('matchCont object pattern', function () {
+            var matches = [];
+            var _a = __read(unify_1.Substitution.emptyPersistent().fresh(2), 2), _b = __read(_a[0], 2), X = _b[0], Y = _b[1], sub = _a[1];
+            trie.matchCont({ start: X, end: Y }, sub, function (s) {
+                matches.push([s.lookup(X), s.lookup(Y)]);
+            });
+            expect(matches).toEqual([
+                [1, 2],
+                [1, 3]
+            ]);
+        });
+        test('matchCont array pattern', function () {
+            var matches = [];
+            var _a = __read(unify_1.Substitution.emptyPersistent().fresh(2), 2), _b = __read(_a[0], 2), X = _b[0], Y = _b[1], sub = _a[1];
+            trie.matchCont([X, Y], sub, function (s) {
+                matches.push([s.lookup(X), s.lookup(Y)]);
+            });
+            expect(matches).toEqual([
+                [null, { end: 2, start: 1 }],
+                [null, { end: 3, start: 1 }],
+                ['foo', { end: 3, start: 1 }],
+                [1, 2],
+                [1, 3]
+            ]);
+        });
+        test('matchCont nonlinear pattern', function () {
+            var matches = [];
+            var _a = __read(unify_1.Substitution.emptyPersistent().fresh(2), 2), _b = __read(_a[0], 2), X = _b[0], Y = _b[1], sub = _a[1];
+            trie.matchCont({ foo: { start: X, end: Y }, end: Y }, sub, function (s) {
+                matches.push([s.lookup(X), s.lookup(Y)]);
+            });
+            expect(matches).toEqual([
+                [1, 3]
+            ]);
         });
     });
     describe('JsonTrieTerm tests', function () {
@@ -245,6 +283,11 @@ var __read = (this && this.__read) || function (o, n) {
             }
             expect(rows.length).toBe(9);
             var e_5, _c;
+        });
+        test('correct number of entries, entriesCont', function () {
+            var rows = [];
+            trie.entriesCont(function (row) { rows.push(row); });
+            expect(rows.length).toBe(9);
         });
     });
 });

@@ -790,7 +790,7 @@ describe('same generation', () => {
         [549,556], [549,574], [550,575], [550,555], [551,558], [551,569],
         [552,569], [552,564]]
 
-    test.skip('large example with TrieEdbPredicate', () => {
+    test('large example with TrieEdbPredicate', () => {
         const cyl: Predicate = TrieEdbPredicate.fromArray(largeSgExampleData);
 
         const sg: Predicate = tabled(([X, Y]) => rule(
@@ -1218,7 +1218,7 @@ describe('same generation', () => {
         ]);
     });
 
-    test.skip('large example with EdbPredicate', () => {
+    test('large example with EdbPredicate', () => {
         const cyl: Predicate = facts(largeSgExampleData);
 
         const sg: Predicate = tabled(([X, Y]) => rule(

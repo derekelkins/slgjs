@@ -348,22 +348,7 @@ var __values = (this && this.__values) || function (o) {
         };
         TrieEdbPredicate.prototype.match = function (row) {
             var _this = this;
-            return function (gen) { return function (s) { return function (k) {
-                try {
-                    for (var _a = __values(_this.trie.match(row, s)), _b = _a.next(); !_b.done; _b = _a.next()) {
-                        var s2 = _b.value;
-                        k(s2);
-                    }
-                }
-                catch (e_1_1) { e_1 = { error: e_1_1 }; }
-                finally {
-                    try {
-                        if (_b && !_b.done && (_c = _a.return)) _c.call(_a);
-                    }
-                    finally { if (e_1) throw e_1.error; }
-                }
-                var e_1, _c;
-            }; }; };
+            return function (gen) { return function (s) { return function (k) { return _this.trie.matchCont(row, s, k); }; }; };
         };
         TrieEdbPredicate.prototype.notMatch = function (row) {
             var _this = this;
@@ -374,15 +359,15 @@ var __values = (this && this.__values) || function (o) {
                         return;
                     }
                 }
-                catch (e_2_1) { e_2 = { error: e_2_1 }; }
+                catch (e_1_1) { e_1 = { error: e_1_1 }; }
                 finally {
                     try {
                         if (_b && !_b.done && (_c = _a.return)) _c.call(_a);
                     }
-                    finally { if (e_2) throw e_2.error; }
+                    finally { if (e_1) throw e_1.error; }
                 }
                 k(s);
-                var e_2, _c;
+                var e_1, _c;
             }; }; };
         };
         return TrieEdbPredicate;
@@ -584,41 +569,15 @@ var __values = (this && this.__values) || function (o) {
         GroupGenerator.prototype.consumeToCompletion = function (k, onComplete) {
             var _this = this;
             if (this.isComplete) {
-                try {
-                    for (var _a = __values(this.answerSet.entries()), _b = _a.next(); !_b.done; _b = _a.next()) {
-                        var answer = _b.value;
-                        k(answer[0], answer[1]);
-                    }
-                }
-                catch (e_3_1) { e_3 = { error: e_3_1 }; }
-                finally {
-                    try {
-                        if (_b && !_b.done && (_c = _a.return)) _c.call(_a);
-                    }
-                    finally { if (e_3) throw e_3.error; }
-                }
+                this.answerSet.entriesCont(k);
                 onComplete();
             }
             else {
                 this.completionListeners.push(function () {
-                    try {
-                        for (var _a = __values(_this.answerSet.entries()), _b = _a.next(); !_b.done; _b = _a.next()) {
-                            var answer = _b.value;
-                            k(answer[0], answer[1]);
-                        }
-                    }
-                    catch (e_4_1) { e_4 = { error: e_4_1 }; }
-                    finally {
-                        try {
-                            if (_b && !_b.done && (_c = _a.return)) _c.call(_a);
-                        }
-                        finally { if (e_4) throw e_4.error; }
-                    }
+                    _this.answerSet.entriesCont(k);
                     onComplete();
-                    var e_4, _c;
                 });
             }
-            var e_3, _c;
         };
         GroupGenerator.prototype.scheduleResumes = function () {
             return false;
