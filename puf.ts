@@ -168,7 +168,8 @@ class ArrayCell<A> implements PersistentArray<A> {
     getUnsafe(index: number): A { return this.contents.getUnsafe(this, index); }
 
     set(index: number, value: A): PersistentArray<A> { 
-        this.contents.reroot(this); return this.contents.set(this, index, value); 
+        this.contents.reroot(this);
+        return this.contents.set(this, index, value); 
     }
 }
 
@@ -289,7 +290,7 @@ class DiffArray<A> implements InternalPersistentArray<A> {
     reroot(t: ArrayCell<A>): void {
         const t2 = this.baseArray;
         t2.contents.reroot(t2);
-        t2.contents.rerootAux(this.index, this.value, t, t2);
+        return t2.contents.rerootAux(this.index, this.value, t, t2);
     }
 
     rerootAux(i: number, v: A, t: ArrayCell<A>, t2: ArrayCell<A>): void {

@@ -128,7 +128,7 @@ abstract class Generator implements Scheduler {
             if(this.processes === null) return; // We're already complete.
             waiter = this.processes.pop(); 
         }
-        Generator.checkCompletion(this);
+        return Generator.checkCompletion(this);
     }
 
     dependOn(v: Generator): void {
@@ -222,7 +222,7 @@ abstract class Generator implements Scheduler {
                 stack.length = i;
             }
         };
-        scc(gen);
+        return scc(gen);
     }
 
     private static isLeader(g: Generator): Array<Generator> | null {
@@ -330,7 +330,7 @@ class TableGenerator extends Generator {
 
     consumeNegatively(k: () => void): void {
         if(this.isComplete) {
-            if(this.table.length === 0) k();
+            if(this.table.length === 0) return k();
         } else {
             (<Array<() => void>>this.completionListeners).push(() => this.table.length === 0 ? k() : void(0));
         }
@@ -343,7 +343,7 @@ class TableGenerator extends Generator {
             for(let i = 0; i < len; ++i) {
                 k(answers[i]);
             }
-            onComplete();
+            return onComplete();
         } else {
             (<Array<[number, (cs: Array<JsonTerm>) => void]>>this.consumers).push([0, k]);
             (<Array<() => void>>this.completionListeners).push(onComplete);
@@ -396,7 +396,7 @@ class TableGenerator extends Generator {
                 this.table.push([]);
                 this.scheduleResumes(); // TODO: Is this correct? We do need to notify consumers due to the early completion.
                 this.complete();
-                this.scheduleNegativeResumes();
+                return this.scheduleNegativeResumes();
             } // else, do nothing, we've already completed
         } else {
             // TODO: Early completion. Early completion occurs when an answer is a variant of the goal. Checking this just means
@@ -415,9 +415,9 @@ class TableGenerator extends Generator {
     }
 
     protected complete(): void {
-        this.cleanup();
         this.consumers = null;
         this.answerSet = null;
+        return this.cleanup();
     }
 }
 
@@ -432,31 +432,11 @@ export interface Predicate {
      * consistent with the predicate.
      */
     match(row: JsonTerm): LPTerm;
-
-    /*
-     * Applies a function to each resulting term which are required to have no unbound variables,
-     * otherwise an exception will be thrown.
-     * @param row The [[JsonTerm]] to match against.
-     * @param f The function applied to each completely grounded result. See [[completelyGroundJson]].
-     * @returns A predicate containing the image of `f`.
-     */
-    //map(row: JsonTerm, f: (x: Json) => Json): Predicate;
-
-    /*
-     * Produces a predicate filtered to those terms which match `row` and satisfy `pred`. The terms
-     * in the original predicate are required to have no unbound variables, otherwise an exception
-     * will be thrown.
-     * @param row The [[JsonTerm]] to match against.
-     * @param pred The condition to filter against. Returns a truthy result for elements that should
-     * be kept.
-     * @returns A filtered predicate.
-     */
-    //filter(row: JsonTerm, pred: (x: Json) => boolean): Predicate;
-    // notMatch(row: JsonTerm): LPTerm;
 }
 
 interface NonMonotonicPredicate extends Predicate {
     notMatch(row: JsonTerm): LPTerm;
+    //arrayOf(result: JsonTerm): LPTerm;
 }
 
 /**
@@ -464,6 +444,12 @@ interface NonMonotonicPredicate extends Predicate {
  * a form of indexing.
  */
 export class TrieEdbPredicate implements NonMonotonicPredicate {
+    /**
+     * Uses `trie` as the backing store without copying.
+     * @param trie The backing store.
+     */
+    constructor(private readonly trie: JsonTrie<any>) {}
+
     /**
      * This just inserts the data into a trie and returns a predicate built upon it.
      * This will thus inherently eliminate duplicates.
@@ -479,19 +465,8 @@ export class TrieEdbPredicate implements NonMonotonicPredicate {
         return new TrieEdbPredicate(trie);
     }
 
-    /**
-     * Uses `trie` as the backing store without copying.
-     * @param trie The backing store.
-     */
-    constructor(private readonly trie: JsonTrie<any>) {}
-
     match(row: JsonTerm): LPTerm {
-        return gen => s => k =>  this.trie.matchCont(row, s, k);
-        // return gen => s => k => {
-        //     for(let s2 of this.trie.match(row, s)) {
-        //         k(s2);
-        //     }
-        // };
+        return gen => s => k => this.trie.matchCont(row, s, k);
     }
 
     /**
@@ -510,12 +485,23 @@ export class TrieEdbPredicate implements NonMonotonicPredicate {
         //     }
         // };
         return gen => s => k => {
-            for(let s2 of this.trie.match(row, s)) {
+            for(const s2 of this.trie.match(row, s)) {
                 return;
             }
-            k(s);
+            return k(s);
         };
     }
+
+    /*
+    arrayOf(result: JsonTerm): LPTerm {
+        return gen => s => k => {
+            const acc: Array<Json> = [];
+            this.trie.entriesCont(v => acc.push(v));
+            const s2 = matchJson(result, acc, s);
+            if(s2 !== null) return k(s2);
+        };
+    }
+    */
 }
 
 /**
@@ -572,6 +558,15 @@ export class EdbPredicate implements NonMonotonicPredicate {
             return k(s);
         };
     }
+
+    /*
+    arrayOf(result: JsonTerm): LPTerm {
+        return gen => s => k => {
+            const s2 = matchJson(result, this.table.slice(), s);
+            if(s2 !== null) return k(s2);
+        };
+    }
+    */
 }
 
 /**
@@ -640,7 +635,7 @@ export class TabledPredicate implements NonMonotonicPredicate {
             generator.consume(cs => {
                 // const [cs2, s2] = refreshJson(cs, s, vs); // TODO: Combine these or something.
                 // const s3 = <Substitution<JsonTerm>>unifyJson(vs, cs2, s2);
-                // k(s3);
+                // return k(s3);
                 let s2 = s;
                 for(let i = 0; i < len; ++i) {
                     const t = refreshJson(cs[i], s2, vs); 
@@ -650,9 +645,9 @@ export class TabledPredicate implements NonMonotonicPredicate {
                 for(let i = 0; i < len; ++i) {
                     s2 = <Substitution<JsonTerm>>unifyJson(vs[i], rs[i], s2);
                 }
-                k(s2);
+                return k(s2);
             });
-            if(isNew) generator.execute();
+            if(isNew) return generator.execute();
         };
     }
 
@@ -684,7 +679,7 @@ export class TabledPredicate implements NonMonotonicPredicate {
             if(vs.length !== 0) throw new Error('TabledPredicate.notMatch: negation of non-ground atom (floundering)');
             gen.dependNegativelyOn(generator);
             generator.consumeNegatively(() => k(s));
-            if(isNew) generator.execute();
+            if(isNew) return generator.execute();
         };
     }
 
@@ -729,9 +724,9 @@ export class TabledPredicate implements NonMonotonicPredicate {
                 agg = mult(agg, inject(completelyGroundJson(row, s2)));
             }, () => { 
                 const s2 = matchJson(result, agg, s); 
-                if(s2 !== null) k(s2);
+                if(s2 !== null) return k(s2);
             });
-            if(isNew) generator.execute();
+            if(isNew) return generator.execute();
         }};};
     }
 
@@ -900,11 +895,11 @@ class GroupGenerator<M> extends Generator {
     consumeToCompletion(k: (cs: Array<JsonTerm>, acc: M) => void, onComplete: () => void): void {
         if(this.isComplete) {
             this.answerSet.entriesCont(k);
-            onComplete();
+            return onComplete();
         } else {
             (<Array<() => void>>this.completionListeners).push(() => {
                 this.answerSet.entriesCont(k);
-                onComplete();
+                return onComplete();
             });
         }
     }
@@ -944,7 +939,7 @@ class GroupGenerator<M> extends Generator {
     }
 
     protected complete(): void {
-        this.cleanup();
+        return this.cleanup();
     }
 }
 
@@ -979,14 +974,14 @@ class GroupedPredicateGroup implements Group {
                     s2 = <Substitution<JsonTerm>>unifyJson(grps[i], rs[i], s2);
                 }
                 s2 = matchJson(agg, acc, s2);
-                if(s2 !== null) k(s2);
+                if(s2 !== null) return k(s2);
             }, () => {
                 if(!anyResults) {
                     const s2 = matchJson(agg, unit, s);
-                    if(s2 !== null) k(s2);
+                    if(s2 !== null) return k(s2);
                 }
             });
-            generator.execute();
+            return generator.execute();
         };
     }
 
@@ -1078,9 +1073,9 @@ export class GroupedPredicate implements NonMonotonicPredicate {
                 for(let i = 0; i < len; ++i) {
                     s2 = <Substitution<JsonTerm>>unifyJson(vs[i], rs[i], s2);
                 }
-                k(s2);
+                return k(s2);
             });
-            if(isNew) generator.execute();
+            if(isNew) return generator.execute();
         };
     }
 
@@ -1099,7 +1094,7 @@ export class GroupedPredicate implements NonMonotonicPredicate {
             if(vs.length !== 0) throw new Error('GroupedPredicate.notMatch: negation of non-ground atom (floundering)');
             gen.dependNegativelyOn(generator);
             generator.consumeNegatively(() => k(s));
-            if(isNew) generator.execute();
+            if(isNew) return generator.execute();
         };
     }
 
@@ -1138,10 +1133,10 @@ class LatticeGenerator<L> extends Generator {
 
     consume(k: (acc: L) => void): void {
         if(this.isComplete) {
-            k(this.accumulator);
+            return k(this.accumulator);
         } else {
             (<Array<[L, (acc: L) => void]>>this.consumers).push([this.accumulator, k]);
-            k(this.accumulator);
+            return k(this.accumulator);
         }
     }
 
@@ -1188,13 +1183,13 @@ class LatticeGenerator<L> extends Generator {
         if(this.earlyComplete(this.accumulator)) { 
             this.scheduleResumes();
             this.complete();
-            this.scheduleNegativeResumes();
+            return this.scheduleNegativeResumes();
         }
     }
 
     protected complete(): void {
-        this.cleanup();
         this.consumers = null;
+        return this.cleanup();
     }
 }
 
@@ -1252,7 +1247,7 @@ abstract class BaseLattice<L> {
             const isNew = t[1];
             gen.dependOn(g);
             g.consume(x => f(x, k, s, g));
-            if(isNew) g.execute();
+            if(isNew) return g.execute();
         };
     }
 }
@@ -1554,9 +1549,9 @@ export function conj<V>(...cs: Array<LPSub<V>>): LPSub<V> {
         return s => k => {
             const loop = (i: number) => (s2: Substitution<V>) => {
                 if(i < len) {
-                    cs2[i](s2)(loop(i+1));
+                    return cs2[i](s2)(loop(i+1));
                 } else {
-                    k(s2);
+                    return k(s2);
                 }
             }
             return loop(0)(s);
@@ -1688,7 +1683,7 @@ function runLP<V, A>(sched: Scheduler, m: LP<V, A>, k: (a: A) => void): void {
 function run<V, A>(m: LP<V, A>, k: (a: A) => void): void {
     const sched = new TopLevelScheduler();
     runLP(sched, m, k);
-    sched.execute();
+    return sched.execute();
 }
 
 /**
@@ -1696,7 +1691,7 @@ function run<V, A>(m: LP<V, A>, k: (a: A) => void): void {
  * the [[ground]]ing of that variable each time `body` succeeds.
  */
 export function runQ(body: (q: Variable) => LPTerm, k: (a: JsonTerm) => void): void {
-    run(fresh(Q => seq(body(Q), ground(Q))), k);
+    return run(fresh(Q => seq(body(Q), ground(Q))), k);
 }
 
 function toArray<V, A>(m: LP<V, A>): Array<A> {
