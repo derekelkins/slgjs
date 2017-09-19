@@ -46,7 +46,7 @@ for(const rule of rules) {
     if(typeof rule.alternatives === 'string') {
         const terms = slg.facts(rule.alternatives);
         nonTerminalMap[rule.lhs] = slg.tabled(([I, K, T]) =>
-            slg.clause(C => [terms.match(C), characters.match([C, I]), slg.apply(i => i+1)(I, K), slg.unify(T, [rule.lhs, C])]))
+            slg.clause(C => [terms.match(C), characters.match([C, I]), slg.apply(i => i+1)(I, K), slg.unify(T, {[rule.lhs]: C})]))
     } else {
         const alts = rule.alternatives.map(alt => (I, K, T) => slg.freshN(alt.length-1, (...Js) => slg.clauseN(alt.length, (...Ts) => {
             const conjs = [];
@@ -56,7 +56,7 @@ for(const rule of rules) {
                 conjs.push(nonTerminalMap[alt[i]].match([prevVar, Js[i], Ts[i]]));
                 prevVar = Js[i];
             }
-            conjs.push(slg.unify(T, [rule.lhs, Ts]));
+            conjs.push(slg.unify(T, {[rule.lhs]: Ts}));
             return conjs;
         })));
         nonTerminalMap[rule.lhs] = slg.tabled(([I, J, T]) => slg.disj.apply(null, alts.map(alt => alt(I, J, T))));
