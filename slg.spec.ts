@@ -4,7 +4,7 @@ import { Variable, JsonTerm } from "./unify"
 import { Predicate, UntabledPredicate, TabledPredicate, TrieEdbPredicate, GroupedPredicate,
          GrowingSetLattice, AnyLattice, MaxLattice, MinLattice,
          facts, tabled, untabled, grouped,
-         rule, clause, fresh, unify, conj, apply, looseUnify, toArrayQ } from "./slg"
+         rule, fail, clause, fresh, unify, conj, apply, looseUnify, toArrayQ } from "./slg"
 
 describe('lattices', () => {
     test('quorum example', () => {
@@ -285,6 +285,26 @@ describe('non-monotonic aggregation', () => {
 });
 
 describe('LRD-stratified negation', () => {
+    test('LRD-stratified example requiring early completion', () => {
+        // a :- b, not c. 
+        // b :- a. 
+        // b :- d.
+        // b. 
+        // c :- not d. 
+        // d :- b, e. 
+        // ?- a.
+        const a: TabledPredicate = tabled(X => conj(b.match(X), c.notMatch(X)));
+        const b: TabledPredicate = tabled(X => rule(
+            () => [a.match(X)],
+            () => [d.match(X)],
+            () => []));
+        const c: TabledPredicate = tabled(X => d.notMatch(X));
+        const d: TabledPredicate = tabled(X => conj(b.match(X), e.match(X)));
+        const e: TabledPredicate = tabled(X => fail());
+        const results = toArrayQ(Q => conj(a.match(null), unify(Q, true)));
+        expect(results).toEqual([]);
+    });
+
     test('LRD-stratified example', () => {
         // p :- q, not r, not s.
         // q :- r, not p.
