@@ -12,6 +12,16 @@ aggregation is something I'm considering.
 The implementation techniques are similar to the SLG-WAM of the XSB Prolog
 implementation.
 
+Last-call optimization should happen only when the last call is an untabled
+predicate *and* the underlying JavaScript engine does tail-call elimination 
+(which has been mandated by EcmaScript 2015 but not implemented in anything
+but Safari currently).  If the last call is a tabled (or grouped) predicate,
+last-call optimization won't happen regardless of the underlying JavaScript
+implementation. However, it's often preferable to put tabled predicates
+early, often the *first* call, which will usually avoid unbounded stack usage
+as the table gets consulted in the recursive calls rather than unfolding
+another layer of execution.
+
 The API will likely change significantly.
 
 [API Reference](doc/index.html)
