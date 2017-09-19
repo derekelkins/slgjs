@@ -45,8 +45,8 @@ const nonTerminalMap = {};
 for(const rule of rules) {
     if(typeof rule.alternatives === 'string') {
         const terms = slg.facts(rule.alternatives);
-        nonTerminalMap[rule.lhs] = slg.tabled(row =>
-            slg.clause(C => [terms.match(C), characters.match([C, row[0]]), slg.apply(i => i+1)(row[0], row[1]), slg.unify(row[2], [rule.lhs, C])]))
+        nonTerminalMap[rule.lhs] = slg.tabled(([I, K, T]) =>
+            slg.clause(C => [terms.match(C), characters.match([C, I]), slg.apply(i => i+1)(I, K), slg.unify(T, [rule.lhs, C])]))
     } else {
         const alts = rule.alternatives.map(alt => (I, K, T) => slg.freshN(alt.length-1, (...Js) => slg.clauseN(alt.length, (...Ts) => {
             const conjs = [];
@@ -59,7 +59,7 @@ for(const rule of rules) {
             conjs.push(slg.unify(T, [rule.lhs, Ts]));
             return conjs;
         })));
-        nonTerminalMap[rule.lhs] = slg.tabled(row => slg.disj.apply(null, alts.map(alt => alt(row[0], row[1], row[2]))));
+        nonTerminalMap[rule.lhs] = slg.tabled(([I, J, T]) => slg.disj.apply(null, alts.map(alt => alt(I, J, T))));
     }
 }
 const results = slg.toArrayQ(Q => nonTerminalMap.Start.match([0, inputString.length, Q]));
