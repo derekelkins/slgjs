@@ -23,7 +23,6 @@
         "slg.ts",
         "slg.spec.ts",
         "json-trie.ts",
-        "json-trie.spec.ts",
-        "scc.ts"
+        "json-trie.spec.ts"
     ]
 }
