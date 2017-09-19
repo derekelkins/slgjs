@@ -88,18 +88,14 @@ var __values = (this && this.__values) || function (o) {
                     return;
                 waiter = this.processes.pop();
             }
-            Generator.checkCompletion(this);
+            return Generator.checkCompletion(this);
         };
         Generator.prototype.dependOn = function (v) {
-            if (this.isComplete)
-                return;
             this.directLink = Math.min(this.directLink, v.directLink);
             this.successors[v.selfId] = v;
             this.globalEnv.sdgEdges.push([this.selfId, v.selfId]);
         };
         Generator.prototype.dependNegativelyOn = function (v) {
-            if (this.isComplete)
-                return;
             this.directLink = Math.min(this.directLink, v.directLink);
             this.negativeSuccessors[v.selfId] = v;
             this.globalEnv.sdgEdges.push([this.selfId, v.selfId]);
@@ -150,7 +146,7 @@ var __values = (this && this.__values) || function (o) {
                     stack.length = i;
                 }
             };
-            scc(gen);
+            return scc(gen);
         };
         Generator.isLeader = function (g) {
             var prev = g.prevGenerator;
@@ -255,7 +251,7 @@ var __values = (this && this.__values) || function (o) {
             var _this = this;
             if (this.isComplete) {
                 if (this.table.length === 0)
-                    k();
+                    return k();
             }
             else {
                 this.completionListeners.push(function () { return _this.table.length === 0 ? k() : void (0); });
@@ -268,7 +264,7 @@ var __values = (this && this.__values) || function (o) {
                 for (var i = 0; i < len; ++i) {
                     k(answers[i]);
                 }
-                onComplete();
+                return onComplete();
             }
             else {
                 this.consumers.push([0, k]);
@@ -314,7 +310,7 @@ var __values = (this && this.__values) || function (o) {
                     this.table.push([]);
                     this.scheduleResumes();
                     this.complete();
-                    this.scheduleNegativeResumes();
+                    return this.scheduleNegativeResumes();
                 }
             }
             else {
@@ -328,9 +324,9 @@ var __values = (this && this.__values) || function (o) {
             }
         };
         TableGenerator.prototype.complete = function () {
-            this.cleanup();
             this.consumers = null;
             this.answerSet = null;
+            return this.cleanup();
         };
         return TableGenerator;
     }(Generator));
@@ -366,7 +362,7 @@ var __values = (this && this.__values) || function (o) {
                     }
                     finally { if (e_1) throw e_1.error; }
                 }
-                k(s);
+                return k(s);
                 var e_1, _c;
             }; }; };
         };
@@ -455,7 +451,6 @@ var __values = (this && this.__values) || function (o) {
                 var t = _this.getGenerator(unify_1.groundJson(row, s), gen);
                 var generator = t[0];
                 var vs = t[1];
-                var isNew = t[2];
                 var len = vs.length;
                 var rs = new Array(len);
                 gen.dependOn(generator);
@@ -469,10 +464,10 @@ var __values = (this && this.__values) || function (o) {
                     for (var i = 0; i < len; ++i) {
                         s2 = unify_1.unifyJson(vs[i], rs[i], s2);
                     }
-                    k(s2);
+                    return k(s2);
                 });
-                if (isNew)
-                    generator.execute();
+                if (t[2])
+                    return generator.execute();
             }; }; };
         };
         TabledPredicate.prototype.notMatch = function (row) {
@@ -480,14 +475,12 @@ var __values = (this && this.__values) || function (o) {
             return function (gen) { return function (s) { return function (k) {
                 var t = _this.getGenerator(unify_1.groundJson(row, s), gen);
                 var generator = t[0];
-                var vs = t[1];
-                var isNew = t[2];
-                if (vs.length !== 0)
+                if (t[1].length !== 0)
                     throw new Error('TabledPredicate.notMatch: negation of non-ground atom (floundering)');
                 gen.dependNegativelyOn(generator);
                 generator.consumeNegatively(function () { return k(s); });
-                if (isNew)
-                    generator.execute();
+                if (t[2])
+                    return generator.execute();
             }; }; };
         };
         TabledPredicate.prototype.aggregate = function (inject, unit, mult) {
@@ -497,7 +490,6 @@ var __values = (this && this.__values) || function (o) {
                         var t = _this.getGenerator(unify_1.groundJson(row, s), gen);
                         var generator = t[0];
                         var vs = t[1];
-                        var isNew = t[2];
                         var len = vs.length;
                         var rs = new Array(len);
                         var agg = unit;
@@ -516,10 +508,10 @@ var __values = (this && this.__values) || function (o) {
                         }, function () {
                             var s2 = unify_1.matchJson(result, agg, s);
                             if (s2 !== null)
-                                k(s2);
+                                return k(s2);
                         });
-                        if (isNew)
-                            generator.execute();
+                        if (t[2])
+                            return generator.execute();
                     }; }; }; } };
             };
         };
@@ -570,12 +562,12 @@ var __values = (this && this.__values) || function (o) {
             var _this = this;
             if (this.isComplete) {
                 this.answerSet.entriesCont(k);
-                onComplete();
+                return onComplete();
             }
             else {
                 this.completionListeners.push(function () {
                     _this.answerSet.entriesCont(k);
-                    onComplete();
+                    return onComplete();
                 });
             }
         };
@@ -609,7 +601,7 @@ var __values = (this && this.__values) || function (o) {
             });
         };
         GroupGenerator.prototype.complete = function () {
-            this.cleanup();
+            return this.cleanup();
         };
         return GroupGenerator;
     }(Generator));
@@ -648,15 +640,15 @@ var __values = (this && this.__values) || function (o) {
                     }
                     s2 = unify_1.matchJson(agg, acc, s2);
                     if (s2 !== null)
-                        k(s2);
+                        return k(s2);
                 }, function () {
                     if (!anyResults) {
                         var s2 = unify_1.matchJson(agg, unit, s);
                         if (s2 !== null)
-                            k(s2);
+                            return k(s2);
                     }
                 });
-                generator.execute();
+                return generator.execute();
             }; }; };
         };
         GroupedPredicateGroup.prototype.sumInto = function (agg) {
@@ -712,7 +704,6 @@ var __values = (this && this.__values) || function (o) {
                 var t = _this.getGenerator(unify_1.groundJson(row, s), t1[0], gen);
                 var generator = t[0];
                 var vs = t[1];
-                var isNew = t[2];
                 var len = vs.length;
                 var rs = new Array(len);
                 gen.dependOn(generator);
@@ -726,10 +717,10 @@ var __values = (this && this.__values) || function (o) {
                     for (var i = 0; i < len; ++i) {
                         s2 = unify_1.unifyJson(vs[i], rs[i], s2);
                     }
-                    k(s2);
+                    return k(s2);
                 });
-                if (isNew)
-                    generator.execute();
+                if (t[2])
+                    return generator.execute();
             }; }; };
         };
         GroupedPredicate.prototype.notMatch = function (row) {
@@ -740,13 +731,12 @@ var __values = (this && this.__values) || function (o) {
                 var t = _this.getGenerator(unify_1.groundJson(row, s), t1[0], gen);
                 var generator = t[0];
                 var vs = t[1];
-                var isNew = t[2];
                 if (vs.length !== 0)
                     throw new Error('GroupedPredicate.notMatch: negation of non-ground atom (floundering)');
                 gen.dependNegativelyOn(generator);
                 generator.consumeNegatively(function () { return k(s); });
-                if (isNew)
-                    generator.execute();
+                if (t[2])
+                    return generator.execute();
             }; }; };
         };
         GroupedPredicate.prototype.groupBy = function () {
@@ -784,11 +774,11 @@ var __values = (this && this.__values) || function (o) {
         };
         LatticeGenerator.prototype.consume = function (k) {
             if (this.isComplete) {
-                k(this.accumulator);
+                return k(this.accumulator);
             }
             else {
                 this.consumers.push([this.accumulator, k]);
-                k(this.accumulator);
+                return k(this.accumulator);
             }
         };
         LatticeGenerator.prototype.scheduleNegativeResumes = function () {
@@ -814,12 +804,12 @@ var __values = (this && this.__values) || function (o) {
             if (this.earlyComplete(this.accumulator)) {
                 this.scheduleResumes();
                 this.complete();
-                this.scheduleNegativeResumes();
+                return this.scheduleNegativeResumes();
             }
         };
         LatticeGenerator.prototype.complete = function () {
-            this.cleanup();
             this.consumers = null;
+            return this.cleanup();
         };
         return LatticeGenerator;
     }(Generator));
@@ -858,11 +848,10 @@ var __values = (this && this.__values) || function (o) {
             return function (gen) { return function (s) { return function (k) {
                 var t = _this.getGenerator(unify_1.groundJson(row, s), gen);
                 var g = t[0];
-                var isNew = t[1];
                 gen.dependOn(g);
                 g.consume(function (x) { return f(x, k, s, g); });
-                if (isNew)
-                    g.execute();
+                if (t[1])
+                    return g.execute();
             }; }; };
         };
         return BaseLattice;
@@ -1098,10 +1087,10 @@ var __values = (this && this.__values) || function (o) {
             return function (s) { return function (k) {
                 var loop = function (i) { return function (s2) {
                     if (i < len) {
-                        cs2[i](s2)(loop(i + 1));
+                        return cs2[i](s2)(loop(i + 1));
                     }
                     else {
-                        k(s2);
+                        return k(s2);
                     }
                 }; };
                 return loop(0)(s);
@@ -1188,10 +1177,10 @@ var __values = (this && this.__values) || function (o) {
     function run(m, k) {
         var sched = new TopLevelScheduler();
         runLP(sched, m, k);
-        sched.execute();
+        return sched.execute();
     }
     function runQ(body, k) {
-        run(fresh(function (Q) { return seq(body(Q), ground(Q)); }), k);
+        return run(fresh(function (Q) { return seq(body(Q), ground(Q)); }), k);
     }
     exports.runQ = runQ;
     function toArray(m) {

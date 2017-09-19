@@ -220,7 +220,7 @@
         DiffArray.prototype.reroot = function (t) {
             var t2 = this.baseArray;
             t2.contents.reroot(t2);
-            t2.contents.rerootAux(this.index, this.value, t, t2);
+            return t2.contents.rerootAux(this.index, this.value, t, t2);
         };
         DiffArray.prototype.rerootAux = function (i, v, t, t2) {
             throw new Error('DiffArray.rerootAux: we should never get here.');

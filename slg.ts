@@ -132,7 +132,6 @@ abstract class Generator implements Scheduler {
     }
 
     dependOn(v: Generator): void {
-        if(this.isComplete) return;
         this.directLink = Math.min(this.directLink, v.directLink);
         (<{[index: number]: Generator}>this.successors)[v.selfId] = v;
         // DEBUG
@@ -140,7 +139,6 @@ abstract class Generator implements Scheduler {
     }
 
     dependNegativelyOn(v: Generator): void {
-        if(this.isComplete) return;
         this.directLink = Math.min(this.directLink, v.directLink);
         (<{[index: number]: Generator}>this.negativeSuccessors)[v.selfId] = v;
         // DEBUG
@@ -628,7 +626,6 @@ export class TabledPredicate implements NonMonotonicPredicate {
             const t = this.getGenerator(groundJson(row, s), gen);
             const generator = t[0];
             const vs = t[1];
-            const isNew = t[2];
             const len = vs.length;
             const rs = new Array<JsonTerm>(len);
             gen.dependOn(generator);
@@ -647,7 +644,7 @@ export class TabledPredicate implements NonMonotonicPredicate {
                 }
                 return k(s2);
             });
-            if(isNew) return generator.execute();
+            if(t[2]) return generator.execute();
         };
     }
 
@@ -674,12 +671,10 @@ export class TabledPredicate implements NonMonotonicPredicate {
             // TODO: Can I add back the groundingModifyWithVars to eliminate this groundJson?
             const t = this.getGenerator(groundJson(row, s), gen);
             const generator = t[0];
-            const vs = t[1];
-            const isNew = t[2];
-            if(vs.length !== 0) throw new Error('TabledPredicate.notMatch: negation of non-ground atom (floundering)');
+            if(t[1].length !== 0) throw new Error('TabledPredicate.notMatch: negation of non-ground atom (floundering)');
             gen.dependNegativelyOn(generator);
             generator.consumeNegatively(() => k(s));
-            if(isNew) return generator.execute();
+            if(t[2]) return generator.execute();
         };
     }
 
@@ -706,7 +701,6 @@ export class TabledPredicate implements NonMonotonicPredicate {
             const t = this.getGenerator(groundJson(row, s), gen);
             const generator = t[0];
             const vs = t[1];
-            const isNew = t[2];
             const len = vs.length;
             const rs = new Array<JsonTerm>(len);
             let agg = unit;
@@ -726,7 +720,7 @@ export class TabledPredicate implements NonMonotonicPredicate {
                 const s2 = matchJson(result, agg, s); 
                 if(s2 !== null) return k(s2);
             });
-            if(isNew) return generator.execute();
+            if(t[2]) return generator.execute();
         }};};
     }
 
@@ -1056,7 +1050,6 @@ export class GroupedPredicate implements NonMonotonicPredicate {
             const t = this.getGenerator(groundJson(row, s), t1[0], gen);
             const generator = t[0];
             const vs = t[1];
-            const isNew = t[2];
             const len = vs.length;
             const rs = new Array<JsonTerm>(len);
             gen.dependOn(generator);
@@ -1075,7 +1068,7 @@ export class GroupedPredicate implements NonMonotonicPredicate {
                 }
                 return k(s2);
             });
-            if(isNew) return generator.execute();
+            if(t[2]) return generator.execute();
         };
     }
 
@@ -1090,11 +1083,10 @@ export class GroupedPredicate implements NonMonotonicPredicate {
             const t = this.getGenerator(groundJson(row, s), t1[0], gen);
             const generator = t[0];
             const vs = t[1];
-            const isNew = t[2];
             if(vs.length !== 0) throw new Error('GroupedPredicate.notMatch: negation of non-ground atom (floundering)');
             gen.dependNegativelyOn(generator);
             generator.consumeNegatively(() => k(s));
-            if(isNew) return generator.execute();
+            if(t[2]) return generator.execute();
         };
     }
 
@@ -1215,13 +1207,12 @@ abstract class BaseLattice<L> {
         return {for: row => gen => s => k => {
             const t = this.getGenerator(groundJson(row, s), gen);
             const g = t[0];
-            const isNew = t[1];
             gen.dependOn(g);
             g.onCompleted(x => {
                 const s2 = unifyJson(V, x, s);
                 if(s2 !== null) k(s2);
             });
-            if(isNew) g.execute();
+            if(t[1]) g.execute();
         }};
     }
      */
@@ -1244,10 +1235,9 @@ abstract class BaseLattice<L> {
         return gen => s => k => {
             const t = this.getGenerator(groundJson(row, s), gen);
             const g = t[0];
-            const isNew = t[1];
             gen.dependOn(g);
             g.consume(x => f(x, k, s, g));
-            if(isNew) return g.execute();
+            if(t[1]) return g.execute();
         };
     }
 }
