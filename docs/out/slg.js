@@ -893,7 +893,7 @@ var __values = (this && this.__values) || function (o) {
             });
         };
         AllLattice.prototype.createGen = function (body, scheduler) {
-            return LatticeGenerator.createWithEarlyComplete(true, AllLattice.andFn, AllLattice.eqFn, function (x) { return x; }, body, scheduler);
+            return LatticeGenerator.createWithEarlyComplete(true, AllLattice.andFn, AllLattice.eqFn, function (x) { return !x; }, body, scheduler);
         };
         AllLattice.prototype.isFalse = function () {
             var _this = this;

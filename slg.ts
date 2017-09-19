@@ -271,8 +271,7 @@ abstract class Generator implements Scheduler {
                 if((<Array<() => void>>gen.completionListeners).length !== 0) anyNegativeConsumers = true;
             }
             if(anyNegativeConsumers) {
-                // TODO: Do any exact SCC check and complete those. Unlink them if it is easy.
-                // The program is not LRD-stratified if any generators in the exact SCC negatively
+                // TODO: The program is not LRD-stratified if any generators in the exact SCC negatively
                 // depend on any others in the SCC.
                 const prev = g.prevGenerator;
                 Generator.completeScc(g);
@@ -392,12 +391,12 @@ class TableGenerator extends Generator {
         if(count === 0) { 
             if(this.table.length === 0) { 
                 this.table.push([]);
-                this.scheduleResumes(); // TODO: Is this correct? We do need to notify consumers due to the early completion.
+                this.scheduleResumes();
                 this.complete();
                 return this.scheduleNegativeResumes();
             } // else, do nothing, we've already completed
         } else {
-            // TODO: Early completion. Early completion occurs when an answer is a variant of the goal. Checking this just means
+            // NOTE: Early completion. Early completion occurs when an answer is a variant of the goal. Checking this just means
             // that the answer tuple consists of nothing but distinct variables. In such a case, we can clear this.processes.
             // An LRD-stratified program that requires early completion:
             // a :- b, not c. b :- a;d. b. c :- not d. d :- b, e. ?- a.
@@ -475,13 +474,6 @@ export class TrieEdbPredicate implements NonMonotonicPredicate {
      * @return A computation succeeding only if `row` is **not** in the extension of the predicate.
      */
     notMatch(row: JsonTerm): LPTerm {
-        // return gen => s => k => {
-        //     try {
-        //         return this.trie.matchCont(row, s, () => { throw 'Abort iteration.'; });
-        //     } catch { // TODO
-        //         return k(s);
-        //     }
-        // };
         return gen => s => k => {
             for(const s2 of this.trie.match(row, s)) {
                 return;
@@ -1185,6 +1177,22 @@ class LatticeGenerator<L> extends Generator {
     }
 }
 
+/**
+ * A base class capturing the common aspects of lattice terms.
+ *
+ * A join semi-lattice is a set with an element `unit` and a binary
+ * operation `join` such that `join` is associative, commutative,
+ * idempotent, and `unit` is a left and right unit to `join`.
+ *
+ * That is:
+ * ```
+ * join(x, join(y, z)) = join(join(x, y), z)
+ * join(x, y) = join(y, x)
+ * join(x, x) = x
+ * join(unit, x) = x = join(x, unit)
+ * ```
+ * @param L The type of the join semi-lattice.
+ */
 abstract class BaseLattice<L> {
     private readonly generators: JsonTrieTerm<LatticeGenerator<L>> = JsonTrieTerm.create();
 
@@ -1192,6 +1200,18 @@ abstract class BaseLattice<L> {
 
     protected abstract createGen(body: LP<JsonTerm, L>, scheduler: Scheduler): LatticeGenerator<L>;
 
+    /**
+     * This essentially calculates: `Out = join(x, In)` where `join` is the semi-lattice join
+     * operation, and `x` is the "greatest" value for the lattice term seen so far, where the
+     * ordering is the one induced by the semi-lattice operations.
+     *
+     * More specifically, we have a separate lattice term for each `row`, so 
+     * `lattice.join(In, Out).for(row)` uses the lattice value for the specified row.
+     * @param In A [[JsonTerm]] with no unbound variables.
+     * @param Out A [[JsonTerm]] that will be unified against joining `In` against the lattice
+     * term.
+     * @param row A [[JsonTerm]] with no unbound varables.
+     */
     join(In: JsonTerm, Out: JsonTerm): {for: (row: JsonTerm) => LPTerm} {
         return {for: row => this.forThen(row, (v, k, s, g) => {
             const val = completelyGroundJson(In, s);
@@ -1243,7 +1263,8 @@ abstract class BaseLattice<L> {
 }
 
 /**
- * TODO
+ * The semi-lattice with unit `false` and join, `||`. It begins `false` and becomes
+ * `true` if any result of `body` is `true`.
  */
 export class AnyLattice extends BaseLattice<boolean> {
     private static orFn(x: boolean, y: boolean): boolean { return x || y; }
@@ -1262,13 +1283,17 @@ export class AnyLattice extends BaseLattice<boolean> {
         return LatticeGenerator.createWithEarlyComplete(false, AnyLattice.orFn, AnyLattice.eqFn, x => x, body, scheduler);
     }
 
+    /**
+     * A semi-lattice morphism that succeeds once the lattice term becomes true.
+     */
     isTrue(): {for: (row: JsonTerm) => LPTerm} {
         return {for: row => this.forThen(row, (b, k, s) => b ? k(s) : void(0))};
     }
 }
 
 /**
- * TODO
+ * The semi-lattice with unit `true`, and join `&&`. It begins `true` and becomes
+ * `false` if any result of `body` is `false`.
  */
 export class AllLattice extends BaseLattice<boolean> {
     private static andFn(x: boolean, y: boolean): boolean { return x && y; }
@@ -1284,16 +1309,20 @@ export class AllLattice extends BaseLattice<boolean> {
     }
 
     protected createGen(body: LP<JsonTerm, boolean>, scheduler: Scheduler): LatticeGenerator<boolean> {
-        return LatticeGenerator.createWithEarlyComplete(true, AllLattice.andFn, AllLattice.eqFn, x => x, body, scheduler);
+        return LatticeGenerator.createWithEarlyComplete(true, AllLattice.andFn, AllLattice.eqFn, x => !x, body, scheduler);
     }
 
+    /**
+     * A semi-lattice morphism that succeeds once the lattice term becomes false.
+     */
     isFalse(): {for: (row: JsonTerm) => LPTerm} {
         return {for: row => this.forThen(row, (b, k, s) => b ? void(0) : k(s))};
     }
 }
 
 /**
- * TODO
+ * A semi-lattice with unit the empty set and join set union. It begins empty
+ * and becomes increasingly large as `body` produces (distinct) elements.
  */
 export class GrowingSetLattice extends BaseLattice<im.Set<Json>> {
     private static eqFn(x: im.Set<Json>, y: im.Set<Json>): boolean { return x.equals(y); }
@@ -1312,20 +1341,27 @@ export class GrowingSetLattice extends BaseLattice<im.Set<Json>> {
     }
 
     /**
-     * TODO
+     * A semi-lattice morphism from growing sets to booleans with disjunction.
      * @param x A [[JsonTerm]] that grounds to a term with no unbound variables.
+     * @returns An [[AnyLattice]] that becomes true once the set contains `x`.
      */
     contains(x: JsonTerm): AnyLattice {
         return new AnyLattice(row => this.forThen<boolean>(row, (s, k, sub) => k(s.contains(completelyGroundJson(x, sub)))));
     }
 
+    /**
+     * A monotonic map from from growing sets to numbers with max.
+     * @returns A [[MaxLattice]] representing the size of the growing set as it monotonically increases.
+     */
     size(): MaxLattice {
         return new MaxLattice(row => this.forThen<number>(row, (s, k, _) => k(s.size)));
     }
 }
 
 /**
- * TODO
+ * A semi-lattice with unit `Number.POSITIVE_INFINITY` and join `Math.min`. It
+ * begins at `Number.POSITIVE_INFINITY` and decreases with each result `body`
+ * produces.
  */
 export class MinLattice extends BaseLattice<number> {
     private static eqFn(x: number, y: number): boolean { return x === y; }
@@ -1344,7 +1380,7 @@ export class MinLattice extends BaseLattice<number> {
     }
 
     /**
-     * TODO
+     * A semi-lattice morphism from decreasing numbers to booleans with disjunction.
      * @param threshold A [[JsonTerm]] that grounds to a number.
      */
     lessThan(threshold: JsonTerm): AnyLattice {
@@ -1356,7 +1392,7 @@ export class MinLattice extends BaseLattice<number> {
     }
 
     /**
-     * TODO
+     * A semi-lattice morphism from decreasing numbers to booleans with disjunction.
      * @param threshold A [[JsonTerm]] that grounds to a number.
      */
     lessThanOrEqualTo(threshold: JsonTerm): AnyLattice {
@@ -1368,8 +1404,9 @@ export class MinLattice extends BaseLattice<number> {
     }
 
     /**
-     * TODO
-     * @param shift A [[JsonTerm]] that grounds to a number.
+     * A semi-lattice morphism from decreasing numbers to decreasing numbers.
+     * @param shift A [[JsonTerm]] that grounds to a number. The amount to
+     * add to the lattice term.
      */
     add(shift: JsonTerm): MinLattice {
         return new MinLattice(row => this.forThen(row, (n, k, s) => {
@@ -1380,8 +1417,9 @@ export class MinLattice extends BaseLattice<number> {
     }
 
     /**
-     * TODO
-     * @param shift A [[JsonTerm]] that grounds to a number.
+     * A semi-lattice morphism from decreasing numbers to decreasing numbers.
+     * @param shift A [[JsonTerm]] that grounds to a number. The amount to
+     * subtract from the lattice term.
      */
     sub(shift: JsonTerm): MinLattice {
         return new MinLattice(row => this.forThen(row, (n, k, s) => {
@@ -1391,13 +1429,18 @@ export class MinLattice extends BaseLattice<number> {
         }));
     }
 
+    /**
+     * A semi-lattice morphism from decreasing numbers to increasing numbers.
+     */
     negate(): MaxLattice {
         return new MaxLattice(row => this.forThen(row, (n, k, _) => k(-n)));
     }
 }
 
 /**
- * TODO
+ * A semi-lattice with unit `Number.NEGATIVE_INFINITY` and join `Math.max`. It
+ * begins at `Number.NEGATIVE_INFINITY` and increases with each result `body`
+ * produces.
  */
 export class MaxLattice extends BaseLattice<number> {
     private static eqFn(x: number, y: number): boolean { return x === y; }
@@ -1416,7 +1459,7 @@ export class MaxLattice extends BaseLattice<number> {
     }
 
     /**
-     * TODO
+     * A semi-lattice morphism from increasing numbers to booleans with disjunction.
      * @param threshold A [[JsonTerm]] that grounds to a number.
      */
     greaterThan(threshold: JsonTerm): AnyLattice {
@@ -1428,7 +1471,7 @@ export class MaxLattice extends BaseLattice<number> {
     }
 
     /**
-     * TODO
+     * A semi-lattice morphism from increasing numbers to booleans with disjunction.
      * @param threshold A [[JsonTerm]] that grounds to a number.
      */
     greaterThanOrEqualTo(threshold: JsonTerm): AnyLattice {
@@ -1440,8 +1483,9 @@ export class MaxLattice extends BaseLattice<number> {
     }
 
     /**
-     * TODO
-     * @param shift A [[JsonTerm]] that grounds to a number.
+     * A semi-lattice morphism from increasing numbers to increasing numbers.
+     * @param shift A [[JsonTerm]] that grounds to a number. The amount to
+     * add to the lattice term.
      */
     add(shift: JsonTerm): MaxLattice {
         return new MaxLattice(row => this.forThen(row, (n, k, s) => {
@@ -1452,8 +1496,9 @@ export class MaxLattice extends BaseLattice<number> {
     }
 
     /**
-     * TODO
-     * @param shift A [[JsonTerm]] that grounds to a number.
+     * A semi-lattice morphism from increasing numbers to increasing numbers.
+     * @param shift A [[JsonTerm]] that grounds to a number. The amount to
+     * subtract from the lattice term.
      */
     sub(shift: JsonTerm): MaxLattice {
         return new MaxLattice(row => this.forThen(row, (n, k, s) => {
@@ -1463,6 +1508,9 @@ export class MaxLattice extends BaseLattice<number> {
         }));
     }
 
+    /**
+     * A semi-lattice morphism from increasing numbers to decreasing numbers.
+     */
     negate(): MinLattice {
         return new MinLattice(row => this.forThen(row, (n, k, _) => k(-n)));
     }

@@ -302,6 +302,15 @@ var __read = (this && this.__read) || function (o, n) {
         });
     });
     describe('LRD-stratified negation', function () {
+        test('LRD-stratified example requiring early completion', function () {
+            var a = slg_1.tabled(function (X) { return slg_1.conj(b.match(X), c.notMatch(X)); });
+            var b = slg_1.tabled(function (X) { return slg_1.rule(function () { return [a.match(X)]; }, function () { return [d.match(X)]; }, function () { return []; }); });
+            var c = slg_1.tabled(function (X) { return d.notMatch(X); });
+            var d = slg_1.tabled(function (X) { return slg_1.conj(b.match(X), e.match(X)); });
+            var e = slg_1.tabled(function (X) { return slg_1.fail(); });
+            var results = slg_1.toArrayQ(function (Q) { return slg_1.conj(a.match(null), slg_1.unify(Q, true)); });
+            expect(results).toEqual([]);
+        });
         test('LRD-stratified example', function () {
             var p = slg_1.tabled(function (X) { return slg_1.rule(function () { return [q.match(X), r.notMatch(X), s.notMatch(X)]; }); });
             var q = slg_1.tabled(function (X) { return slg_1.rule(function () { return [r.match(X), p.notMatch(X)]; }); });
