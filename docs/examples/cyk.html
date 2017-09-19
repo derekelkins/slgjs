@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Transitive Closure Example</title>
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.5/require.min.js"></script>
+</head>
+<body>
+<pre><code id="codeBox" class="js"></code></pre>
+Rules:
+<textarea id="ruleBox" style="width: 100%;">[
+{"lhs": "Start", "alternatives": ["T"]},
+{"lhs": "T", "alternatives": [["F", "Plus", "T"], ["F"]]},
+{"lhs": "F", "alternatives": [["P", "Mult", "T"], ["P"]]},
+{"lhs": "P", "alternatives": [["Open", "T", "Close"], ["D"]]},
+{"lhs": "D", "alternatives": "0123456789"},
+{"lhs": "Plus", "alternatives": "+-"},
+{"lhs": "Mult", "alternatives": "*/"},
+{"lhs": "Open", "alternatives": "("},
+{"lhs": "Close", "alternatives": ")"}
+]</textarea><br/>
+Input:
+<input type="text" id="inputBox" style="width: 100%;" value="2+3*1-5"></input><br/>
+<button id="renderBtn">Rerender</button><br/>
+Parse tree:
+<pre id="parseOutput"></pre>
+<script type="text/javascript">
+requirejs.config({enforceDefine: true, paths: { 
+    immutable: 'https://cdnjs.cloudflare.com/ajax/libs/immutable/3.8.1/immutable.min' 
+}});
+</script>
+<script id="code" type="text/javascript">
+requirejs(['../out/slg'], function(slg) {
+const outputBox = document.getElementById('parseOutput');
+function render(rules, inputString) {
+const characterArray = [];
+for(let i = 0; i < inputString.length; ++i) {
+    characterArray.push([inputString[i], i]);
+}
+
+const characters = slg.facts(characterArray);
+const nonTerminalMap = {};
+for(const rule of rules) {
+    if(typeof rule.alternatives === 'string') {
+        const terms = slg.facts(rule.alternatives);
+        nonTerminalMap[rule.lhs] = slg.tabled(row =>
+            slg.clause(C => [terms.match(C), characters.match([C, row[0]]), slg.apply(i => i+1)(row[0], row[1]), slg.unify(row[2], {'nt': rule.lhs, body: C})]))
+    } else {
+        const alts = rule.alternatives.map(alt => (I, K, T) => slg.freshN(alt.length-1, (...Js) => slg.clauseN(alt.length, (...Ts) => {
+            const conjs = [];
+            let prevVar = I;
+            Js.push(K);
+            for(let i = 0; i < Ts.length; ++i) {
+                conjs.push(nonTerminalMap[alt[i]].match([prevVar, Js[i], Ts[i]]));
+                prevVar = Js[i];
+            }
+            conjs.push(slg.unify(T, {'nt': rule.lhs, body: Ts}));
+            return conjs;
+        })));
+        nonTerminalMap[rule.lhs] = slg.tabled(row => slg.disj.apply(null, alts.map(alt => alt(row[0], row[1], row[2]))));
+    }
+}
+const results = slg.toArrayQ(Q => nonTerminalMap.Start.match([0, inputString.length, Q]));
+parseOutput.innerText = JSON.stringify(results, null, 2);
+}
+const ruleBox = document.getElementById('ruleBox');
+const inputBox = document.getElementById('inputBox');
+document.getElementById('renderBtn').onclick = () => { render(JSON.parse(ruleBox.value), inputBox.value); };
+render(JSON.parse(ruleBox.value), inputBox.value);
+});
+</script>
+<script type="text/javascript">
+document.getElementById('codeBox').innerHTML = document.getElementById('code').innerText;
+hljs.initHighlightingOnLoad();
+</script>
+</body>
+</html>
+

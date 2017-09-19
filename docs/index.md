@@ -28,8 +28,11 @@ The API will likely change significantly.
 
 ## Examples
 
-[Transitive Closure](examples/path.html) - A small instance of calculating all
-paths in a cyclic graph.
+[Shortest Paths](examples/path.html) - An interactive example of calculating
+shortest paths in an arbitrary cyclic graph.
+
+[CYK CFG Parser](examples/cyk.html) - A parser for context-free grammars using
+the CYK deductive system.
 
 [Pattern Matching](examples/github.html) - An example for which this library is
 overkill pattern matching data from a JSON API. A slightly less trivial variant
