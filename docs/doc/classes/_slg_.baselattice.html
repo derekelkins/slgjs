@@ -939,11 +939,32 @@ img { max-width: 100%; }
 </nav>
 <div class="container container-main">
 	<div class="content-wrap">
+		<section class="tsd-panel tsd-comment">
+			<div class="tsd-comment tsd-typography">
+				<div class="lead">
+					<p>A base class capturing the common aspects of lattice terms.</p>
+				</div>
+				<p>A join semi-lattice is a set with an element <code>unit</code> and a binary
+					operation <code>join</code> such that <code>join</code> is associative, commutative,
+				idempotent, and <code>unit</code> is a left and right unit to <code>join</code>.</p>
+				<p>That is:</p>
+				<pre><code>join(<span class="hljs-name">x</span>, join(<span class="hljs-name">y</span>, z)) = join(<span class="hljs-name">join</span>(<span class="hljs-name">x</span>, y), z)
+join(<span class="hljs-name">x</span>, y) = join(<span class="hljs-name">y</span>, x)
+join(<span class="hljs-name">x</span>, x) = x
+join(<span class="hljs-name">unit</span>, x) = x = join(<span class="hljs-name">x</span>, unit)
+</code></pre>
+			</div>
+		</section>
 		<section class="tsd-panel tsd-type-parameters">
 			<h3>Type parameters</h3>
 			<ul class="tsd-type-parameters">
 				<li>
 					<h4>L</h4>
+					<div class="tsd-comment tsd-typography">
+						<div class="lead">
+							<p>The type of the join semi-lattice.</p>
+						</div>
+					</div>
 				</li>
 			</ul>
 		</section>
@@ -1013,7 +1034,7 @@ img { max-width: 100%; }
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/ea6a361/slg.ts#L1189">slg.ts:1189</a></li>
+								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/28f8be8/slg.ts#L1197">slg.ts:1197</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-parameters-title">Parameters</h4>
@@ -1053,7 +1074,7 @@ img { max-width: 100%; }
 				<div class="tsd-signature tsd-kind-icon">body<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">function</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/ea6a361/slg.ts#L1191">slg.ts:1191</a></li>
+						<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/28f8be8/slg.ts#L1199">slg.ts:1199</a></li>
 					</ul>
 				</aside>
 				<div class="tsd-type-declaration">
@@ -1084,7 +1105,7 @@ img { max-width: 100%; }
 				<div class="tsd-signature tsd-kind-icon">generators<span class="tsd-signature-symbol">:</span> <a href="_json_trie_.jsontrieterm.html" class="tsd-signature-type">JsonTrieTerm</a><span class="tsd-signature-symbol">&lt;</span><a href="_slg_.latticegenerator.html" class="tsd-signature-type">LatticeGenerator</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">L</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> =&nbsp;JsonTrieTerm.create()</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/ea6a361/slg.ts#L1189">slg.ts:1189</a></li>
+						<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/28f8be8/slg.ts#L1197">slg.ts:1197</a></li>
 					</ul>
 				</aside>
 			</section>
@@ -1101,7 +1122,7 @@ img { max-width: 100%; }
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/ea6a361/slg.ts#L1193">slg.ts:1193</a></li>
+								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/28f8be8/slg.ts#L1201">slg.ts:1201</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-parameters-title">Parameters</h4>
@@ -1127,7 +1148,7 @@ img { max-width: 100%; }
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/ea6a361/slg.ts#L1234">slg.ts:1234</a></li>
+								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/28f8be8/slg.ts#L1254">slg.ts:1254</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-type-parameters-title">Type parameters</h4>
@@ -1204,7 +1225,7 @@ img { max-width: 100%; }
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/ea6a361/slg.ts#L1220">slg.ts:1220</a></li>
+								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/28f8be8/slg.ts#L1240">slg.ts:1240</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-parameters-title">Parameters</h4>
@@ -1230,16 +1251,32 @@ img { max-width: 100%; }
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/ea6a361/slg.ts#L1195">slg.ts:1195</a></li>
+								<li>Defined in <a href="https://github.com/derekelkins/slgjs/blob/28f8be8/slg.ts#L1215">slg.ts:1215</a></li>
 							</ul>
 						</aside>
+						<div class="tsd-comment tsd-typography">
+							<div class="lead">
+								<p>This essentially calculates: <code>Out = join(x, In)</code> where <code>join</code> is the semi-lattice join
+									operation, and <code>x</code> is the &quot;greatest&quot; value for the lattice term seen so far, where the
+								ordering is the one induced by the semi-lattice operations.</p>
+							</div>
+							<p>More specifically, we have a separate lattice term for each <code>row</code>, so
+							<code>lattice.join(In, Out).for(row)</code> uses the lattice value for the specified row.</p>
+						</div>
 						<h4 class="tsd-parameters-title">Parameters</h4>
 						<ul class="tsd-parameters">
 							<li>
 								<h5>In: <a href="../modules/_unify_.html#jsonterm" class="tsd-signature-type">JsonTerm</a></h5>
+								<div class="tsd-comment tsd-typography">
+									<p>A <a href="../modules/_unify_.html#jsonterm">JsonTerm</a> with no unbound variables.</p>
+								</div>
 							</li>
 							<li>
 								<h5>Out: <a href="../modules/_unify_.html#jsonterm" class="tsd-signature-type">JsonTerm</a></h5>
+								<div class="tsd-comment tsd-typography">
+									<p>A <a href="../modules/_unify_.html#jsonterm">JsonTerm</a> that will be unified against joining <code>In</code> against the lattice
+									term.</p>
+								</div>
 							</li>
 						</ul>
 						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">object</span></h4>
