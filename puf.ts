@@ -14,9 +14,9 @@ export class Variable<A> {
      * @param v The value to bind to the [[Variable]].
      * @returns A new, bound [[Variable]].
      */
-    bind(v: A): Variable<A> { 
+    bind(v: A): Variable<A> {
         if(this.isBound) throw new Error('Variable.bind: binding already bound variable.'); // ASSERTION
-        return new Variable(this.id, v, true); 
+        return new Variable(this.id, v, true);
     }
 }
 
@@ -68,9 +68,9 @@ export interface UnionFind<A> {
  * here, so this is mostly for reference.
  */
 export class EphemeralUnionFind<A> implements UnionFind<A> {
-    private readonly ranks: Array<number>; 
+    private readonly ranks: Array<number>;
     private readonly parents: Array<Variable<A>>;
-    constructor(initialCapacity: number = 10) { 
+    constructor(initialCapacity: number = 10) {
         const rs = this.ranks = new Array<number>(initialCapacity);
         const ps = this.parents = new Array<Variable<A>>(initialCapacity);
         for(let i = 0; i < initialCapacity; ++i) {
@@ -150,7 +150,7 @@ interface PersistentArray<A> {
 
 // All of these operations are defined by cases. The code below is an OO rendition of this, but
 // that spreads the meaning of an operation across multiple classes. It does more easily allow
-// reusing the DiffArray and InvalidArray cases between the persistent and semi-persistent 
+// reusing the DiffArray and InvalidArray cases between the persistent and semi-persistent
 // implementations which differ only in how the rerootAux function works in the ImmediateArray case.
 interface InternalPersistentArray<A> {
     get(cell: ArrayCell<A>, index: number): A;
@@ -167,9 +167,9 @@ class ArrayCell<A> implements PersistentArray<A> {
 
     getUnsafe(index: number): A { return this.contents.getUnsafe(this, index); }
 
-    set(index: number, value: A): PersistentArray<A> { 
+    set(index: number, value: A): PersistentArray<A> {
         this.contents.reroot(this);
-        return this.contents.set(this, index, value); 
+        return this.contents.set(this, index, value);
     }
 }
 
@@ -196,11 +196,11 @@ class PersistentImmediateArray<A> implements InternalPersistentArray<A> {
         if(index >= arr.length) { this.grow(index + 1); }
         return arr[index];
     }
-    
+
     getUnsafe(cell: ArrayCell<A>, index: number): A {
         return this.baseArray[index];
     }
-    
+
     set(cell: ArrayCell<A>, index: number, value: A): PersistentArray<A> {
         const arr = this.baseArray;
         //if(index >= arr.length) { this.grow(index+1); } // NOTE: We never call set if we haven't called get first.
@@ -212,7 +212,7 @@ class PersistentImmediateArray<A> implements InternalPersistentArray<A> {
     }
 
     reroot(cell: ArrayCell<A>): void { /* do nothing */ }
-    
+
     // Persistent
     rerootAux(i: number, v: A, t: ArrayCell<A>, t2: ArrayCell<A>): void {
         const v2 = this.baseArray[i];
@@ -245,11 +245,11 @@ class SemiPersistentImmediateArray<A> implements InternalPersistentArray<A> {
         if(index >= arr.length) { this.grow(index + 1); }
         return arr[index];
     }
-    
+
     getUnsafe(cell: ArrayCell<A>, index: number): A {
         return this.baseArray[index];
     }
-    
+
     set(cell: ArrayCell<A>, index: number, value: A): PersistentArray<A> {
         const arr = this.baseArray;
         //if(index >= arr.length) { this.grow(index+1); } // NOTE: We never call set if we haven't called get first.
@@ -261,7 +261,7 @@ class SemiPersistentImmediateArray<A> implements InternalPersistentArray<A> {
     }
 
     reroot(cell: ArrayCell<A>): void { /* do nothing */ }
-    
+
     // Semi-persistent
     rerootAux(i: number, v: A, t: ArrayCell<A>, t2: ArrayCell<A>): void {
         this.baseArray[i] = v;
@@ -324,8 +324,8 @@ class InvalidArray<A> implements InternalPersistentArray<A> {
 }
 
 /**
- * A (semi-)persistent implementation of [[UnionFind]] following the algorithm of 
- * [A Persistent Union-Find Data Structure](https://doi.org/10.1145/1292535.1292541) by Conchon and Filliatre. 
+ * A (semi-)persistent implementation of [[UnionFind]] following the algorithm of
+ * [A Persistent Union-Find Data Structure](https://doi.org/10.1145/1292535.1292541) by Conchon and Filliatre.
  * It behaves persistently or semi-persistently depending on how it is created.
  */
 export default class PersistentUnionFind<A> implements UnionFind<A> {
@@ -339,7 +339,7 @@ export default class PersistentUnionFind<A> implements UnionFind<A> {
     static createPersistent<A>(initialCapacity: number): PersistentUnionFind<A> {
         const ranks = new Array<number>(initialCapacity);
         const reps = new Array<Variable<A>>(initialCapacity);
-        return new PersistentUnionFind(new ArrayCell(new PersistentImmediateArray(ranks, () => 0)), 
+        return new PersistentUnionFind(new ArrayCell(new PersistentImmediateArray(ranks, () => 0)),
                                        new ArrayCell(new PersistentImmediateArray<Variable<A>>(reps, Variable.create)));
     }
 
@@ -354,7 +354,7 @@ export default class PersistentUnionFind<A> implements UnionFind<A> {
     static createSemiPersistent<A>(initialCapacity: number): PersistentUnionFind<A> {
         const ranks = new Array<number>(initialCapacity);
         const reps = new Array<Variable<A>>(initialCapacity);
-        return new PersistentUnionFind(new ArrayCell(new SemiPersistentImmediateArray(ranks, () => 0)), 
+        return new PersistentUnionFind(new ArrayCell(new SemiPersistentImmediateArray(ranks, () => 0)),
                                        new ArrayCell(new SemiPersistentImmediateArray<Variable<A>>(reps, Variable.create)));
     }
 

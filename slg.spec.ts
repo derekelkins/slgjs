@@ -23,8 +23,8 @@ describe('lattices', () => {
         const edge: Predicate = facts([[1, 2], [2, 3], [3, 1]]);
         const path: Predicate = tabled(([X, Z, SD]) => rule(
             ()         => [edge.match([X, Z]), unify(SD, 1)],
-            (Y, D, D1) => [path.match([X, Y, D1]), 
-                           edge.match([Y, Z]), 
+            (Y, D, D1) => [path.match([X, Y, D1]),
+                           edge.match([Y, Z]),
                            apply(x => x + 1)(D1, D),
                            shortestPathLen.join(D, SD).for([X, Z])])); // Without this the program doesn't terminate.
         const result = toArrayQ(Q => clause((S, E, L) => [path.match([S, E, L]), unify(Q, [S, E, L])]));
@@ -40,8 +40,8 @@ describe('lattices', () => {
         const edge: Predicate = facts([[1, 2, 1], [2, 3, 1], [1, 3, 10]]);
         const path: Predicate = tabled(([X, Z, SD]) => rule(
             ()             => [edge.match([X, Z, SD])],
-            (Y, D1, D2, D) => [path.match([X, Y, D1]), 
-                               edge.match([Y, Z, D2]), 
+            (Y, D1, D2, D) => [path.match([X, Y, D1]),
+                               edge.match([Y, Z, D2]),
                                apply(([d1, d2]) => d1 + d2)([D1, D2], D),
                                shortestPathLen.join(D, SD).for([X, Z])]));
         const result = toArrayQ(Q => clause((S, E, L) => [path.match([S, E, L]), unify(Q, [S, E, L])]));
@@ -58,8 +58,8 @@ describe('lattices', () => {
         const edge: Predicate = facts([[1, 2, 1], [2, 3, 1], [1, 3, 10]]);
         const path: Predicate = tabled(([X, Z, SD]) => rule(
             ()             => [edge.match([X, Z, SD])],
-            (Y, D1, D2, D) => [path.match([X, Y, D1]), 
-                               edge.match([Y, Z, D2]), 
+            (Y, D1, D2, D) => [path.match([X, Y, D1]),
+                               edge.match([Y, Z, D2]),
                                apply(([d1, d2]) => d1 + d2)([D1, D2], D),
                                shortestPathLen.join(D, SD).for([X, Z])]));
         const shortestPath = grouped((S, E) => D => path.match([S, E, D]));
@@ -286,12 +286,12 @@ describe('non-monotonic aggregation', () => {
 
 describe('LRD-stratified negation', () => {
     test('LRD-stratified example requiring early completion', () => {
-        // a :- b, not c. 
-        // b :- a. 
+        // a :- b, not c.
+        // b :- a.
         // b :- d.
-        // b. 
-        // c :- not d. 
-        // d :- b, e. 
+        // b.
+        // c :- not d.
+        // d :- b, e.
         // ?- a.
         const a: TabledPredicate = tabled(X => conj(b.match(X), c.notMatch(X)));
         const b: TabledPredicate = tabled(X => rule(
@@ -325,7 +325,7 @@ describe('LRD-stratified negation', () => {
     });
 
     test('non-LRD-stratified example', () => {
-        // p :- not s, not r, q. 
+        // p :- not s, not r, q.
         // q :- r, not p.
         // r :- p, not q.
         // s :- not p, not q, not r.
@@ -383,7 +383,7 @@ describe('traditional Prolog append example', () => {
         const append: Predicate = untabled(([Xs, Ys, Zs]: JsonTerm) => rule(
             () =>
                 [unify([], Xs), unify(Ys, Zs)],
-            (X1, Xs1, Zs1) =>  
+            (X1, Xs1, Zs1) =>
                 [unify([X1, Xs1], Xs), unify([X1, Zs1], Zs), append.match([Xs1, Ys, Zs1])]));
 
         function list(...xs: Array<JsonTerm>): JsonTerm {
@@ -409,7 +409,7 @@ describe('traditional Prolog append example', () => {
         const append: Predicate = tabled(([Xs, Ys, Zs]: JsonTerm) => rule(
             () =>
                 [unify([], Xs), unify(Ys, Zs)],
-            (X1, Xs1, Zs1) =>  
+            (X1, Xs1, Zs1) =>
                 [unify([X1, Xs1], Xs), unify([X1, Zs1], Zs), append.match([Xs1, Ys, Zs1])]));
 
         function list(...xs: Array<JsonTerm>): JsonTerm {
@@ -630,7 +630,7 @@ describe('tests for independence of variables between consumers and generators',
     });
 });
 
-describe('same generation', () => {          
+describe('same generation', () => {
     const largeSgExampleData = [
         [1,30], [1,40], [2,43], [2,34], [3,30], [3,33], [4,45], [4,40], [5,31],
         [5,45], [6,31], [6,48], [7,31], [7,41], [8,25], [8,30], [9,40], [9,31],
@@ -1681,15 +1681,15 @@ describe('same generation', () => {
         const result = toArrayQ(Q => clause((S, E) => [sg.match([S, E]), unify(Q, [S, E])]));
         expect(result).toEqual([ // TODO: These are sensitive to order.
             [new Variable(2), new Variable(2)], // TODO: The exact variable IDs are not guaranteed.
-            ["dorothy", "dorothy"], 
-            ["dorothy", "evelyn"], 
-            ["evelyn", "dorothy"], 
-            ["evelyn", "evelyn"], 
-            ["bertrand", "bertrand"], 
-            ["bertrand", "ann"], 
-            ["ann", "bertrand"], 
-            ["ann", "ann"], 
-            ["hilary", "hilary"], 
+            ["dorothy", "dorothy"],
+            ["dorothy", "evelyn"],
+            ["evelyn", "dorothy"],
+            ["evelyn", "evelyn"],
+            ["bertrand", "bertrand"],
+            ["bertrand", "ann"],
+            ["ann", "bertrand"],
+            ["ann", "ann"],
+            ["hilary", "hilary"],
             ["charles", "charles"]
         ]);
     });

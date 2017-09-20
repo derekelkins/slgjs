@@ -144,7 +144,7 @@ export class JsonTrie<A> {
      * the corresponding parts of the keys in the [[JsonTrie]].
      *
      * `match(key, sub)` is equivalent to `matchWithValue(key, sub).map(([k, _]) => k)`.
-     * In particular, `match(key, sub)` is equivalent to unifying key against each result of `keys()` 
+     * In particular, `match(key, sub)` is equivalent to unifying key against each result of `keys()`
      * and yielding the resulting [[Substitution]].
      * @param key A [[JsonTerm]] serving as a template to match against.
      * @param sub A [[Substitution]] to extend with bindings found when `key` matches a key in the [[JsonTrie]].
@@ -210,7 +210,7 @@ export class JsonTrie<A> {
     private static *matchRec(key: JsonTerm, sub: Substitution<JsonTerm>, curr: any): Iterable<[any, Substitution<JsonTerm>]> {
         const type = typeof key;
         if(type === 'object') {
-            if(key === null) { 
+            if(key === null) {
                 if('null' in curr) yield [curr.null, sub];
             } else if(key instanceof Variable) {
                 const v = sub.lookupAsVar(key);
@@ -271,7 +271,7 @@ export class JsonTrie<A> {
     private static matchContRec(key: JsonTerm, sub: Substitution<JsonTerm>, curr: any, k: (s: Substitution<JsonTerm>, v: any) => void): void {
         const type = typeof key;
         if(type === 'object') {
-            if(key === null) { 
+            if(key === null) {
                 if('null' in curr) return k(sub, curr.null);
             } else if(key instanceof Variable) {
                 const v = sub.lookupAsVar(key);

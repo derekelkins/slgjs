@@ -7,7 +7,7 @@ import { Variable as PUFVariable } from "./puf"
  */
 export class Variable {
     constructor(readonly id: number) {}
-}    
+}
 
 /**
  * Intended to be restricted to JavaScript objects that correspond to JSON.
@@ -112,7 +112,7 @@ export class Substitution<A> {
      */
     lookupAsVar(v: Variable): A | Variable {
         const x = this.uf.find(v.id);
-        return x.isBound ? <A>x.value : new Variable(x.id) 
+        return x.isBound ? <A>x.value : new Variable(x.id)
     }
 
     /**
@@ -210,7 +210,7 @@ export function groundJsonNoSharing(x: JsonTerm, sub: Substitution<JsonTerm>): J
  */
 export function groundJson(x: JsonTerm, sub: Substitution<JsonTerm>, mapping: {[id: number]: JsonTerm} = {}): JsonTerm {
     let id: number | null = null;
-    if(x instanceof Variable) { 
+    if(x instanceof Variable) {
         const v = sub.lookupVar(x);
         id = v.id;
         if(id in mapping) return mapping[id]
@@ -253,7 +253,7 @@ export function groundJson(x: JsonTerm, sub: Substitution<JsonTerm>, mapping: {[
  */
 export function completelyGroundJson(x: JsonTerm, sub: Substitution<JsonTerm>, mapping: {[id: number]: JsonTerm} = {}): Json {
     let id: number | null = null;
-    if(x instanceof Variable) { 
+    if(x instanceof Variable) {
         const v = sub.lookupVar(x);
         id = v.id;
         if(id in mapping) return mapping[id]

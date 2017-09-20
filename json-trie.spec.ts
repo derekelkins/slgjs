@@ -77,8 +77,8 @@ describe('JsonTrie tests', () => {
     test('match object pattern', () => {
         const matches = [];
         const [[X, Y], sub] = Substitution.emptyPersistent().fresh(2);
-        for(const s of trie.match({start: X, end: Y}, sub)) { 
-            matches.push([s.lookup(X), s.lookup(Y)]); 
+        for(const s of trie.match({start: X, end: Y}, sub)) {
+            matches.push([s.lookup(X), s.lookup(Y)]);
         }
         expect(matches).toEqual([ // TODO: Note order isn't guaranteed.
             [1, 2],
@@ -88,22 +88,22 @@ describe('JsonTrie tests', () => {
     test('match array pattern', () => {
         const matches = [];
         const [[X, Y], sub] = Substitution.emptyPersistent().fresh(2);
-        for(const s of trie.match([X, Y], sub)) { 
-            matches.push([s.lookup(X), s.lookup(Y)]); 
+        for(const s of trie.match([X, Y], sub)) {
+            matches.push([s.lookup(X), s.lookup(Y)]);
         }
         expect(matches).toEqual([ // TODO: Note order isn't guaranteed.
-            [null, {end: 2, start: 1}], 
-            [null, {end: 3, start: 1}], 
-            ['foo', {end: 3, start: 1}], 
-            [1, 2], 
+            [null, {end: 2, start: 1}],
+            [null, {end: 3, start: 1}],
+            ['foo', {end: 3, start: 1}],
+            [1, 2],
             [1, 3]
         ]);
     });
     test('match nonlinear pattern', () => {
         const matches = [];
         const [[X, Y], sub] = Substitution.emptyPersistent().fresh(2);
-        for(const s of trie.match({foo: {start: X, end: Y}, end: Y}, sub)) { 
-            matches.push([s.lookup(X), s.lookup(Y)]); 
+        for(const s of trie.match({foo: {start: X, end: Y}, end: Y}, sub)) {
+            matches.push([s.lookup(X), s.lookup(Y)]);
         }
         expect(matches).toEqual([
             [1, 3]
@@ -124,13 +124,13 @@ describe('JsonTrie tests', () => {
         const matches: Array<[Json, Json]> = [];
         const [[X, Y], sub] = Substitution.emptyPersistent().fresh(2);
         trie.matchCont([X, Y], sub, s => {
-            matches.push([s.lookup(X), s.lookup(Y)]); 
+            matches.push([s.lookup(X), s.lookup(Y)]);
         });
         expect(matches).toEqual([ // TODO: Note order isn't guaranteed.
-            [null, {end: 2, start: 1}], 
-            [null, {end: 3, start: 1}], 
-            ['foo', {end: 3, start: 1}], 
-            [1, 2], 
+            [null, {end: 2, start: 1}],
+            [null, {end: 3, start: 1}],
+            ['foo', {end: 3, start: 1}],
+            [1, 2],
             [1, 3]
         ]);
     });
@@ -138,7 +138,7 @@ describe('JsonTrie tests', () => {
         const matches: Array<[Json, Json]> = [];
         const [[X, Y], sub] = Substitution.emptyPersistent().fresh(2);
         trie.matchCont({foo: {start: X, end: Y}, end: Y}, sub, s => {
-            matches.push([s.lookup(X), s.lookup(Y)]); 
+            matches.push([s.lookup(X), s.lookup(Y)]);
         });
         expect(matches).toEqual([
             [1, 3]
