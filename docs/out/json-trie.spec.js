@@ -109,16 +109,16 @@ var __read = (this && this.__read) || function (o, n) {
             var rows = [];
             trie.entriesCont(function (k, v) { rows.push([k, v]); });
             expect(rows).toEqual([
-                [[null, { "end": 2, "start": 1 }], void (0)],
-                [[null, { "end": 3, "start": 1 }], 1],
-                [["foo", { "end": 3, "start": 1 }], 2],
+                [[null, { end: 2, start: 1 }], void (0)],
+                [[null, { end: 3, start: 1 }], 1],
+                [['foo', { end: 3, start: 1 }], 2],
                 [[1, 2], 5],
                 [[1, 3], 6],
                 [{}, 7],
-                [{ "end": 2, "start": 1 }, 3],
-                [{ "end": 3, "start": 1 }, 4],
-                [{ "end": 3, "foo": { "end": 2, "start": 1 } }, 8],
-                [{ "end": 3, "foo": { "end": 3, "start": 1 } }, 9]
+                [{ end: 2, start: 1 }, 3],
+                [{ end: 3, start: 1 }, 4],
+                [{ end: 3, foo: { end: 2, start: 1 } }, 8],
+                [{ end: 3, foo: { end: 3, start: 1 } }, 9]
             ]);
         });
         test('match object pattern', function () {
@@ -222,6 +222,48 @@ var __read = (this && this.__read) || function (o, n) {
             });
             expect(matches).toEqual([
                 [1, 3]
+            ]);
+        });
+        test('modify test', function () {
+            var localTrie = makeTestJsonTrie();
+            localTrie.modify([null, { start: 1, end: 2 }], function () { return 100; });
+            localTrie.modify(['foo', { start: 1, end: 3 }], function () { return 100; });
+            localTrie.modify({ start: 1, end: 2 }, function () { return 100; });
+            localTrie.modify([1, 3], function (x) { return x + 100; });
+            localTrie.modify({}, function () { return 100; });
+            localTrie.modify({ foo: { start: 1, end: 3 }, end: 3 }, function () { return 100; });
+            var results = [];
+            localTrie.entriesCont(function (k, v) { return results.push([k, v]); });
+            expect(results).toEqual([
+                [[null, { end: 2, start: 1 }], 100],
+                [[null, { end: 3, start: 1 }], 1],
+                [['foo', { end: 3, start: 1 }], 100],
+                [[1, 2], 5],
+                [[1, 3], 106],
+                [{}, 100],
+                [{ end: 2, start: 1 }, 100],
+                [{ end: 3, start: 1 }, 4],
+                [{ end: 3, foo: { end: 2, start: 1 } }, 8],
+                [{ end: 3, foo: { end: 3, start: 1 } }, 100]
+            ]);
+        });
+        test('modify insert test', function () {
+            var localTrie = makeTestJsonTrie();
+            localTrie.modify([1, 9], function () { return 100; });
+            var results = [];
+            localTrie.entriesCont(function (k, v) { return results.push([k, v]); });
+            expect(results).toEqual([
+                [[null, { end: 2, start: 1 }], void (0)],
+                [[null, { end: 3, start: 1 }], 1],
+                [['foo', { end: 3, start: 1 }], 2],
+                [[1, 2], 5],
+                [[1, 3], 6],
+                [[1, 9], 100],
+                [{}, 7],
+                [{ end: 2, start: 1 }, 3],
+                [{ end: 3, start: 1 }, 4],
+                [{ end: 3, foo: { end: 2, start: 1 } }, 8],
+                [{ end: 3, foo: { end: 3, start: 1 } }, 9]
             ]);
         });
         test('minus test', function () {
@@ -352,6 +394,46 @@ var __read = (this && this.__read) || function (o, n) {
             var rows = [];
             trie.entriesCont(function (row) { rows.push(row); });
             expect(rows.length).toBe(9);
+        });
+        test('modify test', function () {
+            var localTrie = makeTestJsonTrieTerm();
+            localTrie.modify([null, { start: 1, end: 2 }], function () { return 100; });
+            localTrie.modify(['foo', { start: 1, end: 3 }], function () { return 100; });
+            localTrie.modify({ start: 1, end: 2 }, function () { return 100; });
+            localTrie.modify([1, 3], function (x) { return x + 100; });
+            localTrie.modify({}, function () { return 100; });
+            localTrie.modify({ foo: new unify_1.Variable(0), bar: new unify_1.Variable(0) }, function () { return 100; });
+            var results = [];
+            localTrie.entriesCont(function (k, v) { return results.push([k, v]); });
+            expect(results).toEqual([
+                [[null, { end: 2, start: 1 }], 100],
+                [[null, { end: 3, start: 1 }], 1],
+                [['foo', { end: 3, start: 1 }], 100],
+                [[1, 2], 5],
+                [[1, 3], 106],
+                [{}, 100],
+                [{ end: 2, start: 1 }, 100],
+                [{ end: 3, start: 1 }, 4],
+                [{ foo: new unify_1.Variable(0), bar: new unify_1.Variable(0) }, 100]
+            ]);
+        });
+        test('modify insert test', function () {
+            var localTrie = makeTestJsonTrieTerm();
+            localTrie.modify([1, 9], function () { return 100; });
+            var results = [];
+            localTrie.entriesCont(function (k, v) { return results.push([k, v]); });
+            expect(results).toEqual([
+                [[null, { end: 2, start: 1 }], void (0)],
+                [[null, { end: 3, start: 1 }], 1],
+                [['foo', { end: 3, start: 1 }], 2],
+                [[1, 2], 5],
+                [[1, 3], 6],
+                [[1, 9], 100],
+                [{}, 7],
+                [{ end: 2, start: 1 }, 3],
+                [{ end: 3, start: 1 }, 4],
+                [{ foo: new unify_1.Variable(0), bar: new unify_1.Variable(0) }, 8]
+            ]);
         });
         test('minus test', function () {
             var localTrie = makeTestJsonTrieTerm();
