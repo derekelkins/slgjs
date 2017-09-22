@@ -38,7 +38,7 @@ var __read = (this && this.__read) || function (o, n) {
     var unify_1 = require("./unify");
     var json_trie_1 = require("./json-trie");
     require("jest");
-    describe('JsonTrie tests', function () {
+    function makeTestJsonTrie() {
         var trie = json_trie_1.JsonTrie.create();
         trie.insert([null, { start: 1, end: 2 }], void (0));
         trie.insert([null, { start: 1, end: 3 }], 1);
@@ -50,6 +50,10 @@ var __read = (this && this.__read) || function (o, n) {
         trie.insert({}, 7);
         trie.insert({ foo: { start: 1, end: 2 }, end: 3 }, 8);
         trie.insert({ foo: { start: 1, end: 3 }, end: 3 }, 9);
+        return trie;
+    }
+    describe('JsonTrie tests', function () {
+        var trie = makeTestJsonTrie();
         test('successful lookup', function () {
             expect(trie.lookup([1, 2])).toBe(5);
         });
@@ -103,8 +107,19 @@ var __read = (this && this.__read) || function (o, n) {
         });
         test('correct number of entries, entriesCont', function () {
             var rows = [];
-            trie.entriesCont(function (row) { rows.push(row); });
-            expect(rows.length).toBe(10);
+            trie.entriesCont(function (k, v) { rows.push([k, v]); });
+            expect(rows).toEqual([
+                [[null, { "end": 2, "start": 1 }], void (0)],
+                [[null, { "end": 3, "start": 1 }], 1],
+                [["foo", { "end": 3, "start": 1 }], 2],
+                [[1, 2], 5],
+                [[1, 3], 6],
+                [{}, 7],
+                [{ "end": 2, "start": 1 }, 3],
+                [{ "end": 3, "start": 1 }, 4],
+                [{ "end": 3, "foo": { "end": 2, "start": 1 } }, 8],
+                [{ "end": 3, "foo": { "end": 3, "start": 1 } }, 9]
+            ]);
         });
         test('match object pattern', function () {
             var matches = [];
@@ -209,8 +224,53 @@ var __read = (this && this.__read) || function (o, n) {
                 [1, 3]
             ]);
         });
+        test('minus test', function () {
+            var localTrie = makeTestJsonTrie();
+            var minusTrie = json_trie_1.JsonTrie.create();
+            minusTrie.insert([null, { start: 1, end: 2 }], null);
+            minusTrie.insert(['foo', { start: 1, end: 3 }], null);
+            minusTrie.insert({ start: 1, end: 2 }, null);
+            minusTrie.insert([1, 3], null);
+            minusTrie.insert({}, null);
+            minusTrie.insert({ foo: { start: 1, end: 3 }, end: 3 }, null);
+            var results = [];
+            localTrie.minus(minusTrie).entriesCont(function (k) { return results.push(k); });
+            expect(results).toEqual([
+                [null, { start: 1, end: 3 }],
+                [1, 2],
+                { start: 1, end: 3 },
+                { foo: { start: 1, end: 2 }, end: 3 }
+            ]);
+        });
+        test('minus extra keys', function () {
+            var localTrie = makeTestJsonTrie();
+            var minusTrie = json_trie_1.JsonTrie.create();
+            minusTrie.insert([null, { start: 1, end: 2 }], null);
+            minusTrie.insert(['foo', { start: 1, end: 3 }], null);
+            minusTrie.insert(['foo', { start: 1, end: 4 }], null);
+            minusTrie.insert({ start: 1, end: 2 }, null);
+            minusTrie.insert([1, 3], null);
+            minusTrie.insert([1, 4], null);
+            minusTrie.insert({}, null);
+            minusTrie.insert({ foo: { start: 1, end: 3 }, end: 3 }, null);
+            var results = [];
+            localTrie.minus(minusTrie).entriesCont(function (k) { return results.push(k); });
+            expect(results).toEqual([
+                [null, { start: 1, end: 3 }],
+                [1, 2],
+                { start: 1, end: 3 },
+                { foo: { start: 1, end: 2 }, end: 3 }
+            ]);
+        });
+        test('minus all', function () {
+            var localTrie = makeTestJsonTrie();
+            var minusTrie = makeTestJsonTrie();
+            var results = [];
+            localTrie.minus(minusTrie).entriesCont(function (k) { return results.push(k); });
+            expect(results).toEqual([]);
+        });
     });
-    describe('JsonTrieTerm tests', function () {
+    function makeTestJsonTrieTerm() {
         var trie = json_trie_1.JsonTrieTerm.create();
         trie.insert([null, { start: 1, end: 2 }], void (0));
         trie.insert([null, { start: 1, end: 3 }], 1);
@@ -221,6 +281,10 @@ var __read = (this && this.__read) || function (o, n) {
         trie.insert([1, 3], 6);
         trie.insert({}, 7);
         trie.insert({ foo: new unify_1.Variable(0), bar: new unify_1.Variable(0) }, 8);
+        return trie;
+    }
+    describe('JsonTrieTerm tests', function () {
+        var trie = makeTestJsonTrieTerm();
         test('successful lookup', function () {
             expect(trie.lookup([1, 2])).toBe(5);
         });
@@ -288,6 +352,49 @@ var __read = (this && this.__read) || function (o, n) {
             var rows = [];
             trie.entriesCont(function (row) { rows.push(row); });
             expect(rows.length).toBe(9);
+        });
+        test('minus test', function () {
+            var localTrie = makeTestJsonTrieTerm();
+            var minusTrie = json_trie_1.JsonTrieTerm.create();
+            minusTrie.insert([null, { start: 1, end: 2 }], null);
+            minusTrie.insert(['foo', { start: 1, end: 3 }], null);
+            minusTrie.insert({ start: 1, end: 2 }, null);
+            minusTrie.insert([1, 3], null);
+            minusTrie.insert({}, null);
+            minusTrie.insert({ foo: new unify_1.Variable(0), bar: new unify_1.Variable(0) }, null);
+            var results = [];
+            localTrie.minus(minusTrie).entriesCont(function (k) { return results.push(k); });
+            expect(results).toEqual([
+                [null, { start: 1, end: 3 }],
+                [1, 2],
+                { start: 1, end: 3 }
+            ]);
+        });
+        test('minus extra keys', function () {
+            var localTrie = makeTestJsonTrieTerm();
+            var minusTrie = json_trie_1.JsonTrieTerm.create();
+            minusTrie.insert([null, { start: 1, end: 2 }], null);
+            minusTrie.insert(['foo', { start: 1, end: 3 }], null);
+            minusTrie.insert(['foo', { start: 1, end: 4 }], null);
+            minusTrie.insert({ start: 1, end: 2 }, null);
+            minusTrie.insert([1, 3], null);
+            minusTrie.insert([1, 4], null);
+            minusTrie.insert({}, null);
+            minusTrie.insert({ foo: new unify_1.Variable(0), bar: new unify_1.Variable(0) }, null);
+            var results = [];
+            localTrie.minus(minusTrie).entriesCont(function (k) { return results.push(k); });
+            expect(results).toEqual([
+                [null, { start: 1, end: 3 }],
+                [1, 2],
+                { start: 1, end: 3 }
+            ]);
+        });
+        test('minus all', function () {
+            var localTrie = makeTestJsonTrieTerm();
+            var minusTrie = makeTestJsonTrieTerm();
+            var results = [];
+            localTrie.minus(minusTrie).entriesCont(function (k) { return results.push(k); });
+            expect(results).toEqual([]);
         });
     });
 });

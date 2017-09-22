@@ -5,7 +5,7 @@ import { Variable, Substitution, Json, JsonTerm } from "./unify"
 import { JsonTrieTerm, JsonTrie } from "./json-trie"
 import "jest"
 
-describe('JsonTrie tests', () => {
+function makeTestJsonTrie(): JsonTrie<number | undefined> {
     const trie = JsonTrie.create<number | undefined>();
     trie.insert([null, {start: 1, end: 2}], void(0));
     trie.insert([null, {start: 1, end: 3}], 1);
@@ -17,6 +17,11 @@ describe('JsonTrie tests', () => {
     trie.insert({}, 7);
     trie.insert({foo: {start: 1, end: 2}, end: 3}, 8);
     trie.insert({foo: {start: 1, end: 3}, end: 3}, 9);
+    return trie;
+}
+
+describe('JsonTrie tests', () => {
+    const trie = makeTestJsonTrie();
 
     // TODO: Modify tests.
     test('successful lookup', () => {
@@ -46,6 +51,7 @@ describe('JsonTrie tests', () => {
     test('unsuccessful array lookup', () => {
         expect(trie.contains([1, 4])).not.toBeTruthy();
     });
+
     test('successful object lookup', () => {
         expect(trie.contains({start: 1, end: 3})).toBeTruthy();
     });
@@ -69,9 +75,20 @@ describe('JsonTrie tests', () => {
     });
 
     test('correct number of entries, entriesCont', () => {
-        const rows: Array<Json> = [];
-        trie.entriesCont(row => { rows.push(row); });
-        expect(rows.length).toBe(10);
+        const rows: Array<[Json, number | undefined]> = [];
+        trie.entriesCont((k, v) => { rows.push([k, v]); });
+        expect(rows).toEqual([
+            [[null, {"end": 2, "start": 1}], void(0)],
+            [[null, {"end": 3, "start": 1}], 1],
+            [["foo", {"end": 3, "start": 1}], 2],
+            [[1, 2], 5],
+            [[1, 3], 6],
+            [{}, 7],
+            [{"end": 2, "start": 1}, 3],
+            [{"end": 3, "start": 1}, 4],
+            [{"end": 3, "foo": {"end": 2, "start": 1}}, 8],
+            [{"end": 3, "foo": {"end": 3, "start": 1}}, 9]
+        ]);
     });
 
     test('match object pattern', () => {
@@ -85,6 +102,7 @@ describe('JsonTrie tests', () => {
             [1, 3]
         ]);
     });
+
     test('match array pattern', () => {
         const matches = [];
         const [[X, Y], sub] = Substitution.emptyPersistent().fresh(2);
@@ -99,6 +117,7 @@ describe('JsonTrie tests', () => {
             [1, 3]
         ]);
     });
+
     test('match nonlinear pattern', () => {
         const matches = [];
         const [[X, Y], sub] = Substitution.emptyPersistent().fresh(2);
@@ -109,6 +128,7 @@ describe('JsonTrie tests', () => {
             [1, 3]
         ]);
     });
+
     test('matchCont object pattern', () => {
         const matches: Array<[Json, Json]> = [];
         const [[X, Y], sub] = Substitution.emptyPersistent().fresh(2);
@@ -120,6 +140,7 @@ describe('JsonTrie tests', () => {
             [1, 3]
         ]);
     });
+
     test('matchCont array pattern', () => {
         const matches: Array<[Json, Json]> = [];
         const [[X, Y], sub] = Substitution.emptyPersistent().fresh(2);
@@ -134,6 +155,7 @@ describe('JsonTrie tests', () => {
             [1, 3]
         ]);
     });
+
     test('matchCont nonlinear pattern', () => {
         const matches: Array<[Json, Json]> = [];
         const [[X, Y], sub] = Substitution.emptyPersistent().fresh(2);
@@ -144,9 +166,57 @@ describe('JsonTrie tests', () => {
             [1, 3]
         ]);
     });
+
+    test('minus test', () => {
+        const localTrie = makeTestJsonTrie();
+        const minusTrie = JsonTrie.create<null>();
+        minusTrie.insert([null, {start: 1, end: 2}], null);
+        minusTrie.insert(['foo', {start: 1, end: 3}], null);
+        minusTrie.insert({start: 1, end: 2}, null);
+        minusTrie.insert([1,3], null);
+        minusTrie.insert({}, null);
+        minusTrie.insert({foo: {start: 1, end: 3}, end: 3}, null);
+        const results: Array<Json> = [];
+        localTrie.minus(minusTrie).entriesCont(k => results.push(k));
+        expect(results).toEqual([
+            [null, {start: 1, end: 3}],
+            [1, 2],
+            {start: 1, end: 3},
+            {foo: {start: 1, end: 2}, end: 3}
+        ]);
+    });
+
+    test('minus extra keys', () => {
+        const localTrie = makeTestJsonTrie();
+        const minusTrie = JsonTrie.create<null>();
+        minusTrie.insert([null, {start: 1, end: 2}], null);
+        minusTrie.insert(['foo', {start: 1, end: 3}], null);
+        minusTrie.insert(['foo', {start: 1, end: 4}], null);
+        minusTrie.insert({start: 1, end: 2}, null);
+        minusTrie.insert([1,3], null);
+        minusTrie.insert([1,4], null);
+        minusTrie.insert({}, null);
+        minusTrie.insert({foo: {start: 1, end: 3}, end: 3}, null);
+        const results: Array<Json> = [];
+        localTrie.minus(minusTrie).entriesCont(k => results.push(k));
+        expect(results).toEqual([
+            [null, {start: 1, end: 3}],
+            [1, 2],
+            {start: 1, end: 3},
+            {foo: {start: 1, end: 2}, end: 3}
+        ]);
+    });
+
+    test('minus all', () => {
+        const localTrie = makeTestJsonTrie();
+        const minusTrie = makeTestJsonTrie();
+        const results: Array<Json> = [];
+        localTrie.minus(minusTrie).entriesCont(k => results.push(k));
+        expect(results).toEqual([]);
+    });
 });
 
-describe('JsonTrieTerm tests', () => {
+function makeTestJsonTrieTerm(): JsonTrieTerm<number | undefined> {    
     const trie = JsonTrieTerm.create<number | undefined>();
     trie.insert([null, {start: 1, end: 2}], void(0));
     trie.insert([null, {start: 1, end: 3}], 1);
@@ -157,8 +227,14 @@ describe('JsonTrieTerm tests', () => {
     trie.insert([1,3], 6);
     trie.insert({}, 7);
     trie.insert({ foo: new Variable(0), bar: new Variable(0) }, 8);
+    return trie;
+}
+
+describe('JsonTrieTerm tests', () => {
+    const trie = makeTestJsonTrieTerm();
 
     // TODO: Modify tests.
+    // TODO: Minus tests.
     test('successful lookup', () => {
         expect(trie.lookup([1,2])).toBe(5);
     });
@@ -178,6 +254,7 @@ describe('JsonTrieTerm tests', () => {
     test('unsuccessful contains', () => {
         expect(trie.contains([1,5])).toBeFalsy();
     });
+
     test('successful array lookup', () => {
         expect(trie.contains([1, 2])).toBeTruthy();
     });
@@ -227,5 +304,51 @@ describe('JsonTrieTerm tests', () => {
         const rows: Array<Json> = [];
         trie.entriesCont(row => { rows.push(row); });
         expect(rows.length).toBe(9);
+    });
+
+    test('minus test', () => {
+        const localTrie = makeTestJsonTrieTerm();
+        const minusTrie = JsonTrieTerm.create<null>();
+        minusTrie.insert([null, {start: 1, end: 2}], null);
+        minusTrie.insert(['foo', {start: 1, end: 3}], null);
+        minusTrie.insert({start: 1, end: 2}, null);
+        minusTrie.insert([1,3], null);
+        minusTrie.insert({}, null);
+        minusTrie.insert({foo: new Variable(0), bar: new Variable(0) }, null);
+        const results: Array<Json> = [];
+        localTrie.minus(minusTrie).entriesCont(k => results.push(k));
+        expect(results).toEqual([
+            [null, {start: 1, end: 3}],
+            [1, 2],
+            {start: 1, end: 3}
+        ]);
+    });
+
+    test('minus extra keys', () => {
+        const localTrie = makeTestJsonTrieTerm();
+        const minusTrie = JsonTrieTerm.create<null>();
+        minusTrie.insert([null, {start: 1, end: 2}], null);
+        minusTrie.insert(['foo', {start: 1, end: 3}], null);
+        minusTrie.insert(['foo', {start: 1, end: 4}], null);
+        minusTrie.insert({start: 1, end: 2}, null);
+        minusTrie.insert([1,3], null);
+        minusTrie.insert([1,4], null);
+        minusTrie.insert({}, null);
+        minusTrie.insert({foo: new Variable(0), bar: new Variable(0) }, null);
+        const results: Array<Json> = [];
+        localTrie.minus(minusTrie).entriesCont(k => results.push(k));
+        expect(results).toEqual([
+            [null, {start: 1, end: 3}],
+            [1, 2],
+            {start: 1, end: 3}
+        ]);
+    });
+
+    test('minus all', () => {
+        const localTrie = makeTestJsonTrieTerm();
+        const minusTrie = makeTestJsonTrieTerm();
+        const results: Array<Json> = [];
+        localTrie.minus(minusTrie).entriesCont(k => results.push(k));
+        expect(results).toEqual([]);
     });
 });

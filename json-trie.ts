@@ -2,6 +2,13 @@ import { Json, JsonTerm, Variable, Substitution } from "./unify"
 
 function emptyObjectUnless(x: any): any { return x === void(0) ? {} : x; }
 
+function isEmptyObject(x: any): boolean {
+    for(const k in x) {
+        return false;
+    }
+    return true;
+}
+
 function convert(type: "boolean" | "number" | "string", val: string): Json {
     if(type === 'boolean') return Boolean(val);
     if(type === 'number') return Number(val);
@@ -72,6 +79,16 @@ export class JsonTrie<A> {
      */
     clear(): void {
         this.trie = {};
+    }
+
+    /**
+     * Removes keys from this trie that are held in `other`.
+     * @param other Essentially a "set" of keys to remove.
+     * @returns `this`
+     */
+    minus(other: JsonTrie<any>): JsonTrie<A> {
+        JsonTrie.minusRec(this.trie, other.trie);
+        return this;
     }
 
     /**
@@ -349,6 +366,7 @@ export class JsonTrie<A> {
                             yield* JsonTrie.rowRecObject(valNode[k2], result);
                             result.pop();
                         }
+                        break;
                 }
             }
         }
@@ -393,6 +411,7 @@ export class JsonTrie<A> {
                         yield* JsonTrie.rowRecArray(valNode[k], result);
                         result.pop();
                     }
+                    break;
             }
         }
     }
@@ -419,6 +438,7 @@ export class JsonTrie<A> {
                     for(const k in valNode) {
                         yield [convert(type, k), valNode[k]];
                     }
+                    break;
             }
         }
     }
@@ -470,6 +490,7 @@ export class JsonTrie<A> {
                             JsonTrie.rowContRecObject(valNode[k2], result, cont);
                             result.pop();
                         }
+                        break;
                 }
             }
         }
@@ -514,6 +535,7 @@ export class JsonTrie<A> {
                         JsonTrie.rowContRecArray(valNode[k], result, cont);
                         result.pop();
                     }
+                    break;
             }
         }
     }
@@ -540,6 +562,7 @@ export class JsonTrie<A> {
                     for(const k in valNode) {
                         cont(convert(type, k), valNode[k]);
                     }
+                    break;
             }
         }
     }
@@ -707,6 +730,132 @@ export class JsonTrie<A> {
             return node[key] = f(node[key]);
         }
     }
+
+    private static minusRecObject(curr: any, other: any, cont: (curr: any, other: any) => boolean): void {
+        if('empty' in other && 'empty' in curr) {
+            if(cont(curr.empty, other.empty)) {
+                delete curr.empty;
+            }
+        }
+        if(!('more' in other)) return;
+        const otherMore = other.more;
+        if(!('more' in curr)) return;
+        const currMore = curr.more;
+        for(const k in otherMore) {
+            if(!(k in currMore)) continue;
+            const otherNode = otherMore[k];
+            const node = currMore[k];
+            for(const type in otherNode) {
+                switch(type) {
+                    case 'array':
+                        JsonTrie.minusRecArray(node.array, otherNode.array, (c, o) => (JsonTrie.minusRecObject(c, o, cont), isEmptyObject(c)));
+                        if(isEmptyObject(node.array)) delete node.array;
+                        break;
+                    case 'object':
+                        JsonTrie.minusRecObject(node.object, otherNode.object, (c, o) => (JsonTrie.minusRecObject(c, o, cont), isEmptyObject(c)));
+                        if(isEmptyObject(node.object)) delete node.object;
+                        break;
+                    case 'null':
+                    case 'undefined':
+                        const currt = node[type];
+                        const othert = otherNode[type];
+                        JsonTrie.minusRecObject(currt, othert, cont);
+                        if(isEmptyObject(currt)) delete node[type];
+                        break;
+                    case 'number':
+                    case 'boolean':
+                    case 'string':
+                        const nodet = node[type];
+                        const otherNodet = otherNode[type];
+                        for(const k in otherNodet) {
+                            if(k in nodet) {
+                                const currk = nodet[k];
+                                const otherk = otherNodet[k];
+                                JsonTrie.minusRecObject(currk, otherk, cont);
+                                if(isEmptyObject(currk)) delete nodet[k];
+                            }
+                        }
+                        if(isEmptyObject(nodet)) delete node[type];
+                        break;
+                }
+            }
+            if(isEmptyObject(node)) delete currMore[k];
+        }
+        if(isEmptyObject(currMore)) delete curr.more;
+    }
+
+    private static minusRecArray(curr: any, other: any, cont: (curr: any, other: any) => boolean): void {
+        for(const type in other) {
+            if(!(type in curr)) continue;
+            switch(type) {
+                case 'empty':
+                    if(cont(curr.empty, other.empty)) {
+                        delete curr.empty;
+                    }
+                    break;
+                case 'array':
+                    JsonTrie.minusRecArray(curr.array, other.array, (c, o) => (JsonTrie.minusRecArray(c, o, cont), isEmptyObject(c)));
+                    if(isEmptyObject(curr.array)) delete curr.array;
+                    break;
+                case 'object':
+                    JsonTrie.minusRecObject(curr.object, other.object, (c, o) => (JsonTrie.minusRecArray(c, o, cont), isEmptyObject(c)));
+                    if(isEmptyObject(curr.object)) delete curr.object;
+                    break;
+                case 'null':
+                case 'undefined':
+                    const currt = curr[type];
+                    const othert = other[type];
+                    JsonTrie.minusRecArray(currt, othert, cont);
+                    if(isEmptyObject(currt)) delete curr[type];
+                    break;
+                case 'number':
+                case 'boolean':
+                case 'string':
+                    const node = curr[type];
+                    const otherNode = other[type];
+                    for(const k in otherNode) {
+                        if(k in node) {
+                            const currk = node[k];
+                            const otherk = otherNode[k];
+                            JsonTrie.minusRecArray(currk, otherk, cont);
+                            if(isEmptyObject(currk)) delete node[k];
+                        }
+                    }
+                    if(isEmptyObject(node)) delete curr[type];
+                    break;
+            }
+        }
+    }
+
+    private static minusRec(curr: any, other: any): void {
+        for(const type in other) {
+            if(!(type in curr)) continue;
+            switch(type) {
+                case 'array':
+                    JsonTrie.minusRecArray(curr.array, other.array, () => true);
+                    if(isEmptyObject(curr.array)) delete curr.array;
+                    break;
+                case 'object':
+                    JsonTrie.minusRecObject(curr.object, other.object, () => true);
+                    if(isEmptyObject(curr.object)) delete curr.object;
+                    break;
+                case 'null':
+                case 'undefined':
+                    delete curr[type];
+                    break;
+                case 'number':
+                case 'boolean':
+                case 'string':
+                    const node = curr[type];
+                    const otherNode = other[type];
+                    for(const k in otherNode) {
+                        delete node[k];
+                    }
+                    if(isEmptyObject(node)) delete curr[type];
+                    break;
+            }
+        }
+    }
 }
 
 /**
@@ -810,6 +959,16 @@ export class JsonTrieTerm<A> {
      */
     clear(): void {
         this.trie = {};
+    }
+
+    /**
+     * Removes keys from this trie that are held in `other`.
+     * @param other Essentially a "set" of keys to remove.
+     * @returns `this`
+     */
+    minus(other: JsonTrieTerm<any>): JsonTrieTerm<A> {
+        JsonTrieTerm.minusRec(this.trie, other.trie);
+        return this;
     }
 
     /**
@@ -1376,6 +1535,135 @@ export class JsonTrieTerm<A> {
             let node = curr[type];
             if(node === void(0)) curr[type] = node = {};
             return node[key] = f(node[key], varMap);
+        }
+    }
+
+    private static minusRecObject(curr: any, other: any, cont: (curr: any, other: any) => boolean): void {
+        if('empty' in other && 'empty' in curr) {
+            if(cont(curr.empty, other.empty)) {
+                delete curr.empty;
+            }
+        }
+        if(!('more' in other)) return;
+        const otherMore = other.more;
+        if(!('more' in curr)) return;
+        const currMore = curr.more;
+        for(const k in otherMore) {
+            if(!(k in currMore)) continue;
+            const otherNode = otherMore[k];
+            const node = currMore[k];
+            for(const type in otherNode) {
+                switch(type) {
+                    case 'array':
+                        JsonTrieTerm.minusRecArray(node.array, otherNode.array, (c, o) => (JsonTrieTerm.minusRecObject(c, o, cont), isEmptyObject(c)));
+                        if(isEmptyObject(node.array)) delete node.array;
+                        break;
+                    case 'object':
+                        JsonTrieTerm.minusRecObject(node.object, otherNode.object, (c, o) => (JsonTrieTerm.minusRecObject(c, o, cont), isEmptyObject(c)));
+                        if(isEmptyObject(node.object)) delete node.object;
+                        break;
+                    case 'null':
+                    case 'undefined':
+                        const currt = node[type];
+                        const othert = otherNode[type];
+                        JsonTrieTerm.minusRecObject(currt, othert, cont);
+                        if(isEmptyObject(currt)) delete node[type];
+                        break;
+                    case 'number':
+                    case 'boolean':
+                    case 'string':
+                    case 'variable':
+                        const nodet = node[type];
+                        const otherNodet = otherNode[type];
+                        for(const k in otherNodet) {
+                            if(k in nodet) {
+                                const currk = nodet[k];
+                                const otherk = otherNodet[k];
+                                JsonTrieTerm.minusRecObject(currk, otherk, cont);
+                                if(isEmptyObject(currk)) delete nodet[k];
+                            }
+                        }
+                        if(isEmptyObject(nodet)) delete node[type];
+                        break;
+                }
+            }
+            if(isEmptyObject(node)) delete currMore[k];
+        }
+        if(isEmptyObject(currMore)) delete curr.more;
+    }
+
+    private static minusRecArray(curr: any, other: any, cont: (curr: any, other: any) => boolean): void {
+        for(const type in other) {
+            if(!(type in curr)) continue;
+            switch(type) {
+                case 'empty':
+                    if(cont(curr.empty, other.empty)) {
+                        delete curr.empty;
+                    }
+                    break;
+                case 'array':
+                    JsonTrieTerm.minusRecArray(curr.array, other.array, (c, o) => (JsonTrieTerm.minusRecArray(c, o, cont), isEmptyObject(c)));
+                    if(isEmptyObject(curr.array)) delete curr.array;
+                    break;
+                case 'object':
+                    JsonTrieTerm.minusRecObject(curr.object, other.object, (c, o) => (JsonTrieTerm.minusRecArray(c, o, cont), isEmptyObject(c)));
+                    if(isEmptyObject(curr.object)) delete curr.object;
+                    break;
+                case 'null':
+                case 'undefined':
+                    const currt = curr[type];
+                    const othert = other[type];
+                    JsonTrieTerm.minusRecArray(currt, othert, cont);
+                    if(isEmptyObject(currt)) delete curr[type];
+                    break;
+                case 'number':
+                case 'boolean':
+                case 'string':
+                case 'variable':
+                    const node = curr[type];
+                    const otherNode = other[type];
+                    for(const k in otherNode) {
+                        if(k in node) {
+                            const currk = node[k];
+                            const otherk = otherNode[k];
+                            JsonTrieTerm.minusRecArray(currk, otherk, cont);
+                            if(isEmptyObject(currk)) delete node[k];
+                        }
+                    }
+                    if(isEmptyObject(node)) delete curr[type];
+                    break;
+            }
+        }
+    }
+
+    private static minusRec(curr: any, other: any): void {
+        for(const type in other) {
+            if(!(type in curr)) continue;
+            switch(type) {
+                case 'array':
+                    JsonTrieTerm.minusRecArray(curr.array, other.array, () => true);
+                    if(isEmptyObject(curr.array)) delete curr.array;
+                    break;
+                case 'object':
+                    JsonTrieTerm.minusRecObject(curr.object, other.object, () => true);
+                    if(isEmptyObject(curr.object)) delete curr.object;
+                    break;
+                case 'null':
+                case 'undefined':
+                    delete curr[type];
+                    break;
+                case 'number':
+                case 'boolean':
+                case 'string':
+                case 'variable':
+                    const node = curr[type];
+                    const otherNode = other[type];
+                    for(const k in otherNode) {
+                        delete node[k];
+                    }
+                    if(isEmptyObject(node)) delete curr[type];
+                    break;
+            }
         }
     }
 }
