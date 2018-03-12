@@ -9,6 +9,7 @@
 </head>
 <body>
 <pre><code id="codeBox" class="js"></code></pre>
+Comments on issues made by those who have not committed to the repository.
 <div><ul id="result"></ul></div>
 <script type="text/javascript">
 requirejs.config({enforceDefine: true, paths: { 
@@ -18,20 +19,22 @@ requirejs.config({enforceDefine: true, paths: {
 <script id="code" type="text/javascript">
 requirejs(['../out/slg'], function(slg) {
 fetch('https://api.github.com/repos/derekelkins/agda-vim/commits', {headers:{Accept: 'application/vnd.github.v3+json'}}).then(response => response.json().then(commitData => {
-//fetch('https://api.github.com/repos/derekelkins/agda-vim/comments', {headers:{Accept: 'application/vnd.github.v3+json'}}).then(response => response.json().then(commentsData => {
+fetch('https://api.github.com/repos/derekelkins/agda-vim/issues/comments', {headers:{Accept: 'application/vnd.github.v3+json'}}).then(response => response.json().then(commentsData => {
+
 const commits = slg.facts(commitData);
-//const comments = slg.facts(commentsData);
+const comments = slg.facts(commentsData);
+const commitsByUser = slg.grouped(UserId => () => commits.looseMatch({author: {id: UserId}}));
 const ul = document.getElementById('result');
-slg.runQ(Q => slg.clause((SHA, Msg, CommentBody) => [
-        commits.looseMatch({sha: SHA, commit: {message: Msg}}), 
-        //comments.looseMatch({commit_id: SHA, body: CommentBody}),
-        slg.unify(Q, {sha: SHA, message: Msg})]),
+slg.runQ(Q => slg.clause((Name, UserId, CommentBody) => [
+        comments.looseMatch({user: {login: Name, id: UserId}, body: CommentBody}),
+        commitsByUser.notMatch([UserId]), 
+        slg.unify(Q, {user: Name, message: CommentBody})]),
     result => {
         const li = document.createElement('li');
         li.innerText = JSON.stringify(result);
         ul.appendChild(li);
     });
-}));// ));
+}));}));
 });
 </script>
 <script type="text/javascript">
