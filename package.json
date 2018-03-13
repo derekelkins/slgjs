@@ -4,14 +4,14 @@
   "description": "",
   "main": "slg.js",
   "dependencies": {
-    "immutable": "^3.8.1"
+    "immutable": "^3.8.2"
   },
   "devDependencies": {
-    "@types/jest": "^20.0.7",
-    "jest": "^21.1.0",
-    "ts-jest": "^21.0.1",
+    "@types/jest": "^20.0.8",
+    "jest": "^21.2.1",
+    "ts-jest": "^21.2.4",
     "typedoc": "^0.8.0",
-    "typescript": "^2.4.2"
+    "typescript": "^2.7.2"
   },
   "scripts": {
     "test": "jest"
