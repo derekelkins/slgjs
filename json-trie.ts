@@ -647,10 +647,11 @@ export class JsonTrie<A> {
         }
     }
 
-    private static insertRec(key: Json, val: any, curr: any): any {
+    private static insertRec(key: Json, val: any, curr: any, root: boolean = true): any {
         const type = typeof key;
         if(type === 'object') {
             if(key === null) {
+                if(root) return curr.null = val;
                 let node = curr.null;
                 if(node === void(0)) curr.null = node = val;
                 return node;
@@ -659,8 +660,9 @@ export class JsonTrie<A> {
                 if(node === void(0)) curr.array = node = {};
                 const len = key.length;
                 for(let i = 0; i < len; ++i) {
-                    node = JsonTrie.insertRec(key[i], {}, node);
+                    node = JsonTrie.insertRec(key[i], {}, node, false);
                 }
+                if(root) return node.empty = val;
                 let node2 = node.empty;
                 if(node2 === void(0)) node.empty = node2 = val;
                 return node2;
@@ -675,19 +677,22 @@ export class JsonTrie<A> {
                     if(node2 === void(0)) node.more = node2 = {};
                     let node3 = node2[k];
                     if(node3 === void(0)) node2[k] = node3 = {};
-                    node = JsonTrie.insertRec(key[k], {}, node3);
+                    node = JsonTrie.insertRec(key[k], {}, node3, false);
                 }
+                if(root) return node.empty = val;
                 let node2 = node.empty;
                 if(node2 === void(0)) node.empty = node2 = val;
                 return node2;
             }
         } else if(type === 'undefined') {
+            if(root) return curr.undefined = val;
             let node = curr.undefined;
             if(node === void(0)) curr.undefined = node = val;
             return node;
         } else {
             let node = curr[type];
             if(node === void(0)) curr[type] = node = {};
+            if(root) return node[key] = val;
             let node2 = node[key];
             if(node2 === void(0)) node[key] = node2 = val;
             return node2;
@@ -1394,10 +1399,11 @@ export class JsonTrieTerm<A> {
         }
     }
 
-    private static insertRec(key: JsonTerm, val: any, curr: any, varMap: {count: number, [index: number]: number}): any {
+    private static insertRec(key: JsonTerm, val: any, curr: any, varMap: {count: number, [index: number]: number}, root: boolean = true): any {
         const type = typeof key;
         if(type === 'object') {
             if(key === null) {
+                if(root) return curr.null = val;
                 let node = curr.null;
                 if(node === void(0)) curr.null = node = val;
                 return node;
@@ -1406,6 +1412,7 @@ export class JsonTrieTerm<A> {
                 if(vId === void(0)) varMap[key.id] = vId = varMap.count++;
                 let node = curr.variable;
                 if(node === void(0)) curr.variable = node = {};
+                if(root) return node[vId] = val;
                 let node2 = node[vId];
                 if(node2 === void(0)) node[vId] = node2 = val;
                 return node2;
@@ -1414,8 +1421,9 @@ export class JsonTrieTerm<A> {
                 if(node === void(0)) curr.array = node = {};
                 const len = key.length;
                 for(let i = 0; i < len; ++i) {
-                    node = JsonTrieTerm.insertRec(key[i], {}, node, varMap);
+                    node = JsonTrieTerm.insertRec(key[i], {}, node, varMap, false);
                 }
+                if(root) return node.empty = val;
                 let node2 = node.empty;
                 if(node2 === void(0)) node.empty = node2 = val;
                 return node2;
@@ -1430,19 +1438,22 @@ export class JsonTrieTerm<A> {
                     if(node2 === void(0)) node.more = node2 = {};
                     let node3 = node2[k];
                     if(node3 === void(0)) node2[k] = node3 = {};
-                    node = JsonTrieTerm.insertRec(key[k], {}, node3, varMap);
+                    node = JsonTrieTerm.insertRec(key[k], {}, node3, varMap, false);
                 }
+                if(root) return node.empty = val;
                 let node2 = node.empty;
                 if(node2 === void(0)) node.empty = node2 = val;
                 return node2;
             }
         } else if(type === 'undefined') {
+            if(root) return curr.undefined = val;
             let node = curr.undefined;
             if(node === void(0)) curr.undefined = node = val;
             return node;
         } else {
             let node = curr[type];
             if(node === void(0)) curr[type] = node = {};
+            if(root) return node[key] = val;
             let node2 = node[key];
             if(node2 === void(0)) node[key] = node2 = val;
             return node2;

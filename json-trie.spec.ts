@@ -166,6 +166,17 @@ describe('JsonTrie tests', () => {
         ]);
     });
 
+    test('double insert', () => {
+        const localTrie = JsonTrie.create<boolean>();
+        localTrie.insert(null, false);
+        localTrie.insert(null, true);
+        const rows: Array<[Json, boolean | undefined]> = [];
+        localTrie.entriesCont((k, v) => { rows.push([k, v]); });
+        expect(rows).toEqual([
+            [null, true],
+        ]);
+    });
+
     test('modify test', () => {
         const localTrie = makeTestJsonTrie();
         localTrie.modify([null, {start: 1, end: 2}], () => 100);
@@ -346,6 +357,17 @@ describe('JsonTrieTerm tests', () => {
         const rows: Array<Json> = [];
         trie.entriesCont(row => { rows.push(row); });
         expect(rows.length).toBe(9);
+    });
+
+    test('double insert', () => {
+        const localTrie = JsonTrieTerm.create<boolean>();
+        localTrie.insert(null, false);
+        localTrie.insert(null, true);
+        const rows: Array<[Json, boolean | undefined]> = [];
+        localTrie.entriesCont((k, v) => { rows.push([k, v]); });
+        expect(rows).toEqual([
+            [null, true],
+        ]);
     });
 
     test('modify test', () => {
