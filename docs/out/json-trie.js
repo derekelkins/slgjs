@@ -1044,10 +1044,13 @@ var __values = (this && this.__values) || function (o) {
                 return key in node;
             }
         };
-        JsonTrie.insertRec = function (key, val, curr) {
+        JsonTrie.insertRec = function (key, val, curr, root) {
+            if (root === void 0) { root = true; }
             var type = typeof key;
             if (type === 'object') {
                 if (key === null) {
+                    if (root)
+                        return curr.null = val;
                     var node = curr.null;
                     if (node === void (0))
                         curr.null = node = val;
@@ -1059,8 +1062,10 @@ var __values = (this && this.__values) || function (o) {
                         curr.array = node = {};
                     var len = key.length;
                     for (var i = 0; i < len; ++i) {
-                        node = JsonTrie.insertRec(key[i], {}, node);
+                        node = JsonTrie.insertRec(key[i], {}, node, false);
                     }
+                    if (root)
+                        return node.empty = val;
                     var node2 = node.empty;
                     if (node2 === void (0))
                         node.empty = node2 = val;
@@ -1080,8 +1085,10 @@ var __values = (this && this.__values) || function (o) {
                         var node3 = node2_1[k];
                         if (node3 === void (0))
                             node2_1[k] = node3 = {};
-                        node = JsonTrie.insertRec(key[k], {}, node3);
+                        node = JsonTrie.insertRec(key[k], {}, node3, false);
                     }
+                    if (root)
+                        return node.empty = val;
                     var node2 = node.empty;
                     if (node2 === void (0))
                         node.empty = node2 = val;
@@ -1089,6 +1096,8 @@ var __values = (this && this.__values) || function (o) {
                 }
             }
             else if (type === 'undefined') {
+                if (root)
+                    return curr.undefined = val;
                 var node = curr.undefined;
                 if (node === void (0))
                     curr.undefined = node = val;
@@ -1098,6 +1107,8 @@ var __values = (this && this.__values) || function (o) {
                 var node = curr[type];
                 if (node === void (0))
                     curr[type] = node = {};
+                if (root)
+                    return node[key] = val;
                 var node2 = node[key];
                 if (node2 === void (0))
                     node[key] = node2 = val;
@@ -2026,10 +2037,13 @@ var __values = (this && this.__values) || function (o) {
                 return key in node;
             }
         };
-        JsonTrieTerm.insertRec = function (key, val, curr, varMap) {
+        JsonTrieTerm.insertRec = function (key, val, curr, varMap, root) {
+            if (root === void 0) { root = true; }
             var type = typeof key;
             if (type === 'object') {
                 if (key === null) {
+                    if (root)
+                        return curr.null = val;
                     var node = curr.null;
                     if (node === void (0))
                         curr.null = node = val;
@@ -2042,6 +2056,8 @@ var __values = (this && this.__values) || function (o) {
                     var node = curr.variable;
                     if (node === void (0))
                         curr.variable = node = {};
+                    if (root)
+                        return node[vId] = val;
                     var node2 = node[vId];
                     if (node2 === void (0))
                         node[vId] = node2 = val;
@@ -2053,8 +2069,10 @@ var __values = (this && this.__values) || function (o) {
                         curr.array = node = {};
                     var len = key.length;
                     for (var i = 0; i < len; ++i) {
-                        node = JsonTrieTerm.insertRec(key[i], {}, node, varMap);
+                        node = JsonTrieTerm.insertRec(key[i], {}, node, varMap, false);
                     }
+                    if (root)
+                        return node.empty = val;
                     var node2 = node.empty;
                     if (node2 === void (0))
                         node.empty = node2 = val;
@@ -2074,8 +2092,10 @@ var __values = (this && this.__values) || function (o) {
                         var node3 = node2_2[k];
                         if (node3 === void (0))
                             node2_2[k] = node3 = {};
-                        node = JsonTrieTerm.insertRec(key[k], {}, node3, varMap);
+                        node = JsonTrieTerm.insertRec(key[k], {}, node3, varMap, false);
                     }
+                    if (root)
+                        return node.empty = val;
                     var node2 = node.empty;
                     if (node2 === void (0))
                         node.empty = node2 = val;
@@ -2083,6 +2103,8 @@ var __values = (this && this.__values) || function (o) {
                 }
             }
             else if (type === 'undefined') {
+                if (root)
+                    return curr.undefined = val;
                 var node = curr.undefined;
                 if (node === void (0))
                     curr.undefined = node = val;
@@ -2092,6 +2114,8 @@ var __values = (this && this.__values) || function (o) {
                 var node = curr[type];
                 if (node === void (0))
                     curr[type] = node = {};
+                if (root)
+                    return node[key] = val;
                 var node2 = node[key];
                 if (node2 === void (0))
                     node[key] = node2 = val;

@@ -224,6 +224,16 @@ var __read = (this && this.__read) || function (o, n) {
                 [1, 3]
             ]);
         });
+        test('double insert', function () {
+            var localTrie = json_trie_1.JsonTrie.create();
+            localTrie.insert(null, false);
+            localTrie.insert(null, true);
+            var rows = [];
+            localTrie.entriesCont(function (k, v) { rows.push([k, v]); });
+            expect(rows).toEqual([
+                [null, true],
+            ]);
+        });
         test('modify test', function () {
             var localTrie = makeTestJsonTrie();
             localTrie.modify([null, { start: 1, end: 2 }], function () { return 100; });
@@ -394,6 +404,16 @@ var __read = (this && this.__read) || function (o, n) {
             var rows = [];
             trie.entriesCont(function (row) { rows.push(row); });
             expect(rows.length).toBe(9);
+        });
+        test('double insert', function () {
+            var localTrie = json_trie_1.JsonTrieTerm.create();
+            localTrie.insert(null, false);
+            localTrie.insert(null, true);
+            var rows = [];
+            localTrie.entriesCont(function (k, v) { rows.push([k, v]); });
+            expect(rows).toEqual([
+                [null, true],
+            ]);
         });
         test('modify test', function () {
             var localTrie = makeTestJsonTrieTerm();
