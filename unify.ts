@@ -1,5 +1,5 @@
-import PUF from "./puf"
-import { Variable as PUFVariable } from "./puf"
+import PUF from './puf'
+import { Variable as PUFVariable } from './puf'
 
 /**
  * This represents a unification variable.

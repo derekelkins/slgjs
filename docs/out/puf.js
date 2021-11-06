@@ -9,6 +9,7 @@
 })(function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
+    exports.EphemeralUnionFind = exports.Variable = void 0;
     var Variable = (function () {
         function Variable(id, value, isBound) {
             if (isBound === void 0) { isBound = false; }
@@ -129,14 +130,14 @@
                 arr[i] = this.init(i);
             }
         };
-        PersistentImmediateArray.prototype.get = function (cell, index) {
+        PersistentImmediateArray.prototype.get = function (_cell, index) {
             var arr = this.baseArray;
             if (index >= arr.length) {
                 this.grow(index + 1);
             }
             return arr[index];
         };
-        PersistentImmediateArray.prototype.getUnsafe = function (cell, index) {
+        PersistentImmediateArray.prototype.getUnsafe = function (_cell, index) {
             return this.baseArray[index];
         };
         PersistentImmediateArray.prototype.set = function (cell, index, value) {
@@ -147,7 +148,7 @@
             cell.contents = new DiffArray(index, old, res);
             return res;
         };
-        PersistentImmediateArray.prototype.reroot = function (cell) { };
+        PersistentImmediateArray.prototype.reroot = function (_cell) { };
         PersistentImmediateArray.prototype.rerootAux = function (i, v, t, t2) {
             var v2 = this.baseArray[i];
             this.baseArray[i] = v;
@@ -174,14 +175,14 @@
                 arr[i] = this.init(i);
             }
         };
-        SemiPersistentImmediateArray.prototype.get = function (cell, index) {
+        SemiPersistentImmediateArray.prototype.get = function (_cell, index) {
             var arr = this.baseArray;
             if (index >= arr.length) {
                 this.grow(index + 1);
             }
             return arr[index];
         };
-        SemiPersistentImmediateArray.prototype.getUnsafe = function (cell, index) {
+        SemiPersistentImmediateArray.prototype.getUnsafe = function (_cell, index) {
             return this.baseArray[index];
         };
         SemiPersistentImmediateArray.prototype.set = function (cell, index, value) {
@@ -192,7 +193,7 @@
             cell.contents = new DiffArray(index, old, res);
             return res;
         };
-        SemiPersistentImmediateArray.prototype.reroot = function (cell) { };
+        SemiPersistentImmediateArray.prototype.reroot = function (_cell) { };
         SemiPersistentImmediateArray.prototype.rerootAux = function (i, v, t, t2) {
             this.baseArray[i] = v;
             t.contents = this;
@@ -214,7 +215,7 @@
             this.reroot(t);
             return t.getUnsafe(index);
         };
-        DiffArray.prototype.set = function (cell, index, value) {
+        DiffArray.prototype.set = function (_cell, _index, _value) {
             throw new Error('DiffArray.set: we should never get here.');
         };
         DiffArray.prototype.reroot = function (t) {
@@ -222,7 +223,7 @@
             t2.contents.reroot(t2);
             return t2.contents.rerootAux(this.index, this.value, t, t2);
         };
-        DiffArray.prototype.rerootAux = function (i, v, t, t2) {
+        DiffArray.prototype.rerootAux = function (_i, _v, _t, _t2) {
             throw new Error('DiffArray.rerootAux: we should never get here.');
         };
         return DiffArray;
@@ -230,19 +231,19 @@
     var InvalidArray = (function () {
         function InvalidArray() {
         }
-        InvalidArray.prototype.get = function (t, index) {
+        InvalidArray.prototype.get = function (_t, _index) {
             throw new Error('Attempt to access Invalid semi-persistent array.');
         };
-        InvalidArray.prototype.getUnsafe = function (t, index) {
+        InvalidArray.prototype.getUnsafe = function (_t, _index) {
             throw new Error('Attempt to access Invalid semi-persistent array.');
         };
-        InvalidArray.prototype.set = function (cell, index, value) {
+        InvalidArray.prototype.set = function (_cell, _index, _value) {
             throw new Error('Attempt to mutate Invalid semi-persistent array.');
         };
-        InvalidArray.prototype.reroot = function (t) {
+        InvalidArray.prototype.reroot = function (_t) {
             throw new Error('Attempt to reroot Invalid semi-persistent array.');
         };
-        InvalidArray.prototype.rerootAux = function (i, v, t, t2) {
+        InvalidArray.prototype.rerootAux = function (_i, _v, _t, _t2) {
             throw new Error('Attempt to rerootAux Invalid semi-persistent array.');
         };
         InvalidArray.IT = new InvalidArray();

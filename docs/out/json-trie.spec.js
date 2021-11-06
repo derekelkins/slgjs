@@ -1,12 +1,13 @@
-var __values = (this && this.__values) || function (o) {
-    var m = typeof Symbol === "function" && o[Symbol.iterator], i = 0;
+var __values = (this && this.__values) || function(o) {
+    var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
     if (m) return m.call(o);
-    return {
+    if (o && typeof o.length === "number") return {
         next: function () {
             if (o && i >= o.length) o = void 0;
             return { value: o && o[i++], done: !o };
         }
     };
+    throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
 };
 var __read = (this && this.__read) || function (o, n) {
     var m = typeof Symbol === "function" && o[Symbol.iterator];
@@ -88,22 +89,22 @@ var __read = (this && this.__read) || function (o, n) {
             expect(trie.contains(['foo', { start: 2, end: 3 }])).not.toBeTruthy();
         });
         test('correct number of entries', function () {
+            var e_1, _a;
             var rows = [];
             try {
-                for (var _a = __values(trie.entries()), _b = _a.next(); !_b.done; _b = _a.next()) {
-                    var row = _b.value;
+                for (var _b = __values(trie.entries()), _c = _b.next(); !_c.done; _c = _b.next()) {
+                    var row = _c.value;
                     rows.push(row);
                 }
             }
             catch (e_1_1) { e_1 = { error: e_1_1 }; }
             finally {
                 try {
-                    if (_b && !_b.done && (_c = _a.return)) _c.call(_a);
+                    if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
                 }
                 finally { if (e_1) throw e_1.error; }
             }
             expect(rows.length).toBe(10);
-            var e_1, _c;
         });
         test('correct number of entries, entriesCont', function () {
             var rows = [];
@@ -122,18 +123,19 @@ var __read = (this && this.__read) || function (o, n) {
             ]);
         });
         test('match object pattern', function () {
+            var e_2, _a;
             var matches = [];
-            var _a = __read(unify_1.Substitution.emptyPersistent().fresh(2), 2), _b = __read(_a[0], 2), X = _b[0], Y = _b[1], sub = _a[1];
+            var _b = __read(unify_1.Substitution.emptyPersistent().fresh(2), 2), _c = __read(_b[0], 2), X = _c[0], Y = _c[1], sub = _b[1];
             try {
-                for (var _c = __values(trie.match({ start: X, end: Y }, sub)), _d = _c.next(); !_d.done; _d = _c.next()) {
-                    var s = _d.value;
+                for (var _d = __values(trie.match({ start: X, end: Y }, sub)), _e = _d.next(); !_e.done; _e = _d.next()) {
+                    var s = _e.value;
                     matches.push([s.lookup(X), s.lookup(Y)]);
                 }
             }
             catch (e_2_1) { e_2 = { error: e_2_1 }; }
             finally {
                 try {
-                    if (_d && !_d.done && (_e = _c.return)) _e.call(_c);
+                    if (_e && !_e.done && (_a = _d.return)) _a.call(_d);
                 }
                 finally { if (e_2) throw e_2.error; }
             }
@@ -141,21 +143,21 @@ var __read = (this && this.__read) || function (o, n) {
                 [1, 2],
                 [1, 3]
             ]);
-            var e_2, _e;
         });
         test('match array pattern', function () {
+            var e_3, _a;
             var matches = [];
-            var _a = __read(unify_1.Substitution.emptyPersistent().fresh(2), 2), _b = __read(_a[0], 2), X = _b[0], Y = _b[1], sub = _a[1];
+            var _b = __read(unify_1.Substitution.emptyPersistent().fresh(2), 2), _c = __read(_b[0], 2), X = _c[0], Y = _c[1], sub = _b[1];
             try {
-                for (var _c = __values(trie.match([X, Y], sub)), _d = _c.next(); !_d.done; _d = _c.next()) {
-                    var s = _d.value;
+                for (var _d = __values(trie.match([X, Y], sub)), _e = _d.next(); !_e.done; _e = _d.next()) {
+                    var s = _e.value;
                     matches.push([s.lookup(X), s.lookup(Y)]);
                 }
             }
             catch (e_3_1) { e_3 = { error: e_3_1 }; }
             finally {
                 try {
-                    if (_d && !_d.done && (_e = _c.return)) _e.call(_c);
+                    if (_e && !_e.done && (_a = _d.return)) _a.call(_d);
                 }
                 finally { if (e_3) throw e_3.error; }
             }
@@ -166,28 +168,27 @@ var __read = (this && this.__read) || function (o, n) {
                 [1, 2],
                 [1, 3]
             ]);
-            var e_3, _e;
         });
         test('match nonlinear pattern', function () {
+            var e_4, _a;
             var matches = [];
-            var _a = __read(unify_1.Substitution.emptyPersistent().fresh(2), 2), _b = __read(_a[0], 2), X = _b[0], Y = _b[1], sub = _a[1];
+            var _b = __read(unify_1.Substitution.emptyPersistent().fresh(2), 2), _c = __read(_b[0], 2), X = _c[0], Y = _c[1], sub = _b[1];
             try {
-                for (var _c = __values(trie.match({ foo: { start: X, end: Y }, end: Y }, sub)), _d = _c.next(); !_d.done; _d = _c.next()) {
-                    var s = _d.value;
+                for (var _d = __values(trie.match({ foo: { start: X, end: Y }, end: Y }, sub)), _e = _d.next(); !_e.done; _e = _d.next()) {
+                    var s = _e.value;
                     matches.push([s.lookup(X), s.lookup(Y)]);
                 }
             }
             catch (e_4_1) { e_4 = { error: e_4_1 }; }
             finally {
                 try {
-                    if (_d && !_d.done && (_e = _c.return)) _e.call(_c);
+                    if (_e && !_e.done && (_a = _d.return)) _a.call(_d);
                 }
                 finally { if (e_4) throw e_4.error; }
             }
             expect(matches).toEqual([
                 [1, 3]
             ]);
-            var e_4, _e;
         });
         test('matchCont object pattern', function () {
             var matches = [];
@@ -383,22 +384,22 @@ var __read = (this && this.__read) || function (o, n) {
             expect(trie.contains({ foo: new unify_1.Variable(1), bar: new unify_1.Variable(1) })).toBeTruthy();
         });
         test('correct number of entries', function () {
+            var e_5, _a;
             var rows = [];
             try {
-                for (var _a = __values(trie.entries()), _b = _a.next(); !_b.done; _b = _a.next()) {
-                    var row = _b.value;
+                for (var _b = __values(trie.entries()), _c = _b.next(); !_c.done; _c = _b.next()) {
+                    var row = _c.value;
                     rows.push(row);
                 }
             }
             catch (e_5_1) { e_5 = { error: e_5_1 }; }
             finally {
                 try {
-                    if (_b && !_b.done && (_c = _a.return)) _c.call(_a);
+                    if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
                 }
                 finally { if (e_5) throw e_5.error; }
             }
             expect(rows.length).toBe(9);
-            var e_5, _c;
         });
         test('correct number of entries, entriesCont', function () {
             var rows = [];

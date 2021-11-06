@@ -1,15 +1,15 @@
-import { Json, JsonTerm, Variable, Substitution } from "./unify"
+import { Json, JsonTerm, Variable, Substitution } from './unify'
 
 function emptyObjectUnless(x: any): any { return x === void(0) ? {} : x; }
 
 function isEmptyObject(x: any): boolean {
-    for(const k in x) {
+    for(const _ in x) {
         return false;
     }
     return true;
 }
 
-function convert(type: "boolean" | "number" | "string", val: string): Json {
+function convert(type: 'boolean' | 'number' | 'string', val: string): Json {
     if(type === 'boolean') return Boolean(val);
     if(type === 'number') return Number(val);
     return val; // It's a string.
@@ -905,7 +905,7 @@ export class JsonTrieTerm<A> {
         return new JsonTrieTerm();
     }
 
-    private static convert(type: "boolean" | "number" | "string" | "variable", val: string): JsonTerm {
+    private static convert(type: 'boolean' | 'number' | 'string' | 'variable', val: string): JsonTerm {
         if(type === 'boolean') return Boolean(val);
         if(type === 'number') return Number(val);
         if(type === 'variable') return new Variable(Number(val));

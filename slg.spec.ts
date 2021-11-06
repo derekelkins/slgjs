@@ -1,10 +1,10 @@
-import "jest"
+import 'jest'
 
-import { Variable, JsonTerm } from "./unify"
+import { Variable, JsonTerm } from './unify'
 import { Predicate, UntabledPredicate, TabledPredicate, TrieEdbPredicate, GroupedPredicate,
          GrowingSetLattice, AnyLattice, MaxLattice, MinLattice,
          facts, tabled, untabled, grouped,
-         rule, fail, clause, fresh, unify, conj, apply, looseUnify, toArrayQ } from "./slg"
+         rule, fail, clause, fresh, unify, conj, apply, looseUnify, toArrayQ } from './slg'
 
 describe('lattices', () => {
     test('quorum example', () => {
@@ -171,7 +171,7 @@ describe('non-monotonic aggregation', () => {
             D => S => fresh(N => employees.match({name: N, dept: D, salary: S})));
         const result = toArrayQ(Q => clause((D, TS) => [salaries.groupBy(D).sumInto(TS), unify(Q, [D, TS])]));
         expect(result).toEqual([
-            ["sales", 50], ["hr", 20]
+            ['sales', 50], ['hr', 20]
         ]);
     });
 
@@ -197,7 +197,7 @@ describe('non-monotonic aggregation', () => {
             D => S => fresh(N => employees.match({name: N, dept: D, salary: S})));
         const result = toArrayQ(Q => clause((D, TS) => [salaries.groupBy(D).productInto(TS), unify(Q, [D, TS])]));
         expect(result).toEqual([
-            ["sales", 600], ["hr", 20]
+            ['sales', 600], ['hr', 20]
         ]);
     });
 
@@ -211,7 +211,7 @@ describe('non-monotonic aggregation', () => {
             D => S => fresh(N => employees.match({name: N, dept: D, salary: S})));
         const result = toArrayQ(Q => clause((D, TS) => [salaries.groupBy(D).maxInto(TS), unify(Q, [D, TS])]));
         expect(result).toEqual([
-            ["sales", 30], ["hr", 20]
+            ['sales', 30], ['hr', 20]
         ]);
     });
 
@@ -225,7 +225,7 @@ describe('non-monotonic aggregation', () => {
             D => S => fresh(N => employees.match({name: N, dept: D, salary: S})));
         const result = toArrayQ(Q => clause((D, TS) => [salaries.groupBy(D).minInto(TS), unify(Q, [D, TS])]));
         expect(result).toEqual([
-            ["sales", 20], ["hr", 20]
+            ['sales', 20], ['hr', 20]
         ]);
     });
 
@@ -239,7 +239,7 @@ describe('non-monotonic aggregation', () => {
             D => S => fresh(N => employees.match({name: N, dept: D, onVacation: S})));
         const result = toArrayQ(Q => clause((D, TS) => [vacationing.groupBy(D).andInto(TS), unify(Q, [D, TS])]));
         expect(result).toEqual([
-            ["sales", true], ["hr", false]
+            ['sales', true], ['hr', false]
         ]);
     });
 
@@ -253,7 +253,7 @@ describe('non-monotonic aggregation', () => {
             D => S => fresh(N => employees.match({name: N, dept: D, onVacation: S})));
         const result = toArrayQ(Q => clause((D, TS) => [vacationing.groupBy(D).orInto(TS), unify(Q, [D, TS])]));
         expect(result).toEqual([
-            ["sales", true], ["hr", false]
+            ['sales', true], ['hr', false]
         ]);
     });
 
@@ -267,7 +267,7 @@ describe('non-monotonic aggregation', () => {
             D => S => fresh(N => employees.match({name: N, dept: D, onVacation: S})));
         const result = toArrayQ(Q => clause((D, TS) => [vacationing.groupBy(D).countInto(TS), unify(Q, [D, TS])]));
         expect(result).toEqual([
-            ["sales", 2], ["hr", 1]
+            ['sales', 2], ['hr', 1]
         ]);
     });
 
@@ -300,7 +300,7 @@ describe('LRD-stratified negation', () => {
             () => []));
         const c: TabledPredicate = tabled(X => d.notMatch(X));
         const d: TabledPredicate = tabled(X => conj(b.match(X), e.match(X)));
-        const e: TabledPredicate = tabled(X => fail());
+        const e: TabledPredicate = tabled(_ => fail());
         const results = toArrayQ(Q => conj(a.match(null), unify(Q, true)));
         expect(results).toEqual([]);
     });
@@ -344,7 +344,7 @@ describe('LRD-stratified negation', () => {
     });
 
     test('floundering', () => {
-        const p: TabledPredicate = tabled(X => rule(
+        const p: TabledPredicate = tabled(_ => rule(
             () => []));
         expect(() => toArrayQ(Q => conj(p.notMatch(Q), unify(Q, true)))).toThrow('TabledPredicate.notMatch: negation of non-ground atom (floundering)');
     });
@@ -565,7 +565,7 @@ describe('transitive closure', () => {
 test('trivial unsupported positive loop', () => {
     const r: Predicate = tabled(row => rule(
         () => [r.match(row)]));
-    const result = toArrayQ(Q => r.match(null));
+    const result = toArrayQ(_ => r.match(null));
     expect(result).toEqual([]);
 });
 
@@ -574,7 +574,7 @@ test('slightly less trivial unsupported positive loop', () => {
         () => [q.match(row)]));
     const q: Predicate = tabled(row => rule(
         () => [p.match(row)]));
-    const result = toArrayQ(Q => p.match(null));
+    const result = toArrayQ(_ => p.match(null));
     expect(result).toEqual([]);
 });
 
@@ -611,19 +611,19 @@ test('trapped subgoal', () => {
 
 describe('tests for independence of variables between consumers and generators', () => {
     test('', () => {
-        const vp: Predicate = tabled(X => rule(() => []));
+        const vp: Predicate = tabled(_ => rule(() => []));
         const [[y, x]] = toArrayQ(Q => clause((Y, X) => [unify(1, X), vp.match(X), unify(Q, [Y, X])]));
         expect(y).toBeInstanceOf(Variable);
         expect(x).toBe(1);
     });
     test('', () => {
-        const vp: Predicate = tabled(X => rule(() => []));
+        const vp: Predicate = tabled(_ => rule(() => []));
         const [[y, x]] = toArrayQ(Q => clause((Y, X) => [vp.match(X), unify(1, Y), unify(Q, [Y, X])]));
         expect(x).toBeInstanceOf(Variable);
         expect(y).toBe(1);
     });
     test('', () => {
-        const vp: Predicate = tabled(X => rule(() => []));
+        const vp: Predicate = tabled(_ => rule(() => []));
         const [[y, x]] = toArrayQ(Q => clause((Y, X) => [vp.match(X), unify(1, X), unify(Q, [Y, X])]));
         expect(y).toBeInstanceOf(Variable);
         expect(x).toBe(1);
@@ -1681,16 +1681,16 @@ describe('same generation', () => {
         const result = toArrayQ(Q => clause((S, E) => [sg.match([S, E]), unify(Q, [S, E])]));
         expect(result).toEqual([ // TODO: These are sensitive to order.
             [new Variable(2), new Variable(2)], // TODO: The exact variable IDs are not guaranteed.
-            ["dorothy", "dorothy"],
-            ["dorothy", "evelyn"],
-            ["evelyn", "dorothy"],
-            ["evelyn", "evelyn"],
-            ["bertrand", "bertrand"],
-            ["bertrand", "ann"],
-            ["ann", "bertrand"],
-            ["ann", "ann"],
-            ["hilary", "hilary"],
-            ["charles", "charles"]
+            ['dorothy', 'dorothy'],
+            ['dorothy', 'evelyn'],
+            ['evelyn', 'dorothy'],
+            ['evelyn', 'evelyn'],
+            ['bertrand', 'bertrand'],
+            ['bertrand', 'ann'],
+            ['ann', 'bertrand'],
+            ['ann', 'ann'],
+            ['hilary', 'hilary'],
+            ['charles', 'charles']
         ]);
     });
 });

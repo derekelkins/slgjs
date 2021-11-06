@@ -1,22 +1,28 @@
 var __extends = (this && this.__extends) || (function () {
-    var extendStatics = Object.setPrototypeOf ||
-        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
     return function (d, b) {
+        if (typeof b !== "function" && b !== null)
+            throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
         extendStatics(d, b);
         function __() { this.constructor = d; }
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     };
 })();
-var __values = (this && this.__values) || function (o) {
-    var m = typeof Symbol === "function" && o[Symbol.iterator], i = 0;
+var __values = (this && this.__values) || function(o) {
+    var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
     if (m) return m.call(o);
-    return {
+    if (o && typeof o.length === "number") return {
         next: function () {
             if (o && i >= o.length) o = void 0;
             return { value: o && o[i++], done: !o };
         }
     };
+    throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
 };
 (function (factory) {
     if (typeof module === "object" && typeof module.exports === "object") {
@@ -29,6 +35,7 @@ var __values = (this && this.__values) || function (o) {
 })(function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
+    exports.grouped = exports.untabled = exports.tabled = exports.facts = exports.debugToArrayQ = exports.debugRunQ = exports.toArrayQ = exports.runQ = exports.rule = exports.looseUnify = exports.unify = exports.clause = exports.clauseN = exports.fresh = exports.freshN = exports.disj = exports.conj = exports.guard = exports.apply = exports.fail = exports.seq = exports.MaxLattice = exports.MinLattice = exports.GrowingSetLattice = exports.AllLattice = exports.AnyLattice = exports.GroupedPredicate = exports.TabledPredicate = exports.UntabledPredicate = exports.EdbPredicate = exports.TrieEdbPredicate = void 0;
     var unify_1 = require("./unify");
     var json_trie_1 = require("./json-trie");
     var im = require("immutable");
@@ -48,8 +55,8 @@ var __values = (this && this.__values) || function (o) {
                 waiter = waiters.pop();
             }
         };
-        TopLevelScheduler.prototype.dependOn = function (gen) { };
-        TopLevelScheduler.prototype.dependNegativelyOn = function (gen) { };
+        TopLevelScheduler.prototype.dependOn = function (_gen) { };
+        TopLevelScheduler.prototype.dependNegativelyOn = function (_gen) { };
         return TopLevelScheduler;
     }());
     var Generator = (function () {
@@ -69,7 +76,7 @@ var __values = (this && this.__values) || function (o) {
         }
         Object.defineProperty(Generator.prototype, "isComplete", {
             get: function () { return this.processes === null; },
-            enumerable: true,
+            enumerable: false,
             configurable: true
         });
         Generator.prototype.cleanup = function () {
@@ -316,7 +323,7 @@ var __values = (this && this.__values) || function (o) {
             else {
                 var answer_1 = new Array(count);
                 for (var i = 0; i < count; ++i) {
-                    answer_1[i] = unify_1.groundJson(sub.lookupById(i), sub);
+                    answer_1[i] = (0, unify_1.groundJson)(sub.lookupById(i), sub);
                 }
                 this.answerSet.modify(answer_1, function (exists) { if (!exists) {
                     _this.table.push(answer_1);
@@ -344,26 +351,26 @@ var __values = (this && this.__values) || function (o) {
         };
         TrieEdbPredicate.prototype.match = function (row) {
             var _this = this;
-            return function (gen) { return function (s) { return function (k) { return _this.trie.matchCont(row, s, k); }; }; };
+            return function (_gen) { return function (s) { return function (k) { return _this.trie.matchCont(row, s, k); }; }; };
         };
         TrieEdbPredicate.prototype.notMatch = function (row) {
             var _this = this;
-            return function (gen) { return function (s) { return function (k) {
+            return function (_gen) { return function (s) { return function (k) {
+                var e_1, _a;
                 try {
-                    for (var _a = __values(_this.trie.match(row, s)), _b = _a.next(); !_b.done; _b = _a.next()) {
-                        var s2 = _b.value;
+                    for (var _b = __values(_this.trie.match(row, s)), _c = _b.next(); !_c.done; _c = _b.next()) {
+                        var _ = _c.value;
                         return;
                     }
                 }
                 catch (e_1_1) { e_1 = { error: e_1_1 }; }
                 finally {
                     try {
-                        if (_b && !_b.done && (_c = _a.return)) _c.call(_a);
+                        if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
                     }
                     finally { if (e_1) throw e_1.error; }
                 }
                 return k(s);
-                var e_1, _c;
             }; }; };
         };
         return TrieEdbPredicate;
@@ -375,11 +382,11 @@ var __values = (this && this.__values) || function (o) {
         }
         EdbPredicate.prototype.match = function (row) {
             var _this = this;
-            return function (gen) { return function (s) { return function (k) {
+            return function (_gen) { return function (s) { return function (k) {
                 var arr = _this.table;
                 var len = arr.length;
                 for (var i = 0; i < len; ++i) {
-                    var s2 = unify_1.matchJson(row, arr[i], s);
+                    var s2 = (0, unify_1.matchJson)(row, arr[i], s);
                     if (s2 !== null)
                         k(s2);
                 }
@@ -387,11 +394,11 @@ var __values = (this && this.__values) || function (o) {
         };
         EdbPredicate.prototype.looseMatch = function (row) {
             var _this = this;
-            return function (gen) { return function (s) { return function (k) {
+            return function (_gen) { return function (s) { return function (k) {
                 var arr = _this.table;
                 var len = arr.length;
                 for (var i = 0; i < len; ++i) {
-                    var s2 = unify_1.looseMatchJson(row, arr[i], s);
+                    var s2 = (0, unify_1.looseMatchJson)(row, arr[i], s);
                     if (s2 !== null)
                         k(s2);
                 }
@@ -399,11 +406,11 @@ var __values = (this && this.__values) || function (o) {
         };
         EdbPredicate.prototype.notMatch = function (row) {
             var _this = this;
-            return function (gen) { return function (s) { return function (k) {
+            return function (_gen) { return function (s) { return function (k) {
                 var arr = _this.table;
                 var len = arr.length;
                 for (var i = 0; i < len; ++i) {
-                    var s2 = unify_1.matchJson(row, arr[i], s);
+                    var s2 = (0, unify_1.matchJson)(row, arr[i], s);
                     if (s2 !== null)
                         return;
                 }
@@ -435,7 +442,7 @@ var __values = (this && this.__values) || function (o) {
             var g = this.generators.modifyWithVars(row, function (gen, varMap) {
                 vs = varMap.vars;
                 if (gen === void (0)) {
-                    var t = unify_1.refreshJson(row, unify_1.Substitution.emptyPersistent());
+                    var t = (0, unify_1.refreshJson)(row, unify_1.Substitution.emptyPersistent());
                     isNew = true;
                     return TableGenerator.create(_this.body(t[0]), sched, vs.length, t[1]);
                 }
@@ -448,7 +455,7 @@ var __values = (this && this.__values) || function (o) {
         TabledPredicate.prototype.match = function (row) {
             var _this = this;
             return function (gen) { return function (s) { return function (k) {
-                var t = _this.getGenerator(unify_1.groundJson(row, s), gen);
+                var t = _this.getGenerator((0, unify_1.groundJson)(row, s), gen);
                 var generator = t[0];
                 var vs = t[1];
                 var len = vs.length;
@@ -457,12 +464,12 @@ var __values = (this && this.__values) || function (o) {
                 generator.consume(function (cs) {
                     var s2 = s;
                     for (var i = 0; i < len; ++i) {
-                        var t_1 = unify_1.refreshJson(cs[i], s2, vs);
+                        var t_1 = (0, unify_1.refreshJson)(cs[i], s2, vs);
                         s2 = t_1[1];
                         rs[i] = t_1[0];
                     }
                     for (var i = 0; i < len; ++i) {
-                        s2 = unify_1.unifyJson(vs[i], rs[i], s2);
+                        s2 = (0, unify_1.unifyJson)(vs[i], rs[i], s2);
                     }
                     return k(s2);
                 });
@@ -473,7 +480,7 @@ var __values = (this && this.__values) || function (o) {
         TabledPredicate.prototype.notMatch = function (row) {
             var _this = this;
             return function (gen) { return function (s) { return function (k) {
-                var t = _this.getGenerator(unify_1.groundJson(row, s), gen);
+                var t = _this.getGenerator((0, unify_1.groundJson)(row, s), gen);
                 var generator = t[0];
                 if (t[1].length !== 0)
                     throw new Error('TabledPredicate.notMatch: negation of non-ground atom (floundering)');
@@ -487,7 +494,7 @@ var __values = (this && this.__values) || function (o) {
             var _this = this;
             return function (row) {
                 return { into: function (result) { return function (gen) { return function (s) { return function (k) {
-                        var t = _this.getGenerator(unify_1.groundJson(row, s), gen);
+                        var t = _this.getGenerator((0, unify_1.groundJson)(row, s), gen);
                         var generator = t[0];
                         var vs = t[1];
                         var len = vs.length;
@@ -497,16 +504,16 @@ var __values = (this && this.__values) || function (o) {
                         generator.consumeToCompletion(function (cs) {
                             var s2 = s;
                             for (var i = 0; i < len; ++i) {
-                                var t_2 = unify_1.refreshJson(cs[i], s2, vs);
+                                var t_2 = (0, unify_1.refreshJson)(cs[i], s2, vs);
                                 s2 = t_2[1];
                                 rs[i] = t_2[0];
                             }
                             for (var i = 0; i < len; ++i) {
-                                s2 = unify_1.unifyJson(vs[i], rs[i], s2);
+                                s2 = (0, unify_1.unifyJson)(vs[i], rs[i], s2);
                             }
-                            agg = mult(agg, inject(unify_1.completelyGroundJson(row, s2)));
+                            agg = mult(agg, inject((0, unify_1.completelyGroundJson)(row, s2)));
                         }, function () {
-                            var s2 = unify_1.matchJson(result, agg, s);
+                            var s2 = (0, unify_1.matchJson)(result, agg, s);
                             if (s2 !== null)
                                 return k(s2);
                         });
@@ -588,9 +595,9 @@ var __values = (this && this.__values) || function (o) {
             var _this = this;
             var answer = new Array(count);
             for (var i = 0; i < count; ++i) {
-                answer[i] = unify_1.groundJson(sub.lookupById(i), sub);
+                answer[i] = (0, unify_1.groundJson)(sub.lookupById(i), sub);
             }
-            var val = unify_1.completelyGroundJson(valVar, sub);
+            var val = (0, unify_1.completelyGroundJson)(valVar, sub);
             this.answerSet.modify(answer, function (acc, exists) {
                 if (exists) {
                     return _this.mult(acc, _this.inject(val));
@@ -617,7 +624,7 @@ var __values = (this && this.__values) || function (o) {
         };
         GroupedPredicateGroup.prototype.aggregateInto = function (inject, unit, mult, agg) {
             var _this = this;
-            var t1 = unify_1.refreshJson(this.groups, unify_1.Substitution.emptyPersistent());
+            var t1 = (0, unify_1.refreshJson)(this.groups, unify_1.Substitution.emptyPersistent());
             var t = t1[1].freshVar();
             var valVar = t[0];
             var vsLen = t[0].id;
@@ -631,19 +638,19 @@ var __values = (this && this.__values) || function (o) {
                     var grps = _this.groups;
                     var s2 = s;
                     for (var i = 0; i < vsLen; ++i) {
-                        var t_3 = unify_1.refreshJson(cs[i], s2, grps);
+                        var t_3 = (0, unify_1.refreshJson)(cs[i], s2, grps);
                         s2 = t_3[1];
                         rs[i] = t_3[0];
                     }
                     for (var i = 0; i < vsLen; ++i) {
-                        s2 = unify_1.unifyJson(grps[i], rs[i], s2);
+                        s2 = (0, unify_1.unifyJson)(grps[i], rs[i], s2);
                     }
-                    s2 = unify_1.matchJson(agg, acc, s2);
+                    s2 = (0, unify_1.matchJson)(agg, acc, s2);
                     if (s2 !== null)
                         return k(s2);
                 }, function () {
                     if (!anyResults) {
-                        var s2 = unify_1.matchJson(agg, unit, s);
+                        var s2 = (0, unify_1.matchJson)(agg, unit, s);
                         if (s2 !== null)
                             return k(s2);
                     }
@@ -686,7 +693,7 @@ var __values = (this && this.__values) || function (o) {
             var g = this.generators.modifyWithVars(row, function (gen, varMap) {
                 vs = varMap.vars;
                 if (gen === void (0)) {
-                    var t = unify_1.refreshJson(row, unify_1.Substitution.emptyPersistent());
+                    var t = (0, unify_1.refreshJson)(row, unify_1.Substitution.emptyPersistent());
                     isNew = true;
                     return TableGenerator.create(_this.body.apply(null, t[0])(acc), sched, vs.length, t[1]);
                 }
@@ -701,7 +708,7 @@ var __values = (this && this.__values) || function (o) {
             return function (gen) { return function (s0) { return function (k) {
                 var t1 = s0.freshVar();
                 var s = t1[1];
-                var t = _this.getGenerator(unify_1.groundJson(row, s), t1[0], gen);
+                var t = _this.getGenerator((0, unify_1.groundJson)(row, s), t1[0], gen);
                 var generator = t[0];
                 var vs = t[1];
                 var len = vs.length;
@@ -710,12 +717,12 @@ var __values = (this && this.__values) || function (o) {
                 generator.consume(function (cs) {
                     var s2 = s;
                     for (var i = 0; i < len; ++i) {
-                        var t_4 = unify_1.refreshJson(cs[i], s2, vs);
+                        var t_4 = (0, unify_1.refreshJson)(cs[i], s2, vs);
                         s2 = t_4[1];
                         rs[i] = t_4[0];
                     }
                     for (var i = 0; i < len; ++i) {
-                        s2 = unify_1.unifyJson(vs[i], rs[i], s2);
+                        s2 = (0, unify_1.unifyJson)(vs[i], rs[i], s2);
                     }
                     return k(s2);
                 });
@@ -728,7 +735,7 @@ var __values = (this && this.__values) || function (o) {
             return function (gen) { return function (s0) { return function (k) {
                 var t1 = s0.freshVar();
                 var s = t1[1];
-                var t = _this.getGenerator(unify_1.groundJson(row, s), t1[0], gen);
+                var t = _this.getGenerator((0, unify_1.groundJson)(row, s), t1[0], gen);
                 var generator = t[0];
                 var vs = t[1];
                 if (vs.length !== 0)
@@ -821,8 +828,8 @@ var __values = (this && this.__values) || function (o) {
         BaseLattice.prototype.join = function (In, Out) {
             var _this = this;
             return { for: function (row) { return _this.forThen(row, function (v, k, s, g) {
-                    var val = unify_1.completelyGroundJson(In, s);
-                    var s2 = unify_1.unifyJson(Out, g.join(v, val), s);
+                    var val = (0, unify_1.completelyGroundJson)(In, s);
+                    var s2 = (0, unify_1.unifyJson)(Out, g.join(v, val), s);
                     if (s2 !== null)
                         return k(s2);
                 }); } };
@@ -846,7 +853,7 @@ var __values = (this && this.__values) || function (o) {
         BaseLattice.prototype.forThen = function (row, f) {
             var _this = this;
             return function (gen) { return function (s) { return function (k) {
-                var t = _this.getGenerator(unify_1.groundJson(row, s), gen);
+                var t = _this.getGenerator((0, unify_1.groundJson)(row, s), gen);
                 var g = t[0];
                 gen.dependOn(g);
                 g.consume(function (x) { return f(x, k, s, g); });
@@ -919,7 +926,7 @@ var __values = (this && this.__values) || function (o) {
         };
         GrowingSetLattice.prototype.contains = function (x) {
             var _this = this;
-            return new AnyLattice(function (row) { return _this.forThen(row, function (s, k, sub) { return k(s.contains(unify_1.completelyGroundJson(x, sub))); }); });
+            return new AnyLattice(function (row) { return _this.forThen(row, function (s, k, sub) { return k(s.contains((0, unify_1.completelyGroundJson)(x, sub))); }); });
         };
         GrowingSetLattice.prototype.size = function () {
             var _this = this;
@@ -946,7 +953,7 @@ var __values = (this && this.__values) || function (o) {
         MinLattice.prototype.lessThan = function (threshold) {
             var _this = this;
             return new AnyLattice(function (row) { return _this.forThen(row, function (n, k, s) {
-                var t = unify_1.groundJson(threshold, s);
+                var t = (0, unify_1.groundJson)(threshold, s);
                 if (typeof t !== 'number')
                     throw new Error('MinLattice.lessThan: expected threshold to be a number');
                 return k(n < t);
@@ -955,7 +962,7 @@ var __values = (this && this.__values) || function (o) {
         MinLattice.prototype.lessThanOrEqualTo = function (threshold) {
             var _this = this;
             return new AnyLattice(function (row) { return _this.forThen(row, function (n, k, s) {
-                var t = unify_1.groundJson(threshold, s);
+                var t = (0, unify_1.groundJson)(threshold, s);
                 if (typeof t !== 'number')
                     throw new Error('MinLattice.lessThanOrEqualTo: expected threshold to be a number');
                 return k(n <= t);
@@ -964,7 +971,7 @@ var __values = (this && this.__values) || function (o) {
         MinLattice.prototype.add = function (shift) {
             var _this = this;
             return new MinLattice(function (row) { return _this.forThen(row, function (n, k, s) {
-                var t = unify_1.groundJson(shift, s);
+                var t = (0, unify_1.groundJson)(shift, s);
                 if (typeof t !== 'number')
                     throw new Error('MinLattice.add: expected shift to be a number');
                 return k(n + t);
@@ -973,7 +980,7 @@ var __values = (this && this.__values) || function (o) {
         MinLattice.prototype.sub = function (shift) {
             var _this = this;
             return new MinLattice(function (row) { return _this.forThen(row, function (n, k, s) {
-                var t = unify_1.groundJson(shift, s);
+                var t = (0, unify_1.groundJson)(shift, s);
                 if (typeof t !== 'number')
                     throw new Error('MinLattice.sub: expected shift to be a number');
                 return k(n - t);
@@ -1004,7 +1011,7 @@ var __values = (this && this.__values) || function (o) {
         MaxLattice.prototype.greaterThan = function (threshold) {
             var _this = this;
             return new AnyLattice(function (row) { return _this.forThen(row, function (n, k, s) {
-                var t = unify_1.groundJson(threshold, s);
+                var t = (0, unify_1.groundJson)(threshold, s);
                 if (typeof t !== 'number')
                     throw new Error('MaxLattice.greaterThan: expected threshold to be a number');
                 return k(n > t);
@@ -1013,7 +1020,7 @@ var __values = (this && this.__values) || function (o) {
         MaxLattice.prototype.greaterThanOrEqualTo = function (threshold) {
             var _this = this;
             return new AnyLattice(function (row) { return _this.forThen(row, function (n, k, s) {
-                var t = unify_1.groundJson(threshold, s);
+                var t = (0, unify_1.groundJson)(threshold, s);
                 if (typeof t !== 'number')
                     throw new Error('MaxLattice.greaterThanOrEqualTo: expected threshold to be a number');
                 return k(n >= t);
@@ -1022,7 +1029,7 @@ var __values = (this && this.__values) || function (o) {
         MaxLattice.prototype.add = function (shift) {
             var _this = this;
             return new MaxLattice(function (row) { return _this.forThen(row, function (n, k, s) {
-                var t = unify_1.groundJson(shift, s);
+                var t = (0, unify_1.groundJson)(shift, s);
                 if (typeof t !== 'number')
                     throw new Error('MaxLattice.add: expected shift to be a number');
                 return k(n + t);
@@ -1031,7 +1038,7 @@ var __values = (this && this.__values) || function (o) {
         MaxLattice.prototype.sub = function (shift) {
             var _this = this;
             return new MaxLattice(function (row) { return _this.forThen(row, function (n, k, s) {
-                var t = unify_1.groundJson(shift, s);
+                var t = (0, unify_1.groundJson)(shift, s);
                 if (typeof t !== 'number')
                     throw new Error('MaxLattice.sub: expected shift to be a number');
                 return k(n - t);
@@ -1049,28 +1056,28 @@ var __values = (this && this.__values) || function (o) {
     }
     exports.seq = seq;
     function fail() {
-        return function (gen) { return function (s) { return function (k) { return void (0); }; }; };
+        return function (_gen) { return function (_s) { return function (_k) { return void (0); }; }; };
     }
     exports.fail = fail;
     function succeedWith(val) {
-        return function (gen) { return function (s) { return function (k) { return k(val); }; }; };
+        return function (_gen) { return function (_s) { return function (k) { return k(val); }; }; };
     }
     function ground(val) {
-        return function (gen) { return function (s) { return function (k) { return k(unify_1.groundJson(val, s)); }; }; };
+        return function (_gen) { return function (s) { return function (k) { return k((0, unify_1.groundJson)(val, s)); }; }; };
     }
     function completelyGround(val) {
-        return function (gen) { return function (s) { return function (k) { return k(unify_1.completelyGroundJson(val, s)); }; }; };
+        return function (_gen) { return function (s) { return function (k) { return k((0, unify_1.completelyGroundJson)(val, s)); }; }; };
     }
     function apply(f) {
-        return function (In, Out) { return function (gen) { return function (s) { return function (k) {
-            var result = unify_1.matchJson(Out, f(unify_1.completelyGroundJson(In, s)), s);
+        return function (In, Out) { return function (_gen) { return function (s) { return function (k) {
+            var result = (0, unify_1.matchJson)(Out, f((0, unify_1.completelyGroundJson)(In, s)), s);
             if (result !== null)
                 return k(result);
         }; }; }; };
     }
     exports.apply = apply;
     function guard(pred) {
-        return function (In) { return function (gen) { return function (s) { return function (k) { return pred(unify_1.completelyGroundJson(In, s)) ? k(s) : void (0); }; }; }; };
+        return function (In) { return function (_gen) { return function (s) { return function (k) { return pred((0, unify_1.completelyGroundJson)(In, s)) ? k(s) : void (0); }; }; }; };
     }
     exports.guard = guard;
     function conj() {
@@ -1140,8 +1147,8 @@ var __values = (this && this.__values) || function (o) {
     }
     exports.clause = clause;
     function unify(x, y) {
-        return function (gen) { return function (s) { return function (k) {
-            var s2 = unify_1.unifyJson(x, y, s);
+        return function (_gen) { return function (s) { return function (k) {
+            var s2 = (0, unify_1.unifyJson)(x, y, s);
             if (s2 !== null) {
                 return k(s2);
             }
@@ -1149,8 +1156,8 @@ var __values = (this && this.__values) || function (o) {
     }
     exports.unify = unify;
     function looseUnify(x, y) {
-        return function (gen) { return function (s) { return function (k) {
-            var s2 = unify_1.looseUnifyJson(x, y, s);
+        return function (_gen) { return function (s) { return function (k) {
+            var s2 = (0, unify_1.looseUnifyJson)(x, y, s);
             if (s2 !== null) {
                 return k(s2);
             }

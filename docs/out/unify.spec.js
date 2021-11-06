@@ -35,7 +35,7 @@ var __read = (this && this.__read) || function (o, n) {
         s = s.bind(Z, { foo: 1, bar: void (0), baz: [1, 2], quux: {}, objVar: X, arrVar: Y, primVar: B, unboundVar: U });
         s = s.bind(W, [1, void (0), [1, 2], {}, X, Y, B, U]);
         s = s.bind(A, [W, Z]);
-        expect(unify_1.groundJsonNoSharing(A, s)).toEqual([
+        expect((0, unify_1.groundJsonNoSharing)(A, s)).toEqual([
             [1, void (0), [1, 2], {}, { foo: 1, bar: void (0), baz: [1, 2], quux: {} }, [1, void (0), [1, 2], {}], 1, U],
             { foo: 1, bar: void (0), baz: [1, 2], quux: {}, objVar: { foo: 1, bar: void (0), baz: [1, 2], quux: {} }, arrVar: [1, void (0), [1, 2], {}], primVar: 1, unboundVar: U }
         ]);
@@ -48,7 +48,7 @@ var __read = (this && this.__read) || function (o, n) {
         s = s.bind(Z, { foo: 1, bar: void (0), baz: [1, 2], quux: {}, objVar: X, arrVar: Y, primVar: B, unboundVar: U });
         s = s.bind(W, [1, void (0), [1, 2], {}, X, Y, B, U]);
         s = s.bind(A, [W, Z]);
-        expect(unify_1.groundJson(A, s)).toEqual([
+        expect((0, unify_1.groundJson)(A, s)).toEqual([
             [1, void (0), [1, 2], {}, { foo: 1, bar: void (0), baz: [1, 2], quux: {} }, [1, void (0), [1, 2], {}], 1, U],
             { foo: 1, bar: void (0), baz: [1, 2], quux: {}, objVar: { foo: 1, bar: void (0), baz: [1, 2], quux: {} }, arrVar: [1, void (0), [1, 2], {}], primVar: 1, unboundVar: U }
         ]);
@@ -61,7 +61,7 @@ var __read = (this && this.__read) || function (o, n) {
         s = s.bind(Z, { foo: 1, bar: void (0), baz: [1, 2], quux: {}, objVar: X, arrVar: Y, primVar: B });
         s = s.bind(W, [1, void (0), [1, 2], {}, X, Y, B]);
         s = s.bind(A, [W, Z]);
-        expect(unify_1.completelyGroundJson(A, s)).toEqual([
+        expect((0, unify_1.completelyGroundJson)(A, s)).toEqual([
             [1, void (0), [1, 2], {}, { foo: 1, bar: void (0), baz: [1, 2], quux: {} }, [1, void (0), [1, 2], {}], 1],
             { foo: 1, bar: void (0), baz: [1, 2], quux: {}, objVar: { foo: 1, bar: void (0), baz: [1, 2], quux: {} }, arrVar: [1, void (0), [1, 2], {}], primVar: 1 }
         ]);
@@ -74,11 +74,11 @@ var __read = (this && this.__read) || function (o, n) {
         s = s.bind(Z, { foo: 1, bar: void (0), baz: [1, 2], quux: {}, objVar: X, arrVar: Y, primVar: B, unboundVar: U });
         s = s.bind(W, [1, void (0), [1, 2], {}, X, Y, B, U]);
         s = s.bind(A, [W, Z]);
-        expect(function () { return unify_1.completelyGroundJson(A, s); }).toThrow('completelyGroundJson: term contains unbound variables');
+        expect(function () { return (0, unify_1.completelyGroundJson)(A, s); }).toThrow('completelyGroundJson: term contains unbound variables');
     });
     test('refreshJson simple linear', function () {
         var _a = __read(unify_1.Substitution.emptyPersistent().fresh(4), 2), _b = __read(_a[0], 4), X = _b[0], Y = _b[1], Z = _b[2], W = _b[3], sub = _a[1];
-        var _c = __read(unify_1.refreshJson([Z, W], sub), 2), t = _c[0], subResult = _c[1];
+        var _c = __read((0, unify_1.refreshJson)([Z, W], sub), 2), t = _c[0], subResult = _c[1];
         var _d = __read(subResult.freshVar(), 2), v = _d[0], _ = _d[1];
         expect([t, v]).toEqual([
             [new unify_1.Variable(4), new unify_1.Variable(5)],
@@ -87,7 +87,7 @@ var __read = (this && this.__read) || function (o, n) {
     });
     test('refreshJson simple non-linear', function () {
         var _a = __read(unify_1.Substitution.emptyPersistent().fresh(4), 2), _b = __read(_a[0], 4), X = _b[0], Y = _b[1], Z = _b[2], W = _b[3], sub = _a[1];
-        var _c = __read(unify_1.refreshJson([Z, Z], sub), 2), t = _c[0], subResult = _c[1];
+        var _c = __read((0, unify_1.refreshJson)([Z, Z], sub), 2), t = _c[0], subResult = _c[1];
         var _d = __read(subResult.freshVar(), 2), v = _d[0], _ = _d[1];
         expect([t, v]).toEqual([
             [new unify_1.Variable(4), new unify_1.Variable(4)],

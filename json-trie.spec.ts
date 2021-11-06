@@ -1,9 +1,9 @@
-// import { Gen } from "./jsqc"
-// import "./ts-jsqc"
+// import { Gen } from './jsqc'
+// import './ts-jsqc'
 
-import { Variable, Substitution, Json, JsonTerm } from "./unify"
-import { JsonTrieTerm, JsonTrie } from "./json-trie"
-import "jest"
+import { Variable, Substitution, Json } from './unify'
+import { JsonTrieTerm, JsonTrie } from './json-trie'
+import 'jest'
 
 function makeTestJsonTrie(): JsonTrie<number | undefined> {
     const trie = JsonTrie.create<number | undefined>();

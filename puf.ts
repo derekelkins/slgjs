@@ -191,13 +191,13 @@ class PersistentImmediateArray<A> implements InternalPersistentArray<A> {
         }
     }
 
-    get(cell: ArrayCell<A>, index: number): A {
+    get(_cell: ArrayCell<A>, index: number): A {
         const arr = this.baseArray;
         if(index >= arr.length) { this.grow(index + 1); }
         return arr[index];
     }
 
-    getUnsafe(cell: ArrayCell<A>, index: number): A {
+    getUnsafe(_cell: ArrayCell<A>, index: number): A {
         return this.baseArray[index];
     }
 
@@ -211,7 +211,7 @@ class PersistentImmediateArray<A> implements InternalPersistentArray<A> {
         return res;
     }
 
-    reroot(cell: ArrayCell<A>): void { /* do nothing */ }
+    reroot(_cell: ArrayCell<A>): void { /* do nothing */ }
 
     // Persistent
     rerootAux(i: number, v: A, t: ArrayCell<A>, t2: ArrayCell<A>): void {
@@ -240,13 +240,13 @@ class SemiPersistentImmediateArray<A> implements InternalPersistentArray<A> {
         }
     }
 
-    get(cell: ArrayCell<A>, index: number): A {
+    get(_cell: ArrayCell<A>, index: number): A {
         const arr = this.baseArray;
         if(index >= arr.length) { this.grow(index + 1); }
         return arr[index];
     }
 
-    getUnsafe(cell: ArrayCell<A>, index: number): A {
+    getUnsafe(_cell: ArrayCell<A>, index: number): A {
         return this.baseArray[index];
     }
 
@@ -260,7 +260,7 @@ class SemiPersistentImmediateArray<A> implements InternalPersistentArray<A> {
         return res;
     }
 
-    reroot(cell: ArrayCell<A>): void { /* do nothing */ }
+    reroot(_cell: ArrayCell<A>): void { /* do nothing */ }
 
     // Semi-persistent
     rerootAux(i: number, v: A, t: ArrayCell<A>, t2: ArrayCell<A>): void {
@@ -283,7 +283,7 @@ class DiffArray<A> implements InternalPersistentArray<A> {
         return t.getUnsafe(index);
     }
 
-    set(cell: ArrayCell<A>, index: number, value: A): PersistentArray<A> {
+    set(_cell: ArrayCell<A>, _index: number, _value: A): PersistentArray<A> {
         throw new Error('DiffArray.set: we should never get here.'); // ASSERTION
     }
 
@@ -293,7 +293,7 @@ class DiffArray<A> implements InternalPersistentArray<A> {
         return t2.contents.rerootAux(this.index, this.value, t, t2);
     }
 
-    rerootAux(i: number, v: A, t: ArrayCell<A>, t2: ArrayCell<A>): void {
+    rerootAux(_i: number, _v: A, _t: ArrayCell<A>, _t2: ArrayCell<A>): void {
         throw new Error('DiffArray.rerootAux: we should never get here.'); // ASSERTION
     }
 }
@@ -302,23 +302,23 @@ class InvalidArray<A> implements InternalPersistentArray<A> {
     static IT: InvalidArray<any> = new InvalidArray();
     private constructor() {}
 
-    get(t: ArrayCell<A>, index: number): A {
+    get(_t: ArrayCell<A>, _index: number): A {
         throw new Error('Attempt to access Invalid semi-persistent array.');
     }
 
-    getUnsafe(t: ArrayCell<A>, index: number): A {
+    getUnsafe(_t: ArrayCell<A>, _index: number): A {
         throw new Error('Attempt to access Invalid semi-persistent array.');
     }
 
-    set(cell: ArrayCell<A>, index: number, value: A): PersistentArray<A> {
+    set(_cell: ArrayCell<A>, _index: number, _value: A): PersistentArray<A> {
         throw new Error('Attempt to mutate Invalid semi-persistent array.');
     }
 
-    reroot(t: ArrayCell<A>): void {
+    reroot(_t: ArrayCell<A>): void {
         throw new Error('Attempt to reroot Invalid semi-persistent array.');
     }
 
-    rerootAux(i: number, v: A, t: ArrayCell<A>, t2: ArrayCell<A>): void {
+    rerootAux(_i: number, _v: A, _t: ArrayCell<A>, _t2: ArrayCell<A>): void {
         throw new Error('Attempt to rerootAux Invalid semi-persistent array.'); // ASSERTION
     }
 }

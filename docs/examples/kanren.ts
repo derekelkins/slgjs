@@ -1,7 +1,7 @@
 // This is primarily to test the other parts.
 // runLP, unify, fresh, conj, disj and the Term type constitute the microKanren core.
 
-import { Variable, Substitution } from "./unify"
+import { Variable, Substitution } from './unify'
 
 export interface Term<C> {
     match<A>(varCase: (v: Variable) => A, constCase: (c: C) => A, tupleCase: (xs: Array<Term<C>>) => A): A;
@@ -12,7 +12,7 @@ export interface Term<C> {
 
 export class Var<C> implements Term<C> {
     constructor(readonly variable: Variable) { }
-    match<A>(varCase: (v: Variable) => A, constCase: (c: C) => A, tupleCase: (xs: Array<Term<C>>) => A): A {
+    match<A>(varCase: (v: Variable) => A, _constCase: (c: C) => A, _tupleCase: (xs: Array<Term<C>>) => A): A {
         return varCase(this.variable);
     }
 
@@ -48,11 +48,11 @@ export class Var<C> implements Term<C> {
 
 export class Const<C> implements Term<C> {
     constructor(readonly constant: C) { }
-    match<A>(varCase: (v: Variable) => A, constCase: (c: C) => A, tupleCase: (xs: Array<Term<C>>) => A): A {
+    match<A>(_varCase: (v: Variable) => A, constCase: (c: C) => A, _tupleCase: (xs: Array<Term<C>>) => A): A {
         return constCase(this.constant);
     }
 
-    contains(normalizedId: number, s: Substitution<Term<C>>): boolean {
+    contains(_normalizedId: number, _s: Substitution<Term<C>>): boolean {
         return false;
     }
 
@@ -62,7 +62,7 @@ export class Const<C> implements Term<C> {
                        _ => null);                        
     }
 
-    ground(s: Substitution<Term<C>>): Term<C> {
+    ground(_s: Substitution<Term<C>>): Term<C> {
         return this;
     }
 
@@ -73,7 +73,7 @@ export class Const<C> implements Term<C> {
 
 export class Tuple<C> implements Term<C> {
     constructor(readonly subterms: Array<Term<C>>) { }
-    match<A>(varCase: (v: Variable) => A, constCase: (c: C) => A, tupleCase: (xs: Array<Term<C>>) => A): A {
+    match<A>(_varCase: (v: Variable) => A, _constCase: (c: C) => A, tupleCase: (xs: Array<Term<C>>) => A): A {
         return tupleCase(this.subterms);
     }
 

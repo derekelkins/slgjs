@@ -1,6 +1,6 @@
-import "jest"
+import 'jest'
 import { Variable, Substitution,
-         groundJsonNoSharing, groundJson, completelyGroundJson, refreshJson } from "./unify"
+         groundJsonNoSharing, groundJson, completelyGroundJson, refreshJson } from './unify'
 
 // TODO: Add tests for the *Json functions:
 //export function looseMatchJson(x: JsonTerm, y: Json, sub: Substitution<JsonTerm>): Substitution<JsonTerm> | null {

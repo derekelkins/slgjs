@@ -1,9 +1,10 @@
 ///<reference path='./node_modules/immutable/dist/immutable.d.ts'/>
 import { Json, JsonTerm, Variable, Substitution, 
-         groundJson, completelyGroundJson, looseUnifyJson, unifyJson, matchJson, looseMatchJson, refreshJson } from "./unify"
-import { VarMap, JsonTrie, JsonTrieTerm } from "./json-trie"
+         groundJson, completelyGroundJson, looseUnifyJson, unifyJson,
+         matchJson, looseMatchJson, refreshJson } from './unify'
+import { VarMap, JsonTrie, JsonTrieTerm } from './json-trie'
 
-import * as im from "immutable"
+import * as im from 'immutable'
 
 interface GlobalEnvironment {
     generatorCount: number;
@@ -34,9 +35,9 @@ class TopLevelScheduler implements Scheduler {
         while(waiter !== void(0)) { waiter(); waiter = waiters.pop(); }
     }
 
-    dependOn(gen: Generator): void { } // Don't need to do anything.
+    dependOn(_gen: Generator): void { } // Don't need to do anything.
 
-    dependNegativelyOn(gen: Generator): void { } // Don't need to do anything.
+    dependNegativelyOn(_gen: Generator): void { } // Don't need to do anything.
 }
 
 /**
@@ -463,7 +464,7 @@ export class TrieEdbPredicate implements NonMonotonicPredicate {
     }
 
     match(row: JsonTerm): LPTerm {
-        return gen => s => k => this.trie.matchCont(row, s, k);
+        return _gen => s => k => this.trie.matchCont(row, s, k);
     }
 
     /**
@@ -474,8 +475,8 @@ export class TrieEdbPredicate implements NonMonotonicPredicate {
      * @return A computation succeeding only if `row` is **not** in the extension of the predicate.
      */
     notMatch(row: JsonTerm): LPTerm {
-        return gen => s => k => {
-            for(const s2 of this.trie.match(row, s)) {
+        return _gen => s => k => {
+            for(const _ of this.trie.match(row, s)) {
                 return;
             }
             return k(s);
@@ -501,7 +502,7 @@ export class EdbPredicate implements NonMonotonicPredicate {
     constructor(private readonly table: Array<Json>) {}
 
     match(row: JsonTerm): LPTerm {
-        return gen => s => k => {
+        return _gen => s => k => {
             const arr = this.table;
             const len = arr.length;
             for(let i = 0; i < len; ++i) {
@@ -519,7 +520,7 @@ export class EdbPredicate implements NonMonotonicPredicate {
      * loosely consistent with the predicate.
      */
     looseMatch(row: JsonTerm): LPTerm {
-        return gen => s => k => {
+        return _gen => s => k => {
             const arr = this.table;
             const len = arr.length;
             for(let i = 0; i < len; ++i) {
@@ -538,7 +539,7 @@ export class EdbPredicate implements NonMonotonicPredicate {
      * @return A computation succeeding only if `row` is **not** in the extension of the predicate.
      */
     notMatch(row: JsonTerm): LPTerm {
-        return gen => s => k => {
+        return _gen => s => k => {
             const arr = this.table;
             const len = arr.length;
             for(let i = 0; i < len; ++i) {
@@ -1528,7 +1529,7 @@ export function seq<V, A>(m1: LPSub<V>, m2: LP<V, A>): LP<V, A> {
  * Computation that always fails.
  */
 export function fail<V, A>(): LP<V, A> {
-    return gen => s => k => void(0);
+    return _gen => _s => _k => void(0);
 }
 
 /**
@@ -1536,7 +1537,7 @@ export function fail<V, A>(): LP<V, A> {
  * that returns `val`.
  */
 function succeedWith<V, A>(val: A): LP<V, A> {
-    return gen => s => k => k(val);
+    return _gen => _s => k => k(val);
 }
 
 /**
@@ -1544,7 +1545,7 @@ function succeedWith<V, A>(val: A): LP<V, A> {
  * to `val`.
  */
 function ground(val: JsonTerm): LP<JsonTerm, JsonTerm> {
-    return gen => s => k => k(groundJson(val, s));
+    return _gen => s => k => k(groundJson(val, s));
 }
 
 /**
@@ -1552,7 +1553,7 @@ function ground(val: JsonTerm): LP<JsonTerm, JsonTerm> {
  * to `val`.
  */
 function completelyGround(val: JsonTerm): LP<JsonTerm, Json> {
-    return gen => s => k => k(completelyGroundJson(val, s));
+    return _gen => s => k => k(completelyGroundJson(val, s));
 }
 
 /**
@@ -1560,7 +1561,7 @@ function completelyGround(val: JsonTerm): LP<JsonTerm, Json> {
  * the result.
  */
 export function apply(f: (x: Json) => Json): (In: JsonTerm, Out: JsonTerm) => LPTerm {
-    return (In, Out) => gen => s => k => {
+    return (In, Out) => _gen => s => k => {
         const result = matchJson(Out, f(completelyGroundJson(In, s)), s);
         if(result !== null) return k(result);
     };
@@ -1571,7 +1572,7 @@ export function apply(f: (x: Json) => Json): (In: JsonTerm, Out: JsonTerm) => LP
  * `pred` returns `false`.
  */
 export function guard(pred: (x: Json) => boolean): (In: JsonTerm) => LPTerm {
-    return In => gen => s => k => pred(completelyGroundJson(In, s)) ? k(s) : void(0);
+    return In => _gen => s => k => pred(completelyGroundJson(In, s)) ? k(s) : void(0);
 }
 
 /**
@@ -1644,7 +1645,7 @@ export function fresh<V, A>(body: (...vs: Array<Variable>) => LP<V, A>): LP<V, A
 export function clauseN<V>(count: number, body: (...vs: Array<Variable>) => Array<LPSub<V>>): LPSub<V> {
     return gen => s => k => {
         const t = s.fresh(count);
-        return conj.apply(null, body.apply(null, t[0]))(gen)(t[1])(k);
+        return conj.apply<null, LPSub<V>[], LPSub<V>>(null, body.apply(null, t[0]))(gen)(t[1])(k);
     };
 }
 
@@ -1662,7 +1663,7 @@ export function clause<V>(body: (...vs: Array<Variable>) => Array<LPSub<V>>): LP
  * See [[unifyJson]].
  */
 export function unify(x: JsonTerm, y: JsonTerm): LPTerm {
-    return gen => s => k => {
+    return _gen => s => k => {
         const s2 = unifyJson(x, y, s);
         if(s2 !== null) {
             return k(s2);
@@ -1675,7 +1676,7 @@ export function unify(x: JsonTerm, y: JsonTerm): LPTerm {
  * See [[looseUnifyJson]].
  */
 export function looseUnify(x: JsonTerm, y: JsonTerm): LPTerm {
-    return gen => s => k => {
+    return _gen => s => k => {
         const s2 = looseUnifyJson(x, y, s);
         if(s2 !== null) {
             return k(s2);
@@ -1708,7 +1709,8 @@ export function rule<V>(...alternatives: Array<(...vs: Array<Variable>) => Array
     }
     return disj.apply(null, alts);
     */
-    return disj.apply(null, alternatives.map(cs => clauseN(cs.length, (...vs) => cs.apply(null, vs))));
+    return disj.apply<null, LPSub<V>[], LPSub<V>>(null,
+        alternatives.map(cs => clauseN<V>(cs.length, (...vs) => cs.apply(null, vs))));
 }
 
 function runLP<V, A>(sched: Scheduler, m: LP<V, A>, k: (a: A) => void): void {

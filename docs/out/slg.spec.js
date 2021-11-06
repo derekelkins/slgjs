@@ -31,9 +31,9 @@ var __read = (this && this.__read) || function (o, n) {
     describe('lattices', function () {
         test('quorum example', function () {
             var quorumSize = 2;
-            var vote = slg_1.facts(['A', 'B', 'C']);
+            var vote = (0, slg_1.facts)(['A', 'B', 'C']);
             var votes = slg_1.GrowingSetLattice.fromLP(function (_, Q) { return vote.match(Q); });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.conj(votes.size().greaterThanOrEqualTo(quorumSize).isTrue().for(null), slg_1.unify(Q, true)); });
+            var result = (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.conj)(votes.size().greaterThanOrEqualTo(quorumSize).isTrue().for(null), (0, slg_1.unify)(Q, true)); });
             expect(result).toEqual([true]);
         });
         test('monotonic shortest path, otherwise non-terminating', function () {
@@ -41,15 +41,15 @@ var __read = (this && this.__read) || function (o, n) {
                 var _b = __read(_a, 2), S = _b[0], E = _b[1];
                 return path.match([S, E, Q]);
             });
-            var edge = slg_1.facts([[1, 2], [2, 3], [3, 1]]);
-            var path = slg_1.tabled(function (_a) {
+            var edge = (0, slg_1.facts)([[1, 2], [2, 3], [3, 1]]);
+            var path = (0, slg_1.tabled)(function (_a) {
                 var _b = __read(_a, 3), X = _b[0], Z = _b[1], SD = _b[2];
-                return slg_1.rule(function () { return [edge.match([X, Z]), slg_1.unify(SD, 1)]; }, function (Y, D, D1) { return [path.match([X, Y, D1]),
+                return (0, slg_1.rule)(function () { return [edge.match([X, Z]), (0, slg_1.unify)(SD, 1)]; }, function (Y, D, D1) { return [path.match([X, Y, D1]),
                     edge.match([Y, Z]),
-                    slg_1.apply(function (x) { return x + 1; })(D1, D),
+                    (0, slg_1.apply)(function (x) { return x + 1; })(D1, D),
                     shortestPathLen.join(D, SD).for([X, Z])]; });
             });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (S, E, L) { return [path.match([S, E, L]), slg_1.unify(Q, [S, E, L])]; }); });
+            var result = (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.clause)(function (S, E, L) { return [path.match([S, E, L]), (0, slg_1.unify)(Q, [S, E, L])]; }); });
             expect(result).toEqual([
                 [1, 2, 1], [2, 3, 1], [3, 1, 1],
                 [1, 3, 2], [2, 1, 2], [3, 2, 2],
@@ -61,18 +61,18 @@ var __read = (this && this.__read) || function (o, n) {
                 var _b = __read(_a, 2), S = _b[0], E = _b[1];
                 return path.match([S, E, Q]);
             });
-            var edge = slg_1.facts([[1, 2, 1], [2, 3, 1], [1, 3, 10]]);
-            var path = slg_1.tabled(function (_a) {
+            var edge = (0, slg_1.facts)([[1, 2, 1], [2, 3, 1], [1, 3, 10]]);
+            var path = (0, slg_1.tabled)(function (_a) {
                 var _b = __read(_a, 3), X = _b[0], Z = _b[1], SD = _b[2];
-                return slg_1.rule(function () { return [edge.match([X, Z, SD])]; }, function (Y, D1, D2, D) { return [path.match([X, Y, D1]),
+                return (0, slg_1.rule)(function () { return [edge.match([X, Z, SD])]; }, function (Y, D1, D2, D) { return [path.match([X, Y, D1]),
                     edge.match([Y, Z, D2]),
-                    slg_1.apply(function (_a) {
+                    (0, slg_1.apply)(function (_a) {
                         var _b = __read(_a, 2), d1 = _b[0], d2 = _b[1];
                         return d1 + d2;
                     })([D1, D2], D),
                     shortestPathLen.join(D, SD).for([X, Z])]; });
             });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (S, E, L) { return [path.match([S, E, L]), slg_1.unify(Q, [S, E, L])]; }); });
+            var result = (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.clause)(function (S, E, L) { return [path.match([S, E, L]), (0, slg_1.unify)(Q, [S, E, L])]; }); });
             expect(result).toEqual([
                 [1, 2, 1], [2, 3, 1], [1, 3, 10], [1, 3, 2]
             ]);
@@ -82,19 +82,19 @@ var __read = (this && this.__read) || function (o, n) {
                 var _b = __read(_a, 2), S = _b[0], E = _b[1];
                 return path.match([S, E, Q]);
             });
-            var edge = slg_1.facts([[1, 2, 1], [2, 3, 1], [1, 3, 10]]);
-            var path = slg_1.tabled(function (_a) {
+            var edge = (0, slg_1.facts)([[1, 2, 1], [2, 3, 1], [1, 3, 10]]);
+            var path = (0, slg_1.tabled)(function (_a) {
                 var _b = __read(_a, 3), X = _b[0], Z = _b[1], SD = _b[2];
-                return slg_1.rule(function () { return [edge.match([X, Z, SD])]; }, function (Y, D1, D2, D) { return [path.match([X, Y, D1]),
+                return (0, slg_1.rule)(function () { return [edge.match([X, Z, SD])]; }, function (Y, D1, D2, D) { return [path.match([X, Y, D1]),
                     edge.match([Y, Z, D2]),
-                    slg_1.apply(function (_a) {
+                    (0, slg_1.apply)(function (_a) {
                         var _b = __read(_a, 2), d1 = _b[0], d2 = _b[1];
                         return d1 + d2;
                     })([D1, D2], D),
                     shortestPathLen.join(D, SD).for([X, Z])]; });
             });
-            var shortestPath = slg_1.grouped(function (S, E) { return function (D) { return path.match([S, E, D]); }; });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (S, E, D) { return [shortestPath.groupBy(S, E).minInto(D), slg_1.unify(Q, [S, E, D])]; }); });
+            var shortestPath = (0, slg_1.grouped)(function (S, E) { return function (D) { return path.match([S, E, D]); }; });
+            var result = (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.clause)(function (S, E, D) { return [shortestPath.groupBy(S, E).minInto(D), (0, slg_1.unify)(Q, [S, E, D])]; }); });
             expect(result).toEqual([
                 [1, 2, 1], [1, 3, 2], [2, 3, 1]
             ]);
@@ -102,248 +102,248 @@ var __read = (this && this.__read) || function (o, n) {
     });
     describe('non-monotonic aggregation', function () {
         test('non-ground results throw an error', function () {
-            var p = slg_1.tabled(function (X) { return slg_1.fresh(function (Y) { return slg_1.unify(X, Y); }); });
-            expect(function () { return slg_1.toArrayQ(function (Q) { return slg_1.fresh(function (X) { return p.count(X).into(Q); }); }); }).toThrow('completelyGroundJson: term contains unbound variables');
+            var p = (0, slg_1.tabled)(function (X) { return (0, slg_1.fresh)(function (Y) { return (0, slg_1.unify)(X, Y); }); });
+            expect(function () { return (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.fresh)(function (X) { return p.count(X).into(Q); }); }); }).toThrow('completelyGroundJson: term contains unbound variables');
         });
         test('sum', function () {
-            var edge = slg_1.facts([[1, 2], [2, 3], [3, 1]]);
-            var path = slg_1.tabled(function (_a) {
+            var edge = (0, slg_1.facts)([[1, 2], [2, 3], [3, 1]]);
+            var path = (0, slg_1.tabled)(function (_a) {
                 var _b = __read(_a, 2), X = _b[0], Z = _b[1];
-                return slg_1.rule(function () { return [edge.match([X, Z])]; }, function (Y) { return [path.match([X, Y]), path.match([Y, Z])]; });
+                return (0, slg_1.rule)(function () { return [edge.match([X, Z])]; }, function (Y) { return [path.match([X, Y]), path.match([Y, Z])]; });
             });
-            var fst = slg_1.tabled(function (X) { return slg_1.fresh(function (Y) { return path.match([X, Y]); }); });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.fresh(function (S) { return fst.sum(S).into(Q); }); });
+            var fst = (0, slg_1.tabled)(function (X) { return (0, slg_1.fresh)(function (Y) { return path.match([X, Y]); }); });
+            var result = (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.fresh)(function (S) { return fst.sum(S).into(Q); }); });
             expect(result).toEqual([6]);
         });
         test('min', function () {
-            var edge = slg_1.facts([[1, 2], [2, 3], [3, 1]]);
-            var path = slg_1.tabled(function (_a) {
+            var edge = (0, slg_1.facts)([[1, 2], [2, 3], [3, 1]]);
+            var path = (0, slg_1.tabled)(function (_a) {
                 var _b = __read(_a, 2), X = _b[0], Z = _b[1];
-                return slg_1.rule(function () { return [edge.match([X, Z])]; }, function (Y) { return [path.match([X, Y]), path.match([Y, Z])]; });
+                return (0, slg_1.rule)(function () { return [edge.match([X, Z])]; }, function (Y) { return [path.match([X, Y]), path.match([Y, Z])]; });
             });
-            var fst = slg_1.tabled(function (X) { return slg_1.fresh(function (Y) { return path.match([X, Y]); }); });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.fresh(function (S) { return fst.min(S).into(Q); }); });
+            var fst = (0, slg_1.tabled)(function (X) { return (0, slg_1.fresh)(function (Y) { return path.match([X, Y]); }); });
+            var result = (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.fresh)(function (S) { return fst.min(S).into(Q); }); });
             expect(result).toEqual([1]);
         });
         test('max', function () {
-            var edge = slg_1.facts([[1, 2], [2, 3], [3, 1]]);
-            var path = slg_1.tabled(function (_a) {
+            var edge = (0, slg_1.facts)([[1, 2], [2, 3], [3, 1]]);
+            var path = (0, slg_1.tabled)(function (_a) {
                 var _b = __read(_a, 2), X = _b[0], Z = _b[1];
-                return slg_1.rule(function () { return [edge.match([X, Z])]; }, function (Y) { return [path.match([X, Y]), path.match([Y, Z])]; });
+                return (0, slg_1.rule)(function () { return [edge.match([X, Z])]; }, function (Y) { return [path.match([X, Y]), path.match([Y, Z])]; });
             });
-            var fst = slg_1.tabled(function (X) { return slg_1.fresh(function (Y) { return path.match([X, Y]); }); });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.fresh(function (S) { return fst.max(S).into(Q); }); });
+            var fst = (0, slg_1.tabled)(function (X) { return (0, slg_1.fresh)(function (Y) { return path.match([X, Y]); }); });
+            var result = (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.fresh)(function (S) { return fst.max(S).into(Q); }); });
             expect(result).toEqual([3]);
         });
         test('count', function () {
-            var edge = slg_1.facts([[1, 2], [2, 3], [3, 1]]);
-            var path = slg_1.tabled(function (_a) {
+            var edge = (0, slg_1.facts)([[1, 2], [2, 3], [3, 1]]);
+            var path = (0, slg_1.tabled)(function (_a) {
                 var _b = __read(_a, 2), X = _b[0], Z = _b[1];
-                return slg_1.rule(function () { return [edge.match([X, Z])]; }, function (Y) { return [path.match([X, Y]), path.match([Y, Z])]; });
+                return (0, slg_1.rule)(function () { return [edge.match([X, Z])]; }, function (Y) { return [path.match([X, Y]), path.match([Y, Z])]; });
             });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.fresh(function (S, E) { return path.count([S, E]).into(Q); }); });
+            var result = (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.fresh)(function (S, E) { return path.count([S, E]).into(Q); }); });
             expect(result).toEqual([9]);
         });
         test('and true', function () {
-            var edge = slg_1.facts([[1, 2], [2, 3], [3, 1]]);
-            var path = slg_1.tabled(function (_a) {
+            var edge = (0, slg_1.facts)([[1, 2], [2, 3], [3, 1]]);
+            var path = (0, slg_1.tabled)(function (_a) {
                 var _b = __read(_a, 2), X = _b[0], Z = _b[1];
-                return slg_1.rule(function () { return [edge.match([X, Z])]; }, function (Y) { return [path.match([X, Y]), path.match([Y, Z])]; });
+                return (0, slg_1.rule)(function () { return [edge.match([X, Z])]; }, function (Y) { return [path.match([X, Y]), path.match([Y, Z])]; });
             });
-            var p = slg_1.tabled(function (Q) { return slg_1.clause(function (X, Y) { return [path.match([X, Y]), slg_1.apply(function (_a) {
+            var p = (0, slg_1.tabled)(function (Q) { return (0, slg_1.clause)(function (X, Y) { return [path.match([X, Y]), (0, slg_1.apply)(function (_a) {
                     var _b = __read(_a, 2), x = _b[0], _ = _b[1];
                     return x > 0;
                 })([X, Y], Q)]; }); });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.fresh(function (S) { return p.and(S).into(Q); }); });
+            var result = (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.fresh)(function (S) { return p.and(S).into(Q); }); });
             expect(result).toEqual([true]);
         });
         test('and false', function () {
-            var edge = slg_1.facts([[1, 2], [2, 3], [3, 1]]);
-            var path = slg_1.tabled(function (_a) {
+            var edge = (0, slg_1.facts)([[1, 2], [2, 3], [3, 1]]);
+            var path = (0, slg_1.tabled)(function (_a) {
                 var _b = __read(_a, 2), X = _b[0], Z = _b[1];
-                return slg_1.rule(function () { return [edge.match([X, Z])]; }, function (Y) { return [path.match([X, Y]), path.match([Y, Z])]; });
+                return (0, slg_1.rule)(function () { return [edge.match([X, Z])]; }, function (Y) { return [path.match([X, Y]), path.match([Y, Z])]; });
             });
-            var p = slg_1.tabled(function (Q) { return slg_1.clause(function (X, Y) { return [path.match([X, Y]), slg_1.apply(function (_a) {
+            var p = (0, slg_1.tabled)(function (Q) { return (0, slg_1.clause)(function (X, Y) { return [path.match([X, Y]), (0, slg_1.apply)(function (_a) {
                     var _b = __read(_a, 2), x = _b[0], y = _b[1];
                     return x === y;
                 })([X, Y], Q)]; }); });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.fresh(function (S) { return p.and(S).into(Q); }); });
+            var result = (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.fresh)(function (S) { return p.and(S).into(Q); }); });
             expect(result).toEqual([false]);
         });
         test('or true', function () {
-            var edge = slg_1.facts([[1, 2], [2, 3], [3, 1]]);
-            var path = slg_1.tabled(function (_a) {
+            var edge = (0, slg_1.facts)([[1, 2], [2, 3], [3, 1]]);
+            var path = (0, slg_1.tabled)(function (_a) {
                 var _b = __read(_a, 2), X = _b[0], Z = _b[1];
-                return slg_1.rule(function () { return [edge.match([X, Z])]; }, function (Y) { return [path.match([X, Y]), path.match([Y, Z])]; });
+                return (0, slg_1.rule)(function () { return [edge.match([X, Z])]; }, function (Y) { return [path.match([X, Y]), path.match([Y, Z])]; });
             });
-            var p = slg_1.tabled(function (Q) { return slg_1.clause(function (X, Y) { return [path.match([X, Y]), slg_1.apply(function (_a) {
+            var p = (0, slg_1.tabled)(function (Q) { return (0, slg_1.clause)(function (X, Y) { return [path.match([X, Y]), (0, slg_1.apply)(function (_a) {
                     var _b = __read(_a, 2), x = _b[0], y = _b[1];
                     return x === y;
                 })([X, Y], Q)]; }); });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.fresh(function (S) { return p.or(S).into(Q); }); });
+            var result = (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.fresh)(function (S) { return p.or(S).into(Q); }); });
             expect(result).toEqual([true]);
         });
         test('or false', function () {
-            var edge = slg_1.facts([[1, 2], [2, 3], [3, 1]]);
-            var path = slg_1.tabled(function (_a) {
+            var edge = (0, slg_1.facts)([[1, 2], [2, 3], [3, 1]]);
+            var path = (0, slg_1.tabled)(function (_a) {
                 var _b = __read(_a, 2), X = _b[0], Z = _b[1];
-                return slg_1.rule(function () { return [edge.match([X, Z])]; }, function (Y) { return [path.match([X, Y]), path.match([Y, Z])]; });
+                return (0, slg_1.rule)(function () { return [edge.match([X, Z])]; }, function (Y) { return [path.match([X, Y]), path.match([Y, Z])]; });
             });
-            var p = slg_1.tabled(function (Q) { return slg_1.clause(function (X, Y) { return [path.match([X, Y]), slg_1.apply(function (_a) {
+            var p = (0, slg_1.tabled)(function (Q) { return (0, slg_1.clause)(function (X, Y) { return [path.match([X, Y]), (0, slg_1.apply)(function (_a) {
                     var _b = __read(_a, 2), x = _b[0], _ = _b[1];
                     return x < 0;
                 })([X, Y], Q)]; }); });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.fresh(function (S) { return p.or(S).into(Q); }); });
+            var result = (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.fresh)(function (S) { return p.or(S).into(Q); }); });
             expect(result).toEqual([false]);
         });
         test('grouped sum', function () {
-            var employees = slg_1.facts([
+            var employees = (0, slg_1.facts)([
                 { name: 'harry', dept: 'sales', salary: 20 },
                 { name: 'sally', dept: 'hr', salary: 20 },
                 { name: 'jane', dept: 'sales', salary: 30 }
             ]);
-            var salaries = slg_1.grouped(function (D) { return function (S) { return slg_1.fresh(function (N) { return employees.match({ name: N, dept: D, salary: S }); }); }; });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (D, TS) { return [salaries.groupBy(D).sumInto(TS), slg_1.unify(Q, [D, TS])]; }); });
+            var salaries = (0, slg_1.grouped)(function (D) { return function (S) { return (0, slg_1.fresh)(function (N) { return employees.match({ name: N, dept: D, salary: S }); }); }; });
+            var result = (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.clause)(function (D, TS) { return [salaries.groupBy(D).sumInto(TS), (0, slg_1.unify)(Q, [D, TS])]; }); });
             expect(result).toEqual([
-                ["sales", 50], ["hr", 20]
+                ['sales', 50], ['hr', 20]
             ]);
         });
         test('grouped sum over all', function () {
-            var employees = slg_1.facts([
+            var employees = (0, slg_1.facts)([
                 { name: 'harry', dept: 'sales', salary: 20 },
                 { name: 'sally', dept: 'hr', salary: 20 },
                 { name: 'jane', dept: 'sales', salary: 30 }
             ]);
-            var salaries = slg_1.grouped(function () { return function (S) { return slg_1.fresh(function (N, D) { return employees.match({ name: N, dept: D, salary: S }); }); }; });
-            var result = slg_1.toArrayQ(function (Q) { return salaries.groupBy().sumInto(Q); });
+            var salaries = (0, slg_1.grouped)(function () { return function (S) { return (0, slg_1.fresh)(function (N, D) { return employees.match({ name: N, dept: D, salary: S }); }); }; });
+            var result = (0, slg_1.toArrayQ)(function (Q) { return salaries.groupBy().sumInto(Q); });
             expect(result).toEqual([70]);
         });
         test('grouped product', function () {
-            var employees = slg_1.facts([
+            var employees = (0, slg_1.facts)([
                 { name: 'harry', dept: 'sales', salary: 20 },
                 { name: 'sally', dept: 'hr', salary: 20 },
                 { name: 'jane', dept: 'sales', salary: 30 }
             ]);
-            var salaries = slg_1.grouped(function (D) { return function (S) { return slg_1.fresh(function (N) { return employees.match({ name: N, dept: D, salary: S }); }); }; });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (D, TS) { return [salaries.groupBy(D).productInto(TS), slg_1.unify(Q, [D, TS])]; }); });
+            var salaries = (0, slg_1.grouped)(function (D) { return function (S) { return (0, slg_1.fresh)(function (N) { return employees.match({ name: N, dept: D, salary: S }); }); }; });
+            var result = (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.clause)(function (D, TS) { return [salaries.groupBy(D).productInto(TS), (0, slg_1.unify)(Q, [D, TS])]; }); });
             expect(result).toEqual([
-                ["sales", 600], ["hr", 20]
+                ['sales', 600], ['hr', 20]
             ]);
         });
         test('grouped max', function () {
-            var employees = slg_1.facts([
+            var employees = (0, slg_1.facts)([
                 { name: 'harry', dept: 'sales', salary: 20 },
                 { name: 'sally', dept: 'hr', salary: 20 },
                 { name: 'jane', dept: 'sales', salary: 30 }
             ]);
-            var salaries = slg_1.grouped(function (D) { return function (S) { return slg_1.fresh(function (N) { return employees.match({ name: N, dept: D, salary: S }); }); }; });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (D, TS) { return [salaries.groupBy(D).maxInto(TS), slg_1.unify(Q, [D, TS])]; }); });
+            var salaries = (0, slg_1.grouped)(function (D) { return function (S) { return (0, slg_1.fresh)(function (N) { return employees.match({ name: N, dept: D, salary: S }); }); }; });
+            var result = (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.clause)(function (D, TS) { return [salaries.groupBy(D).maxInto(TS), (0, slg_1.unify)(Q, [D, TS])]; }); });
             expect(result).toEqual([
-                ["sales", 30], ["hr", 20]
+                ['sales', 30], ['hr', 20]
             ]);
         });
         test('grouped min', function () {
-            var employees = slg_1.facts([
+            var employees = (0, slg_1.facts)([
                 { name: 'harry', dept: 'sales', salary: 20 },
                 { name: 'sally', dept: 'hr', salary: 20 },
                 { name: 'jane', dept: 'sales', salary: 30 }
             ]);
-            var salaries = slg_1.grouped(function (D) { return function (S) { return slg_1.fresh(function (N) { return employees.match({ name: N, dept: D, salary: S }); }); }; });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (D, TS) { return [salaries.groupBy(D).minInto(TS), slg_1.unify(Q, [D, TS])]; }); });
+            var salaries = (0, slg_1.grouped)(function (D) { return function (S) { return (0, slg_1.fresh)(function (N) { return employees.match({ name: N, dept: D, salary: S }); }); }; });
+            var result = (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.clause)(function (D, TS) { return [salaries.groupBy(D).minInto(TS), (0, slg_1.unify)(Q, [D, TS])]; }); });
             expect(result).toEqual([
-                ["sales", 20], ["hr", 20]
+                ['sales', 20], ['hr', 20]
             ]);
         });
         test('grouped and', function () {
-            var employees = slg_1.facts([
+            var employees = (0, slg_1.facts)([
                 { name: 'harry', dept: 'sales', onVacation: true },
                 { name: 'sally', dept: 'hr', onVacation: false },
                 { name: 'jane', dept: 'sales', onVacation: true }
             ]);
-            var vacationing = slg_1.grouped(function (D) { return function (S) { return slg_1.fresh(function (N) { return employees.match({ name: N, dept: D, onVacation: S }); }); }; });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (D, TS) { return [vacationing.groupBy(D).andInto(TS), slg_1.unify(Q, [D, TS])]; }); });
+            var vacationing = (0, slg_1.grouped)(function (D) { return function (S) { return (0, slg_1.fresh)(function (N) { return employees.match({ name: N, dept: D, onVacation: S }); }); }; });
+            var result = (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.clause)(function (D, TS) { return [vacationing.groupBy(D).andInto(TS), (0, slg_1.unify)(Q, [D, TS])]; }); });
             expect(result).toEqual([
-                ["sales", true], ["hr", false]
+                ['sales', true], ['hr', false]
             ]);
         });
         test('grouped or', function () {
-            var employees = slg_1.facts([
+            var employees = (0, slg_1.facts)([
                 { name: 'harry', dept: 'sales', onVacation: true },
                 { name: 'sally', dept: 'hr', onVacation: false },
                 { name: 'jane', dept: 'sales', onVacation: false }
             ]);
-            var vacationing = slg_1.grouped(function (D) { return function (S) { return slg_1.fresh(function (N) { return employees.match({ name: N, dept: D, onVacation: S }); }); }; });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (D, TS) { return [vacationing.groupBy(D).orInto(TS), slg_1.unify(Q, [D, TS])]; }); });
+            var vacationing = (0, slg_1.grouped)(function (D) { return function (S) { return (0, slg_1.fresh)(function (N) { return employees.match({ name: N, dept: D, onVacation: S }); }); }; });
+            var result = (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.clause)(function (D, TS) { return [vacationing.groupBy(D).orInto(TS), (0, slg_1.unify)(Q, [D, TS])]; }); });
             expect(result).toEqual([
-                ["sales", true], ["hr", false]
+                ['sales', true], ['hr', false]
             ]);
         });
         test('grouped count', function () {
-            var employees = slg_1.facts([
+            var employees = (0, slg_1.facts)([
                 { name: 'harry', dept: 'sales', onVacation: true },
                 { name: 'sally', dept: 'hr', onVacation: false },
                 { name: 'jane', dept: 'sales', onVacation: false }
             ]);
-            var vacationing = slg_1.grouped(function (D) { return function (S) { return slg_1.fresh(function (N) { return employees.match({ name: N, dept: D, onVacation: S }); }); }; });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (D, TS) { return [vacationing.groupBy(D).countInto(TS), slg_1.unify(Q, [D, TS])]; }); });
+            var vacationing = (0, slg_1.grouped)(function (D) { return function (S) { return (0, slg_1.fresh)(function (N) { return employees.match({ name: N, dept: D, onVacation: S }); }); }; });
+            var result = (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.clause)(function (D, TS) { return [vacationing.groupBy(D).countInto(TS), (0, slg_1.unify)(Q, [D, TS])]; }); });
             expect(result).toEqual([
-                ["sales", 2], ["hr", 1]
+                ['sales', 2], ['hr', 1]
             ]);
         });
         test('empty group sum', function () {
-            var employees = slg_1.facts([
+            var employees = (0, slg_1.facts)([
                 { name: 'harry', dept: 'sales', salary: 20 },
                 { name: 'sally', dept: 'hr', salary: 20 },
                 { name: 'jane', dept: 'sales', salary: 30 }
             ]);
-            var salaries = slg_1.grouped(function (D) { return function (S) { return slg_1.fresh(function (N) { return employees.match({ name: N, dept: D, salary: S }); }); }; });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (TS) { return [salaries.groupBy('management').sumInto(TS), slg_1.unify(Q, TS)]; }); });
+            var salaries = (0, slg_1.grouped)(function (D) { return function (S) { return (0, slg_1.fresh)(function (N) { return employees.match({ name: N, dept: D, salary: S }); }); }; });
+            var result = (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.clause)(function (TS) { return [salaries.groupBy('management').sumInto(TS), (0, slg_1.unify)(Q, TS)]; }); });
             expect(result).toEqual([0]);
         });
     });
     describe('LRD-stratified negation', function () {
         test('LRD-stratified example requiring early completion', function () {
-            var a = slg_1.tabled(function (X) { return slg_1.conj(b.match(X), c.notMatch(X)); });
-            var b = slg_1.tabled(function (X) { return slg_1.rule(function () { return [a.match(X)]; }, function () { return [d.match(X)]; }, function () { return []; }); });
-            var c = slg_1.tabled(function (X) { return d.notMatch(X); });
-            var d = slg_1.tabled(function (X) { return slg_1.conj(b.match(X), e.match(X)); });
-            var e = slg_1.tabled(function (X) { return slg_1.fail(); });
-            var results = slg_1.toArrayQ(function (Q) { return slg_1.conj(a.match(null), slg_1.unify(Q, true)); });
+            var a = (0, slg_1.tabled)(function (X) { return (0, slg_1.conj)(b.match(X), c.notMatch(X)); });
+            var b = (0, slg_1.tabled)(function (X) { return (0, slg_1.rule)(function () { return [a.match(X)]; }, function () { return [d.match(X)]; }, function () { return []; }); });
+            var c = (0, slg_1.tabled)(function (X) { return d.notMatch(X); });
+            var d = (0, slg_1.tabled)(function (X) { return (0, slg_1.conj)(b.match(X), e.match(X)); });
+            var e = (0, slg_1.tabled)(function (_) { return (0, slg_1.fail)(); });
+            var results = (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.conj)(a.match(null), (0, slg_1.unify)(Q, true)); });
             expect(results).toEqual([]);
         });
         test('LRD-stratified example', function () {
-            var p = slg_1.tabled(function (X) { return slg_1.rule(function () { return [q.match(X), r.notMatch(X), s.notMatch(X)]; }); });
-            var q = slg_1.tabled(function (X) { return slg_1.rule(function () { return [r.match(X), p.notMatch(X)]; }); });
-            var r = slg_1.tabled(function (X) { return slg_1.rule(function () { return [p.match(X), q.notMatch(X)]; }); });
-            var s = slg_1.tabled(function (X) { return slg_1.rule(function () { return [p.notMatch(X), q.notMatch(X), r.notMatch(X)]; }); });
-            var results = slg_1.toArrayQ(function (Q) { return slg_1.conj(s.match(null), slg_1.unify(Q, true)); });
+            var p = (0, slg_1.tabled)(function (X) { return (0, slg_1.rule)(function () { return [q.match(X), r.notMatch(X), s.notMatch(X)]; }); });
+            var q = (0, slg_1.tabled)(function (X) { return (0, slg_1.rule)(function () { return [r.match(X), p.notMatch(X)]; }); });
+            var r = (0, slg_1.tabled)(function (X) { return (0, slg_1.rule)(function () { return [p.match(X), q.notMatch(X)]; }); });
+            var s = (0, slg_1.tabled)(function (X) { return (0, slg_1.rule)(function () { return [p.notMatch(X), q.notMatch(X), r.notMatch(X)]; }); });
+            var results = (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.conj)(s.match(null), (0, slg_1.unify)(Q, true)); });
             expect(results).toEqual([true]);
         });
         test('non-LRD-stratified example', function () {
-            var p = slg_1.tabled(function (X) { return slg_1.rule(function () { return [s.notMatch(X), r.notMatch(X), q.match(X)]; }); });
-            var q = slg_1.tabled(function (X) { return slg_1.rule(function () { return [r.match(X), p.notMatch(X)]; }); });
-            var r = slg_1.tabled(function (X) { return slg_1.rule(function () { return [p.match(X), q.notMatch(X)]; }); });
-            var s = slg_1.tabled(function (X) { return slg_1.rule(function () { return [p.notMatch(X), q.notMatch(X), r.notMatch(X)]; }); });
-            expect(function () { return slg_1.toArrayQ(function (Q) { return slg_1.conj(s.match(null), slg_1.unify(Q, true)); }); }).toThrow();
+            var p = (0, slg_1.tabled)(function (X) { return (0, slg_1.rule)(function () { return [s.notMatch(X), r.notMatch(X), q.match(X)]; }); });
+            var q = (0, slg_1.tabled)(function (X) { return (0, slg_1.rule)(function () { return [r.match(X), p.notMatch(X)]; }); });
+            var r = (0, slg_1.tabled)(function (X) { return (0, slg_1.rule)(function () { return [p.match(X), q.notMatch(X)]; }); });
+            var s = (0, slg_1.tabled)(function (X) { return (0, slg_1.rule)(function () { return [p.notMatch(X), q.notMatch(X), r.notMatch(X)]; }); });
+            expect(function () { return (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.conj)(s.match(null), (0, slg_1.unify)(Q, true)); }); }).toThrow();
         });
         test('floundering', function () {
-            var p = slg_1.tabled(function (X) { return slg_1.rule(function () { return []; }); });
-            expect(function () { return slg_1.toArrayQ(function (Q) { return slg_1.conj(p.notMatch(Q), slg_1.unify(Q, true)); }); }).toThrow('TabledPredicate.notMatch: negation of non-ground atom (floundering)');
+            var p = (0, slg_1.tabled)(function (_) { return (0, slg_1.rule)(function () { return []; }); });
+            expect(function () { return (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.conj)(p.notMatch(Q), (0, slg_1.unify)(Q, true)); }); }).toThrow('TabledPredicate.notMatch: negation of non-ground atom (floundering)');
         });
         test('non-trivial LRD-stratified example', function () {
-            var p = slg_1.tabled(function (X) { return slg_1.rule(function () { return [slg_1.unify(X, 'a'), p.match('b'), p.notMatch('d')]; }, function () { return [slg_1.unify(X, 'b'), p.match('c')]; }, function () { return [slg_1.unify(X, 'b'), p.notMatch('d')]; }, function () { return [slg_1.unify(X, 'b')]; }, function () { return [slg_1.unify(X, 'b'), p.notMatch('a')]; }, function () { return [slg_1.unify(X, 'c'), p.match('b'), p.match('e')]; }, function () { return [slg_1.unify(X, 'd'), p.notMatch('c'), p.match('d')]; }, function () { return [slg_1.unify(X, 'e'), p.match('c')]; }, function () { return [slg_1.unify(X, 'e'), p.notMatch('b'), p.notMatch('e')]; }); });
-            var results = slg_1.toArrayQ(function (Q) { return slg_1.conj(p.match('a'), slg_1.unify(Q, true)); });
+            var p = (0, slg_1.tabled)(function (X) { return (0, slg_1.rule)(function () { return [(0, slg_1.unify)(X, 'a'), p.match('b'), p.notMatch('d')]; }, function () { return [(0, slg_1.unify)(X, 'b'), p.match('c')]; }, function () { return [(0, slg_1.unify)(X, 'b'), p.notMatch('d')]; }, function () { return [(0, slg_1.unify)(X, 'b')]; }, function () { return [(0, slg_1.unify)(X, 'b'), p.notMatch('a')]; }, function () { return [(0, slg_1.unify)(X, 'c'), p.match('b'), p.match('e')]; }, function () { return [(0, slg_1.unify)(X, 'd'), p.notMatch('c'), p.match('d')]; }, function () { return [(0, slg_1.unify)(X, 'e'), p.match('c')]; }, function () { return [(0, slg_1.unify)(X, 'e'), p.notMatch('b'), p.notMatch('e')]; }); });
+            var results = (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.conj)(p.match('a'), (0, slg_1.unify)(Q, true)); });
             expect(results).toEqual([true]);
         });
     });
     describe('traditional Prolog append example', function () {
         test('untabled (which is preferable for this)', function () {
-            var append = slg_1.untabled(function (_a) {
+            var append = (0, slg_1.untabled)(function (_a) {
                 var _b = __read(_a, 3), Xs = _b[0], Ys = _b[1], Zs = _b[2];
-                return slg_1.rule(function () {
-                    return [slg_1.unify([], Xs), slg_1.unify(Ys, Zs)];
+                return (0, slg_1.rule)(function () {
+                    return [(0, slg_1.unify)([], Xs), (0, slg_1.unify)(Ys, Zs)];
                 }, function (X1, Xs1, Zs1) {
-                    return [slg_1.unify([X1, Xs1], Xs), slg_1.unify([X1, Zs1], Zs), append.match([Xs1, Ys, Zs1])];
+                    return [(0, slg_1.unify)([X1, Xs1], Xs), (0, slg_1.unify)([X1, Zs1], Zs), append.match([Xs1, Ys, Zs1])];
                 });
             });
             function list() {
@@ -357,7 +357,7 @@ var __read = (this && this.__read) || function (o, n) {
                 }
                 return ys;
             }
-            var results = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (L, R) { return [append.match([L, R, list(1, 2, 3, 4, 5)]), slg_1.unify(Q, [L, R])]; }); });
+            var results = (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.clause)(function (L, R) { return [append.match([L, R, list(1, 2, 3, 4, 5)]), (0, slg_1.unify)(Q, [L, R])]; }); });
             expect(results).toEqual([
                 [[], [1, [2, [3, [4, [5, []]]]]]],
                 [[1, []], [2, [3, [4, [5, []]]]]],
@@ -368,12 +368,12 @@ var __read = (this && this.__read) || function (o, n) {
             ]);
         });
         test('tabled (which is not recommended for this, but should still work)', function () {
-            var append = slg_1.tabled(function (_a) {
+            var append = (0, slg_1.tabled)(function (_a) {
                 var _b = __read(_a, 3), Xs = _b[0], Ys = _b[1], Zs = _b[2];
-                return slg_1.rule(function () {
-                    return [slg_1.unify([], Xs), slg_1.unify(Ys, Zs)];
+                return (0, slg_1.rule)(function () {
+                    return [(0, slg_1.unify)([], Xs), (0, slg_1.unify)(Ys, Zs)];
                 }, function (X1, Xs1, Zs1) {
-                    return [slg_1.unify([X1, Xs1], Xs), slg_1.unify([X1, Zs1], Zs), append.match([Xs1, Ys, Zs1])];
+                    return [(0, slg_1.unify)([X1, Xs1], Xs), (0, slg_1.unify)([X1, Zs1], Zs), append.match([Xs1, Ys, Zs1])];
                 });
             });
             function list() {
@@ -387,7 +387,7 @@ var __read = (this && this.__read) || function (o, n) {
                 }
                 return ys;
             }
-            var results = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (L, R) { return [append.match([L, R, list(1, 2, 3, 4, 5)]), slg_1.unify(Q, [L, R])]; }); });
+            var results = (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.clause)(function (L, R) { return [append.match([L, R, list(1, 2, 3, 4, 5)]), (0, slg_1.unify)(Q, [L, R])]; }); });
             expect(results).toEqual([
                 [[], [1, [2, [3, [4, [5, []]]]]]],
                 [[1, []], [2, [3, [4, [5, []]]]]],
@@ -400,149 +400,149 @@ var __read = (this && this.__read) || function (o, n) {
     });
     describe('transitive closure', function () {
         test('chain, double recursive, edges first', function () {
-            var edge = slg_1.facts([[1, 2], [2, 3], [3, 4]]);
-            var path = slg_1.tabled(function (row) { return slg_1.rule(function () { return [edge.match(row)]; }, function (Y) { return [path.match([row[0], Y]), path.match([Y, row[1]])]; }); });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (S, E) { return [path.match([S, E]), slg_1.unify(Q, [S, E])]; }); });
+            var edge = (0, slg_1.facts)([[1, 2], [2, 3], [3, 4]]);
+            var path = (0, slg_1.tabled)(function (row) { return (0, slg_1.rule)(function () { return [edge.match(row)]; }, function (Y) { return [path.match([row[0], Y]), path.match([Y, row[1]])]; }); });
+            var result = (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.clause)(function (S, E) { return [path.match([S, E]), (0, slg_1.unify)(Q, [S, E])]; }); });
             expect(result).toEqual([
                 [1, 2], [2, 3], [3, 4], [1, 3], [1, 4], [2, 4]
             ]);
         });
         test('chain, double recursive, edges second', function () {
-            var edge = slg_1.facts([[1, 2], [2, 3], [3, 4]]);
-            var path = slg_1.tabled(function (row) { return slg_1.rule(function (Y) { return [path.match([row[0], Y]), path.match([Y, row[1]])]; }, function () { return [edge.match(row)]; }); });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (S, E) { return [path.match([S, E]), slg_1.unify(Q, [S, E])]; }); });
+            var edge = (0, slg_1.facts)([[1, 2], [2, 3], [3, 4]]);
+            var path = (0, slg_1.tabled)(function (row) { return (0, slg_1.rule)(function (Y) { return [path.match([row[0], Y]), path.match([Y, row[1]])]; }, function () { return [edge.match(row)]; }); });
+            var result = (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.clause)(function (S, E) { return [path.match([S, E]), (0, slg_1.unify)(Q, [S, E])]; }); });
             expect(result).toEqual([
                 [1, 2], [2, 3], [3, 4], [1, 3], [1, 4], [2, 4]
             ]);
         });
         test('chain, left recursive, edges first', function () {
-            var edge = slg_1.facts([[1, 2], [2, 3], [3, 4]]);
-            var path = slg_1.tabled(function (row) { return slg_1.rule(function () { return [edge.match(row)]; }, function (Y) { return [path.match([row[0], Y]), edge.match([Y, row[1]])]; }); });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (S, E) { return [path.match([S, E]), slg_1.unify(Q, [S, E])]; }); });
+            var edge = (0, slg_1.facts)([[1, 2], [2, 3], [3, 4]]);
+            var path = (0, slg_1.tabled)(function (row) { return (0, slg_1.rule)(function () { return [edge.match(row)]; }, function (Y) { return [path.match([row[0], Y]), edge.match([Y, row[1]])]; }); });
+            var result = (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.clause)(function (S, E) { return [path.match([S, E]), (0, slg_1.unify)(Q, [S, E])]; }); });
             expect(result).toEqual([
                 [1, 2], [2, 3], [3, 4], [1, 3], [2, 4], [1, 4]
             ]);
         });
         test('chain, left recursive, edges second', function () {
-            var edge = slg_1.facts([[1, 2], [2, 3], [3, 4]]);
-            var path = slg_1.tabled(function (row) { return slg_1.rule(function (Y) { return [path.match([row[0], Y]), edge.match([Y, row[1]])]; }, function () { return [edge.match(row)]; }); });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (S, E) { return [path.match([S, E]), slg_1.unify(Q, [S, E])]; }); });
+            var edge = (0, slg_1.facts)([[1, 2], [2, 3], [3, 4]]);
+            var path = (0, slg_1.tabled)(function (row) { return (0, slg_1.rule)(function (Y) { return [path.match([row[0], Y]), edge.match([Y, row[1]])]; }, function () { return [edge.match(row)]; }); });
+            var result = (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.clause)(function (S, E) { return [path.match([S, E]), (0, slg_1.unify)(Q, [S, E])]; }); });
             expect(result).toEqual([
                 [1, 2], [2, 3], [3, 4], [1, 3], [2, 4], [1, 4]
             ]);
         });
         test('chain, right recursive, edges first', function () {
-            var edge = slg_1.facts([[1, 2], [2, 3], [3, 4]]);
-            var path = slg_1.tabled(function (row) { return slg_1.rule(function () { return [edge.match(row)]; }, function (Y) { return [edge.match([row[0], Y]), path.match([Y, row[1]])]; }); });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (S, E) { return [path.match([S, E]), slg_1.unify(Q, [S, E])]; }); });
+            var edge = (0, slg_1.facts)([[1, 2], [2, 3], [3, 4]]);
+            var path = (0, slg_1.tabled)(function (row) { return (0, slg_1.rule)(function () { return [edge.match(row)]; }, function (Y) { return [edge.match([row[0], Y]), path.match([Y, row[1]])]; }); });
+            var result = (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.clause)(function (S, E) { return [path.match([S, E]), (0, slg_1.unify)(Q, [S, E])]; }); });
             expect(result).toEqual([
                 [1, 2], [2, 3], [3, 4], [1, 3], [1, 4], [2, 4]
             ]);
         });
         test('chain, right recursive, edges second', function () {
-            var edge = slg_1.facts([[1, 2], [2, 3], [3, 4]]);
-            var path = slg_1.tabled(function (row) { return slg_1.rule(function (Y) { return [edge.match([row[0], Y]), path.match([Y, row[1]])]; }, function () { return [edge.match(row)]; }); });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (S, E) { return [path.match([S, E]), slg_1.unify(Q, [S, E])]; }); });
+            var edge = (0, slg_1.facts)([[1, 2], [2, 3], [3, 4]]);
+            var path = (0, slg_1.tabled)(function (row) { return (0, slg_1.rule)(function (Y) { return [edge.match([row[0], Y]), path.match([Y, row[1]])]; }, function () { return [edge.match(row)]; }); });
+            var result = (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.clause)(function (S, E) { return [path.match([S, E]), (0, slg_1.unify)(Q, [S, E])]; }); });
             expect(result).toEqual([
                 [1, 4], [1, 3], [2, 4], [1, 2], [2, 3], [3, 4]
             ]);
         });
         test('cycle, double recursive, edges first', function () {
-            var edge = slg_1.facts([[1, 2], [2, 3], [3, 1]]);
-            var path = slg_1.tabled(function (row) { return slg_1.rule(function () { return [edge.match(row)]; }, function (Y) { return [path.match([row[0], Y]), path.match([Y, row[1]])]; }); });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (S, E) { return [path.match([S, E]), slg_1.unify(Q, [S, E])]; }); });
+            var edge = (0, slg_1.facts)([[1, 2], [2, 3], [3, 1]]);
+            var path = (0, slg_1.tabled)(function (row) { return (0, slg_1.rule)(function () { return [edge.match(row)]; }, function (Y) { return [path.match([row[0], Y]), path.match([Y, row[1]])]; }); });
+            var result = (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.clause)(function (S, E) { return [path.match([S, E]), (0, slg_1.unify)(Q, [S, E])]; }); });
             expect(result).toEqual([
                 [1, 2], [2, 3], [3, 1], [1, 3], [1, 1], [2, 1], [2, 2], [3, 2], [3, 3]
             ]);
         });
         test('cycle, double recursive, edges second', function () {
-            var edge = slg_1.facts([[1, 2], [2, 3], [3, 1]]);
-            var path = slg_1.tabled(function (row) { return slg_1.rule(function (Y) { return [path.match([row[0], Y]), path.match([Y, row[1]])]; }, function () { return [edge.match(row)]; }); });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (S, E) { return [path.match([S, E]), slg_1.unify(Q, [S, E])]; }); });
+            var edge = (0, slg_1.facts)([[1, 2], [2, 3], [3, 1]]);
+            var path = (0, slg_1.tabled)(function (row) { return (0, slg_1.rule)(function (Y) { return [path.match([row[0], Y]), path.match([Y, row[1]])]; }, function () { return [edge.match(row)]; }); });
+            var result = (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.clause)(function (S, E) { return [path.match([S, E]), (0, slg_1.unify)(Q, [S, E])]; }); });
             expect(result).toEqual([
                 [1, 2], [2, 3], [3, 1], [1, 3], [1, 1], [2, 1], [2, 2], [3, 2], [3, 3]
             ]);
         });
         test('cycle, left recursive, edges first', function () {
-            var edge = slg_1.facts([[1, 2], [2, 3], [3, 1]]);
-            var path = slg_1.tabled(function (row) { return slg_1.rule(function () { return [edge.match(row)]; }, function (Y) { return [path.match([row[0], Y]), edge.match([Y, row[1]])]; }); });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (S, E) { return [path.match([S, E]), slg_1.unify(Q, [S, E])]; }); });
+            var edge = (0, slg_1.facts)([[1, 2], [2, 3], [3, 1]]);
+            var path = (0, slg_1.tabled)(function (row) { return (0, slg_1.rule)(function () { return [edge.match(row)]; }, function (Y) { return [path.match([row[0], Y]), edge.match([Y, row[1]])]; }); });
+            var result = (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.clause)(function (S, E) { return [path.match([S, E]), (0, slg_1.unify)(Q, [S, E])]; }); });
             expect(result).toEqual([
                 [1, 2], [2, 3], [3, 1], [1, 3], [2, 1], [3, 2], [1, 1], [2, 2], [3, 3]
             ]);
         });
         test('cycle, left recursive, edges second', function () {
-            var edge = slg_1.facts([[1, 2], [2, 3], [3, 1]]);
-            var path = slg_1.tabled(function (row) { return slg_1.rule(function (Y) { return [path.match([row[0], Y]), edge.match([Y, row[1]])]; }, function () { return [edge.match(row)]; }); });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (S, E) { return [path.match([S, E]), slg_1.unify(Q, [S, E])]; }); });
+            var edge = (0, slg_1.facts)([[1, 2], [2, 3], [3, 1]]);
+            var path = (0, slg_1.tabled)(function (row) { return (0, slg_1.rule)(function (Y) { return [path.match([row[0], Y]), edge.match([Y, row[1]])]; }, function () { return [edge.match(row)]; }); });
+            var result = (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.clause)(function (S, E) { return [path.match([S, E]), (0, slg_1.unify)(Q, [S, E])]; }); });
             expect(result).toEqual([
                 [1, 2], [2, 3], [3, 1], [1, 3], [2, 1], [3, 2], [1, 1], [2, 2], [3, 3]
             ]);
         });
         test('cycle, right recursive, edges first', function () {
-            var edge = slg_1.facts([[1, 2], [2, 3], [3, 1]]);
-            var path = slg_1.tabled(function (row) { return slg_1.rule(function () { return [edge.match(row)]; }, function (Y) { return [edge.match([row[0], Y]), path.match([Y, row[1]])]; }); });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (S, E) { return [path.match([S, E]), slg_1.unify(Q, [S, E])]; }); });
+            var edge = (0, slg_1.facts)([[1, 2], [2, 3], [3, 1]]);
+            var path = (0, slg_1.tabled)(function (row) { return (0, slg_1.rule)(function () { return [edge.match(row)]; }, function (Y) { return [edge.match([row[0], Y]), path.match([Y, row[1]])]; }); });
+            var result = (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.clause)(function (S, E) { return [path.match([S, E]), (0, slg_1.unify)(Q, [S, E])]; }); });
             expect(result).toEqual([
                 [1, 2], [2, 3], [3, 1], [1, 3], [1, 1], [2, 1], [2, 2], [3, 2], [3, 3]
             ]);
         });
         test('cycle, right recursive, edges second', function () {
-            var edge = slg_1.facts([[1, 2], [2, 3], [3, 1]]);
-            var path = slg_1.tabled(function (row) { return slg_1.rule(function (Y) { return [edge.match([row[0], Y]), path.match([Y, row[1]])]; }, function () { return [edge.match(row)]; }); });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (S, E) { return [path.match([S, E]), slg_1.unify(Q, [S, E])]; }); });
+            var edge = (0, slg_1.facts)([[1, 2], [2, 3], [3, 1]]);
+            var path = (0, slg_1.tabled)(function (row) { return (0, slg_1.rule)(function (Y) { return [edge.match([row[0], Y]), path.match([Y, row[1]])]; }, function () { return [edge.match(row)]; }); });
+            var result = (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.clause)(function (S, E) { return [path.match([S, E]), (0, slg_1.unify)(Q, [S, E])]; }); });
             expect(result).toEqual([
                 [1, 3], [1, 1], [1, 2], [2, 1], [2, 2], [2, 3], [3, 2], [3, 3], [3, 1]
             ]);
         });
     });
     test('trivial unsupported positive loop', function () {
-        var r = slg_1.tabled(function (row) { return slg_1.rule(function () { return [r.match(row)]; }); });
-        var result = slg_1.toArrayQ(function (Q) { return r.match(null); });
+        var r = (0, slg_1.tabled)(function (row) { return (0, slg_1.rule)(function () { return [r.match(row)]; }); });
+        var result = (0, slg_1.toArrayQ)(function (_) { return r.match(null); });
         expect(result).toEqual([]);
     });
     test('slightly less trivial unsupported positive loop', function () {
-        var p = slg_1.tabled(function (row) { return slg_1.rule(function () { return [q.match(row)]; }); });
-        var q = slg_1.tabled(function (row) { return slg_1.rule(function () { return [p.match(row)]; }); });
-        var result = slg_1.toArrayQ(function (Q) { return p.match(null); });
+        var p = (0, slg_1.tabled)(function (row) { return (0, slg_1.rule)(function () { return [q.match(row)]; }); });
+        var q = (0, slg_1.tabled)(function (row) { return (0, slg_1.rule)(function () { return [p.match(row)]; }); });
+        var result = (0, slg_1.toArrayQ)(function (_) { return p.match(null); });
         expect(result).toEqual([]);
     });
     test('looseUnify success', function () {
-        var objects = slg_1.facts([
+        var objects = (0, slg_1.facts)([
             { foo: 1, bar: 2 },
             { foo: 3, bar: 4 }
         ]);
-        var result = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (X) { return [objects.match(X), slg_1.looseUnify({ foo: Q }, X)]; }); });
+        var result = (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.clause)(function (X) { return [objects.match(X), (0, slg_1.looseUnify)({ foo: Q }, X)]; }); });
         expect(result).toEqual([1, 3]);
     });
     test('trapped subgoal', function () {
-        var p = slg_1.tabled(function (_a) {
+        var p = (0, slg_1.tabled)(function (_a) {
             var _b = __read(_a, 2), X = _b[0], Y = _b[1];
-            return slg_1.rule(function () { return [q.match(X), r.match(Y)]; }, function () { return [slg_1.unify([X, Y], ['c', 'a'])]; });
+            return (0, slg_1.rule)(function () { return [q.match(X), r.match(Y)]; }, function () { return [(0, slg_1.unify)([X, Y], ['c', 'a'])]; });
         });
-        var q = slg_1.tabled(function (X) { return slg_1.rule(function () { return [slg_1.unify(X, 'a')]; }, function () { return [slg_1.unify(X, 'b')]; }); });
-        var r = slg_1.tabled(function (X) { return slg_1.rule(function () { return [slg_1.unify(X, 'c')]; }, function (Y) { return [p.match([X, Y])]; }); });
-        var result = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (X, Y) { return [p.match([X, Y]), slg_1.unify(Q, [X, Y])]; }); });
+        var q = (0, slg_1.tabled)(function (X) { return (0, slg_1.rule)(function () { return [(0, slg_1.unify)(X, 'a')]; }, function () { return [(0, slg_1.unify)(X, 'b')]; }); });
+        var r = (0, slg_1.tabled)(function (X) { return (0, slg_1.rule)(function () { return [(0, slg_1.unify)(X, 'c')]; }, function (Y) { return [p.match([X, Y])]; }); });
+        var result = (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.clause)(function (X, Y) { return [p.match([X, Y]), (0, slg_1.unify)(Q, [X, Y])]; }); });
         expect(result).toEqual([
             ['c', 'a'], ['a', 'c'], ['b', 'c'], ['a', 'a'], ['a', 'b'], ['b', 'a'], ['b', 'b']
         ]);
     });
     describe('tests for independence of variables between consumers and generators', function () {
         test('', function () {
-            var vp = slg_1.tabled(function (X) { return slg_1.rule(function () { return []; }); });
-            var _a = __read(slg_1.toArrayQ(function (Q) { return slg_1.clause(function (Y, X) { return [slg_1.unify(1, X), vp.match(X), slg_1.unify(Q, [Y, X])]; }); }), 1), _b = __read(_a[0], 2), y = _b[0], x = _b[1];
+            var vp = (0, slg_1.tabled)(function (_) { return (0, slg_1.rule)(function () { return []; }); });
+            var _a = __read((0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.clause)(function (Y, X) { return [(0, slg_1.unify)(1, X), vp.match(X), (0, slg_1.unify)(Q, [Y, X])]; }); }), 1), _b = __read(_a[0], 2), y = _b[0], x = _b[1];
             expect(y).toBeInstanceOf(unify_1.Variable);
             expect(x).toBe(1);
         });
         test('', function () {
-            var vp = slg_1.tabled(function (X) { return slg_1.rule(function () { return []; }); });
-            var _a = __read(slg_1.toArrayQ(function (Q) { return slg_1.clause(function (Y, X) { return [vp.match(X), slg_1.unify(1, Y), slg_1.unify(Q, [Y, X])]; }); }), 1), _b = __read(_a[0], 2), y = _b[0], x = _b[1];
+            var vp = (0, slg_1.tabled)(function (_) { return (0, slg_1.rule)(function () { return []; }); });
+            var _a = __read((0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.clause)(function (Y, X) { return [vp.match(X), (0, slg_1.unify)(1, Y), (0, slg_1.unify)(Q, [Y, X])]; }); }), 1), _b = __read(_a[0], 2), y = _b[0], x = _b[1];
             expect(x).toBeInstanceOf(unify_1.Variable);
             expect(y).toBe(1);
         });
         test('', function () {
-            var vp = slg_1.tabled(function (X) { return slg_1.rule(function () { return []; }); });
-            var _a = __read(slg_1.toArrayQ(function (Q) { return slg_1.clause(function (Y, X) { return [vp.match(X), slg_1.unify(1, X), slg_1.unify(Q, [Y, X])]; }); }), 1), _b = __read(_a[0], 2), y = _b[0], x = _b[1];
+            var vp = (0, slg_1.tabled)(function (_) { return (0, slg_1.rule)(function () { return []; }); });
+            var _a = __read((0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.clause)(function (Y, X) { return [vp.match(X), (0, slg_1.unify)(1, X), (0, slg_1.unify)(Q, [Y, X])]; }); }), 1), _b = __read(_a[0], 2), y = _b[0], x = _b[1];
             expect(y).toBeInstanceOf(unify_1.Variable);
             expect(x).toBe(1);
         });
@@ -729,11 +729,11 @@ var __read = (this && this.__read) || function (o, n) {
         ];
         test('large example with TrieEdbPredicate', function () {
             var cyl = slg_1.TrieEdbPredicate.fromArray(largeSgExampleData);
-            var sg = slg_1.tabled(function (_a) {
+            var sg = (0, slg_1.tabled)(function (_a) {
                 var _b = __read(_a, 2), X = _b[0], Y = _b[1];
-                return slg_1.rule(function () { return [slg_1.unify(X, Y)]; }, function (Z) { return [cyl.match([X, Z]), sg.match([Z, Z]), cyl.match([Y, Z])]; });
+                return (0, slg_1.rule)(function () { return [(0, slg_1.unify)(X, Y)]; }, function (Z) { return [cyl.match([X, Z]), sg.match([Z, Z]), cyl.match([Y, Z])]; });
             });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (S, E) { return [sg.match([S, E]), slg_1.unify(Q, [S, E])]; }); });
+            var result = (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.clause)(function (S, E) { return [sg.match([S, E]), (0, slg_1.unify)(Q, [S, E])]; }); });
             expect(result).toEqual([
                 [new unify_1.Variable(2), new unify_1.Variable(2)],
                 [1, 1], [1, 3], [1, 8], [1, 4], [1, 9], [2, 2], [2, 21], [2, 12], [3, 1],
@@ -1155,12 +1155,12 @@ var __read = (this && this.__read) || function (o, n) {
             ]);
         });
         test('large example with EdbPredicate', function () {
-            var cyl = slg_1.facts(largeSgExampleData);
-            var sg = slg_1.tabled(function (_a) {
+            var cyl = (0, slg_1.facts)(largeSgExampleData);
+            var sg = (0, slg_1.tabled)(function (_a) {
                 var _b = __read(_a, 2), X = _b[0], Y = _b[1];
-                return slg_1.rule(function () { return [slg_1.unify(X, Y)]; }, function (Z) { return [cyl.match([X, Z]), sg.match([Z, Z]), cyl.match([Y, Z])]; });
+                return (0, slg_1.rule)(function () { return [(0, slg_1.unify)(X, Y)]; }, function (Z) { return [cyl.match([X, Z]), sg.match([Z, Z]), cyl.match([Y, Z])]; });
             });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (S, E) { return [sg.match([S, E]), slg_1.unify(Q, [S, E])]; }); });
+            var result = (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.clause)(function (S, E) { return [sg.match([S, E]), (0, slg_1.unify)(Q, [S, E])]; }); });
             expect(result).toEqual([
                 [new unify_1.Variable(2), new unify_1.Variable(2)],
                 [1, 1], [1, 3], [1, 8], [1, 4], [1, 9], [2, 2],
@@ -1582,7 +1582,7 @@ var __read = (this && this.__read) || function (o, n) {
             ]);
         });
         test('small example', function () {
-            var cyl = slg_1.facts([
+            var cyl = (0, slg_1.facts)([
                 ['dorothy', 'george'],
                 ['evelyn', 'george'],
                 ['bertrand', 'dorothy'],
@@ -1590,23 +1590,23 @@ var __read = (this && this.__read) || function (o, n) {
                 ['hilary', 'ann'],
                 ['charles', 'everlyn']
             ]);
-            var sg = slg_1.tabled(function (_a) {
+            var sg = (0, slg_1.tabled)(function (_a) {
                 var _b = __read(_a, 2), X = _b[0], Y = _b[1];
-                return slg_1.rule(function () { return [slg_1.unify(X, Y)]; }, function (Z) { return [cyl.match([X, Z]), sg.match([Z, Z]), cyl.match([Y, Z])]; });
+                return (0, slg_1.rule)(function () { return [(0, slg_1.unify)(X, Y)]; }, function (Z) { return [cyl.match([X, Z]), sg.match([Z, Z]), cyl.match([Y, Z])]; });
             });
-            var result = slg_1.toArrayQ(function (Q) { return slg_1.clause(function (S, E) { return [sg.match([S, E]), slg_1.unify(Q, [S, E])]; }); });
+            var result = (0, slg_1.toArrayQ)(function (Q) { return (0, slg_1.clause)(function (S, E) { return [sg.match([S, E]), (0, slg_1.unify)(Q, [S, E])]; }); });
             expect(result).toEqual([
                 [new unify_1.Variable(2), new unify_1.Variable(2)],
-                ["dorothy", "dorothy"],
-                ["dorothy", "evelyn"],
-                ["evelyn", "dorothy"],
-                ["evelyn", "evelyn"],
-                ["bertrand", "bertrand"],
-                ["bertrand", "ann"],
-                ["ann", "bertrand"],
-                ["ann", "ann"],
-                ["hilary", "hilary"],
-                ["charles", "charles"]
+                ['dorothy', 'dorothy'],
+                ['dorothy', 'evelyn'],
+                ['evelyn', 'dorothy'],
+                ['evelyn', 'evelyn'],
+                ['bertrand', 'bertrand'],
+                ['bertrand', 'ann'],
+                ['ann', 'bertrand'],
+                ['ann', 'ann'],
+                ['hilary', 'hilary'],
+                ['charles', 'charles']
             ]);
         });
     });

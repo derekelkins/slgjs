@@ -9,6 +9,7 @@
 })(function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
+    exports.unifyJson = exports.matchJson = exports.looseUnifyJson = exports.looseMatchJson = exports.refreshJson = exports.completelyGroundJson = exports.groundJson = exports.groundJsonNoSharing = exports.Substitution = exports.Variable = void 0;
     var puf_1 = require("./puf");
     var Variable = (function () {
         function Variable(id) {

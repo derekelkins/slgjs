@@ -1,6 +1,7 @@
 {
     "compilerOptions": {
         "module": "umd",
+        "moduleResolution": "Node",
         "removeComments": true,
         "sourceMap": true,
         "alwaysStrict": true,
